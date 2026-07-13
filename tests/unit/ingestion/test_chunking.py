@@ -57,3 +57,52 @@ def test_fenced_python_comment_is_not_treated_as_markdown_heading() -> None:
     chunks = PedagogicalChunker(chunk_size=100, overlap=20).split(code)
 
     assert chunks == [code]
+
+
+def test_three_space_indented_fence_is_preserved_byte_for_byte() -> None:
+    code = (
+        "   ```python\n"
+        "# comment\n"
+        "def conditional_probability(score: float) -> float:\n"
+        "    return 1 / (1 + math.exp(-score))\n"
+        "probability = conditional_probability(0.75)\n"
+        "   ```"
+    )
+    assert len(code) > 100
+
+    chunks = PedagogicalChunker(chunk_size=100, overlap=20).split(code)
+
+    assert chunks == [code]
+
+
+def test_tilde_fence_is_preserved_whole() -> None:
+    code = (
+        "~~~python\n"
+        "# comment\n"
+        "def conditional_probability(score: float) -> float:\n"
+        "    return 1 / (1 + math.exp(-score))\n"
+        "probability = conditional_probability(0.75)\n"
+        "~~~"
+    )
+    assert len(code) > 100
+
+    chunks = PedagogicalChunker(chunk_size=100, overlap=20).split(code)
+
+    assert chunks == [code]
+
+
+def test_mismatched_or_shorter_fence_does_not_close_code_block() -> None:
+    code = (
+        "````python\n"
+        "```\n"
+        "~~~\n"
+        "# comment remains inside the longer backtick fence\n"
+        "def conditional_probability(score: float) -> float:\n"
+        "    return 1 / (1 + math.exp(-score))\n"
+        "````"
+    )
+    assert len(code) > 100
+
+    chunks = PedagogicalChunker(chunk_size=100, overlap=20).split(code)
+
+    assert chunks == [code]
