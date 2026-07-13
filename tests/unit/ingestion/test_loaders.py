@@ -73,6 +73,17 @@ def test_html_loader_rejects_empty_or_insufficient_content(content: bytes) -> No
         load_html("course", Language.EN, content, "https://example.edu/course")
 
 
+def test_html_loader_rejects_long_plain_text_without_html_structure() -> None:
+    malformed_content = b"</html>" + (
+        b"Logistic regression estimates conditional class probabilities with a sigmoid function. "
+        b"Binary cross entropy measures the prediction error for a labeled training example. "
+        b"The resulting decision boundary is linear in the model input features."
+    )
+
+    with pytest.raises(ValueError, match="HTML extraction produced insufficient content"):
+        load_html("course", Language.EN, malformed_content, "https://example.edu/course")
+
+
 def test_pdf_loader_rejects_document_without_text_and_closes_it(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -1,9 +1,29 @@
 from dataclasses import dataclass
+from html.parser import HTMLParser
 
 import fitz  # type: ignore[import-untyped]
 import trafilatura
 
 from skillforge_kb.domain.enums import Language
+
+
+class _HTMLStructureParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.has_element = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.has_element = True
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        self.has_element = True
+
+
+def _has_html_structure(content: bytes) -> bool:
+    parser = _HTMLStructureParser()
+    parser.feed(content.decode("utf-8", errors="replace"))
+    parser.close()
+    return parser.has_element
 
 
 @dataclass(frozen=True)
@@ -15,6 +35,8 @@ class RawDocument:
 
 
 def load_html(source_id: str, language: Language, content: bytes, url: str) -> RawDocument:
+    if not _has_html_structure(content):
+        raise ValueError("HTML extraction produced insufficient content")
     text = trafilatura.extract(content, include_links=False, include_tables=True)
     if text is None or len(text.strip()) < 100:
         raise ValueError("HTML extraction produced insufficient content")
