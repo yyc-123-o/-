@@ -22,7 +22,13 @@ AUTHORITATIVE_ALIASES = {
     "RAG": "paper_rag_2020",
 }
 LEARNING_TITLES = {"Graphrag", "LoRA_2021", "QLora", "RAG"}
-PROJECT_MARKERS = ("实训手册", "渐进式", "项目", "exploration_summary")
+PROJECT_MARKERS = (
+    "实训手册",
+    "渐进式",
+    "项目",
+    "exploration_summary",
+    "project_case_notes",
+)
 
 
 def _raw_hash(raw: str) -> str:

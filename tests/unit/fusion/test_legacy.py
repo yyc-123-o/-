@@ -76,3 +76,7 @@ def test_legacy_adapter_rejects_short_text_and_supersedes_exact_duplicate(
 
 def test_corpus_classifier_keeps_knowledge_manual_in_learning_domain() -> None:
     assert classify_corpus("GAN生成对抗网络_知识点手册") is CorpusId.LEARNING_EVIDENCE
+
+
+def test_corpus_classifier_routes_project_case_notes_to_project_material() -> None:
+    assert classify_corpus("project_case_notes") is CorpusId.PROJECT_MATERIAL

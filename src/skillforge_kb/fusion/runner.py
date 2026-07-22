@@ -51,6 +51,17 @@ def _counter(values: Iterable[str]) -> dict[str, int]:
     return dict(sorted(Counter(values).items()))
 
 
+def _assert_output_outside_inputs(
+    output_dir: Path, knowledge_root: Path, legacy_root: Path
+) -> None:
+    resolved_output = output_dir.resolve()
+    if any(
+        resolved_output.is_relative_to(input_root.resolve())
+        for input_root in (knowledge_root, legacy_root)
+    ):
+        raise ValueError("output directory must be outside input roots")
+
+
 def run_dry_run(
     *,
     knowledge_root: Path,
@@ -60,6 +71,7 @@ def run_dry_run(
     workspace_root: Path,
     output_dir: Path,
 ) -> DryRunSummary:
+    _assert_output_outside_inputs(output_dir, knowledge_root, legacy_root)
     output_dir.mkdir(parents=True, exist_ok=True)
     inventory = inventory_tree(knowledge_root) + inventory_tree(legacy_root)
     inventory.sort(key=lambda entry: (entry.root, entry.relative_path))

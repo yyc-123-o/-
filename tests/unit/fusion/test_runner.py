@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from skillforge_kb.fusion.runner import run_dry_run
 from skillforge_kb.ingestion.normalize import sha256_text
 
@@ -94,3 +96,24 @@ def test_dry_run_accounts_for_every_line_and_is_deterministic(tmp_path: Path) ->
     ]
     assert len(outcomes) == 3
     assert all(outcome["publishable"] is False for outcome in outcomes)
+
+
+def test_dry_run_rejects_output_inside_an_input_root(tmp_path: Path) -> None:
+    knowledge_root = tmp_path / "knowledge"
+    legacy_root = tmp_path / "processed"
+    knowledge_root.mkdir()
+    legacy_root.mkdir()
+    pilot_path = knowledge_root / "pilot.jsonl"
+    legacy_path = legacy_root / "index_chunks.jsonl"
+    pilot_path.write_text("", encoding="utf-8")
+    legacy_path.write_text("", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="output directory must be outside input roots"):
+        run_dry_run(
+            knowledge_root=knowledge_root,
+            legacy_root=legacy_root,
+            pilot_jsonl=pilot_path,
+            legacy_jsonl=legacy_path,
+            workspace_root=tmp_path,
+            output_dir=knowledge_root / "generated",
+        )
