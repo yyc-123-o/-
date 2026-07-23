@@ -1,0 +1,35 @@
+{
+  "version": "knowledge-fusion-v1-dry-run",
+  "input_rows": 2133,
+  "input_file_count": 50,
+  "source_count": 69,
+  "outcome_counts": {
+    "accepted": 550,
+    "reference_only": 675,
+    "rejected": 29,
+    "superseded": 879
+  },
+  "corpus_counts": {
+    "learning_evidence": 1439,
+    "agent_engineering": 314,
+    "project_material": 380
+  },
+  "reason_counts": {
+    "automated_label_review_required": 1423,
+    "english_word_concatenation": 873,
+    "exact_duplicate": 6,
+    "human_review_required": 2133,
+    "license_review_required": 1423,
+    "missing_provenance": 710,
+    "normalized_hash_mismatch": 435,
+    "overlaps_authoritative_source": 5,
+    "text_requires_rechunking": 9,
+    "text_too_short": 29,
+    "token_count_is_character_count": 708
+  },
+  "input_sha256": {
+    "pilot_chunks": "e3538c2bfb1383f9613c19c0c9dcd6a4332a436ac30f77590c1de162ec688ee9",
+    "legacy_index_chunks": "7387347513cead86ee16edab32d9c3d94316f30f88453331f874587d11d197d6"
+  },
+  "publishable": false
+}

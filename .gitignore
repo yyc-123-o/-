@@ -9,3 +9,9 @@ __pycache__/
 data/raw/
 data/build/
 reports/generated/
+
+# Local teammate datasets and derived search artifacts are not repository sources.
+/知识库/
+/processed/
+/material/
+/ai_learning_pilot_review_300.jsonl
