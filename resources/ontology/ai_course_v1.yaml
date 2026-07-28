@@ -4096,48 +4096,48 @@ teaches:
     required: true
     review_status: reviewed
   - section_id: section.02.data-and-supervised
-    concept_id: ml.classification.logistic-regression
+    concept_id: ml.estimation.maximum-likelihood
     order: 5
     required: true
     review_status: reviewed
   - section_id: section.02.data-and-supervised
-    concept_id: ml.objective.loss-function
+    concept_id: ml.classification.logistic-regression
     order: 6
     required: true
     review_status: reviewed
-  - section_id: section.02.generalization-evaluation
-    concept_id: ml.estimation.maximum-likelihood
-    order: 1
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.objective.loss-function
+    order: 7
     required: true
     review_status: reviewed
   - section_id: section.02.generalization-evaluation
     concept_id: ml.generalization.bias-variance
-    order: 2
+    order: 1
     required: true
     review_status: reviewed
   - section_id: section.02.generalization-evaluation
     concept_id: ml.generalization.overfitting
-    order: 3
+    order: 2
     required: true
     review_status: reviewed
   - section_id: section.02.generalization-evaluation
     concept_id: ml.generalization.regularization-introduction
-    order: 4
+    order: 3
     required: true
     review_status: reviewed
   - section_id: section.02.generalization-evaluation
     concept_id: ml.model-selection.cross-validation
-    order: 5
+    order: 4
     required: true
     review_status: reviewed
   - section_id: section.02.generalization-evaluation
     concept_id: ml.evaluation.confusion-matrix
-    order: 6
+    order: 5
     required: true
     review_status: reviewed
   - section_id: section.02.generalization-evaluation
     concept_id: ml.evaluation.classification-metrics
-    order: 7
+    order: 6
     required: true
     review_status: reviewed
   - section_id: section.02.classical-algorithms
