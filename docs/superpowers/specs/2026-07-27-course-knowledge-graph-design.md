@@ -1,13 +1,14 @@
 # SkillForge 课程知识图谱设计
 
 - 日期：2026-07-27
+- 最后修订：2026-07-28（加入学情画像兼容边界）
 - 状态：已确认，待实现
 - 适用范围：课程规划 Agent 的知识结构底座
 - 教学范围：高校本科生，机器学习基础到大语言模型前沿
 
 ## 1. 目标
 
-本阶段只建设课程知识图谱，不实现课程规划 Agent、个性化路径算法、资源生成、多 Agent 编排或前端。
+本阶段建设课程知识图谱及其只读学情画像输入契约，不实现课程规划 Agent、个性化路径算法、资源生成、多 Agent 编排或前端。
 
 图谱必须同时满足三个目标：
 
@@ -219,12 +220,14 @@ Concept - CONFUSED_WITH ---------------------------> Concept
 resources/ontology/
   ai_course_v1.yaml          人工维护的课程、章节、小节和概念目录
   ai_relations_v1.yaml       先修、组成、对比和易混淆关系
+  legacy_profile_ids_v1.yaml 经人工审核的一对一画像 ID 映射
 
 src/skillforge_kb/ontology/
   models.py                  Pydantic 图谱契约
   catalog.py                 YAML 加载、查询和稳定排序
   validation.py              结构、DAG、章节和路径校验
   coverage.py                候选证据覆盖报告，不发布证据边
+  profile.py                 画像快照契约和只读 ProfileAdapter
   neo4j.py                   参数化、幂等的 Neo4j 发布适配器
 ```
 
@@ -315,11 +318,12 @@ Docker 不可用时，单元测试和静态图谱验证仍必须完整运行；N
 9. Neo4j 发布器使用参数化查询并通过幂等测试；
 10. 单元测试、Ruff 和 mypy 通过，Neo4j 集成测试结果如实记录；
 11. 图谱 Schema、维护方法、验证命令和导入命令有文档说明。
+12. 学情画像必须通过版本化适配契约与图谱概念 ID 对齐；未映射、复合或歧义节点必须使整个适配失败。
 
 ## 13. 明确不在本阶段范围内
 
 - 课程规划 Agent 和学习路径推荐算法；
-- 学习者画像、掌握度更新和自适应测试；
+- 学习者画像建模、掌握度更新和自适应测试的算法实现；仅定义课程图谱所消费的只读画像输入契约；
 - LangGraph 智能体状态机；
 - 讲义、实操指南和测试题生成；
 - 多 Agent 辩论和裁判协议；
@@ -337,3 +341,111 @@ Docker 不可用时，单元测试和静态图谱验证仍必须完整运行；N
 - 必修、选修和覆盖缺口状态。
 
 Agent 不得直接修改 Neo4j 图谱，也不得从未审核切片动态创造正式先修边。图谱修改必须先更新 YAML、通过校验、完成代码评审，再发布新版本。
+
+## 15. 学情画像兼容边界
+
+### 15.1 设计目的
+
+学情诊断组当前样例同时包含诊断事实、路径状态和资源生成提示。课程图谱只消费可审计的诊断事实，不能把路径或资源结论反向当作图谱事实。
+
+因此，课程规划前必须通过 `ProfileAdapter` 将外部画像转换为 `LearnerProfileSnapshot`。适配器是纯转换与校验组件：不调用大模型、不修改 Neo4j、不重算掌握度、不创建路径。
+
+```text
+原始画像 JSON
+       |
+       v
+ProfileAdapter + 版本化 ID 映射表
+       |
+       +----> 映射或结构错误：拒绝并报告字段路径
+       |
+       v
+LearnerProfileSnapshot
+       |
+       +----> 课程图谱：先修、章节和三级深度
+       |
+       v
+后续 PathDecision
+       |
+       v
+后续 ResourceBrief
+```
+
+### 15.2 `LearnerProfileSnapshot` 最小契约
+
+```text
+schema_version: learner-profile.v1
+profile_id: 不可变快照 ID
+learner_ref: 伪匿名学习者引用，不使用姓名或学号
+graph_version: 对应课程图谱版本
+observed_at: 本次诊断观察时间
+generated_at: 快照生成时间
+assessment_runs: 诊断批次 ID 与测试版本
+knowledge_mastery[]:
+  concept_id: 图谱中的 Concept.id
+  mastery_score: 0-1，未测评时为 null
+  assessment_status: assessed | not_assessed
+  confidence: 0-1
+  observed_at: 该概念最近一次有效测评时间
+  evidence_refs: 测评批次、题目或答题记录的稳定 ID
+abilities:
+  theoretical_understanding | coding_ability | mathematical_foundation | problem_solving
+  每项均包含 score、confidence 和 assessment_run_id
+error_patterns[]:
+  code、count、ratio、concept_ids、evidence_refs
+preferences:
+  content_order、code_language、framework、presentation、pace、project_orientation
+```
+
+`knowledge_point` 等展示名称由图谱根据 `concept_id` 解析，画像中不得保存可变的概念名称副本。`not_assessed` 不得伪装成低掌握度分数。
+
+### 15.3 ID 对齐规则
+
+1. `concept_id` 必须精确匹配当前图谱的 `Concept.id`；
+2. 现有 `KG-ML-*`、`KG-DL-*` 只允许通过随版本提交的显式映射表转换；
+3. 映射必须为一对一；一个旧节点合并多个知识点时不得复制掌握度，必须由画像组拆分节点或重新测评；
+4. 映射表每条记录包含 `legacy_id`、`concept_id`、`graph_version` 和人工审核人；
+5. 不允许依据中文名称、嵌入相似度或大模型猜测概念映射；
+6. 不存在映射、映射到已废弃概念、图谱版本不一致或发现复合节点时，适配器必须失败并返回字段路径；
+7. `current_chapter`、`previous_chapter` 必须使用图谱 `Chapter.id`，不得自定义 `ch03_cnn` 等本地编号。
+
+当前样例中的“线性回归与梯度下降”“决策树与随机森林”“反向传播与优化器”“Transformer 与注意力机制”均属于复合节点，在拆分前不能进入正式 `LearnerProfileSnapshot`。
+
+### 15.4 路径和资源的职责分离
+
+以下字段不属于画像快照，必须从诊断输出移出：
+
+- `recommendation`、`depth_prescription`：由课程规划策略计算；
+- `learning_path_context`：由课程规划 Agent 产生并作为 `PathDecision` 保存；
+- `resource_generation_hints`：由资源生成前的 `ResourceBrief` 产生；
+- `predecessor_nodes`、`successor_nodes`：只能由课程图谱查询，不能由画像手写；
+- `next_nodes` 的带说明字符串：替换为结构化 `PathDecision` 节点列表。
+
+`PathDecision` 至少包含 `path_id`、`profile_id`、`graph_version`、`policy_version`、有序 `concept_id`、节点状态、为未完成节点选择的 `delivery_depth`、硬先修阻塞项和可追溯决策原因。
+
+初次生成后，主路径的概念集合与顺序保持不变。每章完成后的画像更新仅允许调整尚未完成节点的 `delivery_depth` 和资源呈现方式；不得自行新增、删除或重排主路径节点。
+
+### 15.5 硬先修与深度选择规则
+
+课程规划 Agent 后续必须按以下顺序决策：
+
+1. 读取已版本对齐的 `LearnerProfileSnapshot`；
+2. 读取目标概念全部 `hard` 先修及其 `min_mastery`；
+3. 任何硬先修为 `not_assessed`、置信度不足或掌握度低于阈值时，将其列为阻塞项，不能直接选择目标概念的进阶或专业深度；
+4. 仅在目标概念及硬先修满足策略阈值时，才基于能力维度和偏好选择 `intro`、`intermediate` 或 `advanced`；
+5. `skip` 只能由版本化策略产生，且必须记录掌握度、置信度、先修检查和策略版本；
+6. 原“quick_review”改为面向当前节点的 `compact_instruction` 或 `scaffolded_instruction`，不新增独立复习模式。
+
+课程规划策略的具体阈值和算法不属于本阶段，但上述约束必须由后续实现测试覆盖。
+
+### 15.6 画像适配测试
+
+- 已知 `legacy_id` 能映射到指定 `Concept.id`；
+- 未映射、歧义或版本不匹配的 ID 被拒绝；
+- `unexplored` / `not_assessed` 不能转换为任意数值掌握度；
+- 展示名称与前驱、后继字段不会覆盖图谱事实；
+- 原画像中的 `recommendation` 和 `depth_prescription` 被移除，适配器不产生 CNN 进阶层等路径决策；
+- 画像快照不含路径和资源生成字段；
+- 同一原始画像和映射表重复适配时产生相同的规范快照和审计报告；
+- 伪匿名学习者引用之外的直接身份字段不进入课程规划输入。
+
+“CNN 掌握度不足或反向传播等硬先修未达标时不能选择 CNN 进阶层”保留为后续课程规划实现的契约测试，不由本阶段的 `ProfileAdapter` 执行。
