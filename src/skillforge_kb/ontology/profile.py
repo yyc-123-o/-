@@ -114,7 +114,11 @@ class ProfileAdapter:
 
     @staticmethod
     def _assert_forbidden_top_level_fields(raw: Mapping[str, object]) -> None:
-        for field in ("learning_path_context", "resource_generation_hints"):
+        for field in (
+            "learning_path_context",
+            "resource_generation_hints",
+            "prior_chapter_performance",
+        ):
             if field in raw:
                 raise ProfileAdaptationError(f"{field} belongs to downstream planner output")
         ability = raw.get("dimension_2_ability_level")

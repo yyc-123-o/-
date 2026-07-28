@@ -163,11 +163,14 @@ class KnowledgeMastery(BaseModel):
     def validate_assessment_state(self) -> "KnowledgeMastery":
         if (
             self.assessment_status is AssessmentStatus.NOT_ASSESSED
-            and self.mastery_score is not None
+            and (self.mastery_score is not None or self.observed_at is not None)
         ):
-            raise ValueError("not_assessed mastery must not have a score")
-        if self.assessment_status is AssessmentStatus.ASSESSED and self.mastery_score is None:
-            raise ValueError("assessed mastery requires a score")
+            raise ValueError("not_assessed mastery must not have a score or timestamp")
+        if self.assessment_status is AssessmentStatus.ASSESSED:
+            if self.mastery_score is None:
+                raise ValueError("assessed mastery requires a score")
+            if self.observed_at is None:
+                raise ValueError("assessed mastery requires a timestamp")
         return self
 
 

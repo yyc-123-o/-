@@ -78,3 +78,17 @@ def test_adapter_rejects_path_or_resource_decisions(catalog) -> None:
                 "learning_path_context": {},
             }
         )
+
+
+def test_adapter_rejects_prior_chapter_decisions(catalog) -> None:
+    adapter = ProfileAdapter(catalog, mappings=[])
+
+    with pytest.raises(ProfileAdaptationError, match="prior_chapter_performance"):
+        adapter.adapt(
+            {
+                "profile_meta": {"profile_id": "p-4", "graph_version": "ai-course-v1"},
+                "basic_info": {"learner_id": "learner-4"},
+                "dimension_1_knowledge_mastery": {"assessed_nodes": []},
+                "prior_chapter_performance": {},
+            }
+        )

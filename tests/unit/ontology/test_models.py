@@ -1,7 +1,14 @@
 import pytest
 from pydantic import ValidationError
 
-from skillforge_kb.ontology.models import Concept, ConceptLevel, DepthLevel, LocalizedName
+from skillforge_kb.ontology.models import (
+    AssessmentStatus,
+    Concept,
+    ConceptLevel,
+    DepthLevel,
+    KnowledgeMastery,
+    LocalizedName,
+)
 
 
 def _level(level: DepthLevel) -> ConceptLevel:
@@ -36,6 +43,20 @@ def test_concept_requires_three_unique_depth_levels_in_order() -> None:
     )
 
     assert [level.level for level in concept.levels] == list(DepthLevel)
+
+
+def test_not_assessed_mastery_rejects_observed_timestamp() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="not_assessed mastery must not have a score or timestamp",
+    ):
+        KnowledgeMastery(
+            concept_id="math.linear-algebra.vector",
+            mastery_score=None,
+            assessment_status=AssessmentStatus.NOT_ASSESSED,
+            confidence=0.0,
+            observed_at="2026-07-28T00:00:00Z",
+        )
 
 
 @pytest.mark.parametrize(
