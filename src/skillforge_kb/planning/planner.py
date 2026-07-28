@@ -41,7 +41,17 @@ class CoursePlanner:
     def policy(self) -> PlannerPolicy:
         return self._policy
 
-    def plan(self, profile: LearnerProfileSnapshot) -> PathDecision:
+    def plan(
+        self,
+        profile: LearnerProfileSnapshot,
+        completed_concept_ids: set[str] | None = None,
+        *,
+        allow_skips: bool = True,
+    ) -> PathDecision:
+        completed = completed_concept_ids or set()
+        unknown_completed = completed - self._known_ids
+        if unknown_completed:
+            raise PlanningError(f"unknown completed concept: {sorted(unknown_completed)[0]}")
         mastery = self._mastery_index(profile)
         ability_score, ability_reasons = self._ability_score(profile)
         nodes = [
@@ -51,6 +61,8 @@ class CoursePlanner:
                 mastery,
                 ability_score,
                 ability_reasons,
+                completed,
+                allow_skips,
             )
             for sequence, concept_id in enumerate(self._ordered_ids, start=1)
         ]
@@ -111,10 +123,12 @@ class CoursePlanner:
         mastery: dict[str, KnowledgeMastery],
         ability_score: float | None,
         ability_reasons: list[ReasonCode],
+        completed_concept_ids: set[str],
+        allow_skips: bool,
     ) -> PathNode:
         position = self._positions[concept_id]
         concept_mastery = mastery.get(concept_id)
-        if self._can_skip(concept_mastery):
+        if allow_skips and self._can_skip(concept_mastery):
             return PathNode(
                 concept_id=concept_id,
                 chapter_id=position.chapter_id,
@@ -126,7 +140,9 @@ class CoursePlanner:
                 reason_codes=[ReasonCode.MASTERY_SKIP_THRESHOLD_MET],
             )
 
-        blocking_ids, blocking_reasons = self._blocking_prerequisites(concept_id, mastery)
+        blocking_ids, blocking_reasons = self._blocking_prerequisites(
+            concept_id, mastery, completed_concept_ids
+        )
         depth, depth_reasons = self._delivery_depth(
             concept_mastery,
             ability_score,
@@ -158,12 +174,15 @@ class CoursePlanner:
         self,
         concept_id: str,
         mastery: dict[str, KnowledgeMastery],
+        completed_concept_ids: set[str],
     ) -> tuple[list[str], list[ReasonCode]]:
         blocking_ids: list[str] = []
         reasons: list[ReasonCode] = []
         for relation in self._hard_relations[concept_id]:
             if relation.min_mastery is None:
                 raise PlanningError("hard prerequisite relation requires min_mastery")
+            if relation.source in completed_concept_ids:
+                continue
             prerequisite = mastery.get(relation.source)
             if (
                 prerequisite is None
