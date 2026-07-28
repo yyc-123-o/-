@@ -55,6 +55,13 @@ def _load_validated_catalog(course_file: Path, relations_file: Path) -> Ontology
         raise typer.BadParameter(f"invalid course graph: {exc}") from exc
 
 
+def _output_path_outside_inputs(output_path: Path, *input_paths: Path) -> Path:
+    resolved_output = output_path.resolve()
+    if any(resolved_output == input_path.resolve() for input_path in input_paths):
+        raise typer.BadParameter("output must not overwrite a graph input")
+    return resolved_output
+
+
 @app.command("graph-validate")
 def graph_validate(
     course_file: Annotated[
@@ -68,9 +75,10 @@ def graph_validate(
     catalog = _load_validated_catalog(course_file, relations_file)
     report = validate_catalog(catalog)
     if output is not None:
+        output_path = _output_path_outside_inputs(output, course_file, relations_file)
         try:
-            output.parent.mkdir(parents=True, exist_ok=True)
-            output.write_text(
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
                 json.dumps(
                     report.model_dump(mode="json"),
                     ensure_ascii=False,
@@ -101,14 +109,19 @@ def graph_coverage(
     ] = DEFAULT_RELATIONS_FILE,
 ) -> None:
     catalog = _load_validated_catalog(course_file, relations_file)
-    output_path = output_file.resolve()
     input_path = pilot_jsonl.resolve()
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+        pilot_jsonl,
+    )
     input_directory = input_path.parent
     if output_path.is_relative_to(input_directory):
         raise typer.BadParameter("output_file must be outside the pilot JSONL directory")
     try:
         report = analyze_candidate_coverage(catalog, pilot_jsonl)
-        write_coverage_report(report, output_file)
+        write_coverage_report(report, output_path)
     except OSError as exc:
         raise typer.BadParameter(f"could not write coverage report: {exc}") from exc
     typer.echo(f"Wrote coverage report to {output_file.resolve()}")

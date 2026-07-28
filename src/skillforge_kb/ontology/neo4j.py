@@ -8,12 +8,15 @@ from .validation import validate_catalog
 
 
 class Neo4jConceptGraph:
-    def __init__(self, driver: Driver) -> None:
+    def __init__(self, driver: Driver, graph_version: str | None = None) -> None:
         self._driver = driver
+        self._graph_version = graph_version
 
     def publish(self, catalog: OntologyCatalog) -> None:
         validate_catalog(catalog)
         course = catalog.course_document
+        if self._graph_version is not None and self._graph_version != course.version:
+            raise ValueError("adapter graph version does not match the catalog")
         nodes = [
             {
                 "label": "Course",
@@ -149,19 +152,25 @@ class Neo4jConceptGraph:
                     for relation in catalog.relations()
                 ],
             )
+        self._graph_version = course.version
 
     def prerequisites(self, concept_id: str, max_depth: int = 2) -> list[str]:
         if max_depth not in {1, 2}:
             raise ValueError("max_depth must be 1 or 2")
+        version_expression = "target.graph_version"
+        parameters: dict[str, Any] = {"concept_id": concept_id}
+        if self._graph_version is not None:
+            version_expression = "$graph_version"
+            parameters["graph_version"] = self._graph_version
         query = (
             "MATCH path=(target:Concept {id: $concept_id})"
             f"<-[:PREREQUISITE_OF*1..{max_depth}]-(source:Concept) "
             "WHERE all(edge IN relationships(path) "
-            "WHERE coalesce(edge.graph_version, edge.version) = target.graph_version) "
+            f"WHERE coalesce(edge.graph_version, edge.version) = {version_expression}) "
             "RETURN DISTINCT source.id AS id ORDER BY id"
         )
         with self._driver.session() as session:
-            return [record["id"] for record in session.run(query, concept_id=concept_id)]
+            return [record["id"] for record in session.run(query, **parameters)]
 
 
 def _publish_transaction(

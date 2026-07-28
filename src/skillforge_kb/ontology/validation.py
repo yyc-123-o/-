@@ -54,6 +54,7 @@ def validate_catalog(catalog: OntologyCatalog) -> GraphValidationReport:
     canonical_order = _canonical_order(catalog, chapters, sections)
     hard_edges: dict[str, set[str]] = defaultdict(set)
     incoming: dict[str, set[str]] = defaultdict(set)
+    prerequisite_pairs: set[tuple[str, str]] = set()
     seen_symmetric: set[tuple[RelationKind, frozenset[str]]] = set()
 
     for relation in catalog.relations():
@@ -70,6 +71,16 @@ def validate_catalog(catalog: OntologyCatalog) -> GraphValidationReport:
                     f"duplicate symmetric relation: {relation.source} -> {relation.target}"
                 )
             seen_symmetric.add(key)
+        if relation.kind in {
+            RelationKind.HARD_PREREQUISITE,
+            RelationKind.SOFT_PREREQUISITE,
+        }:
+            prerequisite_key = (relation.source, relation.target)
+            if prerequisite_key in prerequisite_pairs:
+                errors.append(
+                    f"duplicate prerequisite relation: {relation.source} -> {relation.target}"
+                )
+            prerequisite_pairs.add(prerequisite_key)
         if relation.kind is RelationKind.HARD_PREREQUISITE:
             if canonical_order[relation.source] >= canonical_order[relation.target]:
                 errors.append(

@@ -140,3 +140,13 @@ def test_prerequisites_are_scoped_to_target_graph_version() -> None:
     assert "PREREQUISITE_OF*1..2" in query
     assert "target.graph_version" in query
     assert "relationships(path)" in query
+
+
+def test_prerequisites_accept_a_graph_version_bound_to_the_adapter() -> None:
+    driver = RecordingDriver()
+    graph = Neo4jConceptGraph(driver, graph_version="ai-course-v1")
+
+    assert graph.prerequisites("rag.retrieval-augmented-generation") == []
+    query, parameters = driver.session_instance.query_calls[0]
+    assert "$graph_version" in query
+    assert parameters["graph_version"] == "ai-course-v1"

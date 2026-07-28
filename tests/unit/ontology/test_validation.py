@@ -71,3 +71,25 @@ def test_validation_rejects_mismatched_document_versions(catalog: OntologyCatalo
 
     with pytest.raises(GraphValidationError, match="course version mismatch"):
         validate_catalog(nested_mismatch_catalog)
+
+
+def test_validation_rejects_multiple_prerequisite_kinds_for_one_concept_pair(
+    catalog: OntologyCatalog,
+) -> None:
+    duplicate = Relation(
+        source="math.linear-algebra.scalar",
+        target="math.linear-algebra.vector",
+        kind=RelationKind.SOFT_PREREQUISITE,
+        min_mastery=0.4,
+        review_status="reviewed",
+    )
+    duplicate_catalog = OntologyCatalog.from_documents(
+        catalog.course_document,
+        RelationDocument(
+            version=catalog.relation_document.version,
+            relations=[*catalog.relations(), duplicate],
+        ),
+    )
+
+    with pytest.raises(GraphValidationError, match="duplicate prerequisite relation"):
+        validate_catalog(duplicate_catalog)

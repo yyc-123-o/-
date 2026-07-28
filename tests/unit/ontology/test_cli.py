@@ -117,6 +117,46 @@ def test_graph_validate_reports_invalid_catalog_without_a_traceback(tmp_path: Pa
     assert "Traceback" not in result.output
 
 
+def test_graph_validate_rejects_an_output_that_overwrites_a_catalog_input() -> None:
+    course_file = RESOURCE_ROOT / "ai_course_v1.yaml"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "graph-validate",
+            "--course-file",
+            str(course_file),
+            "--output",
+            str(course_file),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "must not overwrite a graph input" in result.output
+
+
+def test_graph_coverage_rejects_an_output_that_overwrites_a_catalog_input(tmp_path: Path) -> None:
+    input_root = tmp_path / "input"
+    input_root.mkdir()
+    pilot_jsonl = input_root / "pilot.jsonl"
+    pilot_jsonl.write_text("{}\n", encoding="utf-8")
+    course_file = RESOURCE_ROOT / "ai_course_v1.yaml"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "graph-coverage",
+            "--pilot-jsonl",
+            str(pilot_jsonl),
+            "--output-file",
+            str(course_file),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "must not overwrite a graph input" in result.output
+
+
 def test_graph_publish_rejects_an_invalid_catalog_before_opening_driver(
     tmp_path: Path,
     monkeypatch,
