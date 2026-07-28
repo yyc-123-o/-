@@ -7,6 +7,7 @@ def test_validation_report_is_structural_only() -> None:
     report = json.loads(path.read_text(encoding="utf-8"))
 
     assert report["chapter_count"] == 11
+    assert report["section_count"] == 27
     assert report["concept_count"] == 140
     assert report["concept_level_count"] == 420
     assert report["hard_prerequisite_cycles"] == 0
