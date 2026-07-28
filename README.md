@@ -51,6 +51,26 @@ uv run skillforge-kb fusion-dry-run `
 
 It writes deterministic inventory, source-candidate, outcome, and summary files to the chosen output directory. The output directory must be outside both input roots.
 
+The course graph commands validate and publish only the versioned curriculum structure:
+
+```powershell
+uv run skillforge-kb graph-validate `
+  --course-file resources/ontology/ai_course_v1.yaml `
+  --relations-file resources/ontology/ai_relations_v1.yaml
+
+uv run skillforge-kb graph-coverage `
+  --course-file resources/ontology/ai_course_v1.yaml `
+  --relations-file resources/ontology/ai_relations_v1.yaml `
+  --pilot-jsonl 'D:\path\to\ai_learning_pilot_chunks.jsonl' `
+  --output-file reports/generated/course-graph-coverage.json
+
+uv run skillforge-kb graph-publish `
+  --course-file resources/ontology/ai_course_v1.yaml `
+  --relations-file resources/ontology/ai_relations_v1.yaml
+```
+
+`graph-coverage` is read-only over candidate JSONL and never publishes evidence edges. `graph-publish` validates the complete graph before opening the Neo4j connection.
+
 ## Data Policy
 
 Raw PDFs, source repositories, teammate JSONL files, pickle indexes, FAISS indexes, and generated reports are intentionally excluded from Git. They may have separate licensing, size, or reproducibility constraints. See [`data/README.md`](data/README.md) and the source manifest kept with the local data copy.
