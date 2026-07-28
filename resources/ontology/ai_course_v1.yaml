@@ -1,0 +1,4717 @@
+version: ai-course-v1
+course:
+  id: course.ai-foundations-to-llm.v1
+  title:
+    zh: 人工智能基础到大语言模型
+    en: AI Foundations to Large Language Models
+  audience: 高校本科生
+  version: ai-course-v1
+  review_status: reviewed
+chapters:
+  - id: chapter.01.math-foundations
+    order: 1
+    title:
+      zh: "数学与数值计算基础"
+      en: "Mathematical and Numerical Foundations"
+    summary: "数学与数值计算基础的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明数学与数值计算基础的关键概念及其先修关系。"
+      - "完成数学与数值计算基础对应的概念理解、计算或实践任务。"
+    core: false
+    review_status: reviewed
+  - id: chapter.02.classical-machine-learning
+    order: 2
+    title:
+      zh: "经典机器学习与模型评估"
+      en: "Classical Machine Learning and Evaluation"
+    summary: "经典机器学习与模型评估的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明经典机器学习与模型评估的关键概念及其先修关系。"
+      - "完成经典机器学习与模型评估对应的概念理解、计算或实践任务。"
+    core: true
+    review_status: reviewed
+  - id: chapter.03.neural-networks
+    order: 3
+    title:
+      zh: "神经网络与反向传播"
+      en: "Neural Networks and Backpropagation"
+    summary: "神经网络与反向传播的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明神经网络与反向传播的关键概念及其先修关系。"
+      - "完成神经网络与反向传播对应的概念理解、计算或实践任务。"
+    core: false
+    review_status: reviewed
+  - id: chapter.04.training-and-regularization
+    order: 4
+    title:
+      zh: "优化、正则化与训练策略"
+      en: "Optimization, Regularization, and Training"
+    summary: "优化、正则化与训练策略的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明优化、正则化与训练策略的关键概念及其先修关系。"
+      - "完成优化、正则化与训练策略对应的概念理解、计算或实践任务。"
+    core: false
+    review_status: reviewed
+  - id: chapter.05.cnn-representation
+    order: 5
+    title:
+      zh: "CNN 与表示学习概览"
+      en: "CNNs and Representation Learning"
+    summary: "CNN 与表示学习概览的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明CNN 与表示学习概览的关键概念及其先修关系。"
+      - "完成CNN 与表示学习概览对应的概念理解、计算或实践任务。"
+    core: false
+    review_status: reviewed
+  - id: chapter.06.embeddings-and-sequences
+    order: 6
+    title:
+      zh: "嵌入表示与序列建模基础"
+      en: "Embeddings and Sequence Modeling"
+    summary: "嵌入表示与序列建模基础的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明嵌入表示与序列建模基础的关键概念及其先修关系。"
+      - "完成嵌入表示与序列建模基础对应的概念理解、计算或实践任务。"
+    core: false
+    review_status: reviewed
+  - id: chapter.07.transformer
+    order: 7
+    title:
+      zh: "Transformer 核心原理"
+      en: "Transformer Fundamentals"
+    summary: "Transformer 核心原理的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明Transformer 核心原理的关键概念及其先修关系。"
+      - "完成Transformer 核心原理对应的概念理解、计算或实践任务。"
+    core: true
+    review_status: reviewed
+  - id: chapter.08.large-language-models
+    order: 8
+    title:
+      zh: "大语言模型预训练与提示学习"
+      en: "Large Language Models"
+    summary: "大语言模型预训练与提示学习的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明大语言模型预训练与提示学习的关键概念及其先修关系。"
+      - "完成大语言模型预训练与提示学习对应的概念理解、计算或实践任务。"
+    core: true
+    review_status: reviewed
+  - id: chapter.09.alignment-and-peft
+    order: 9
+    title:
+      zh: "模型对齐与参数高效微调"
+      en: "Alignment and Parameter-Efficient Fine-Tuning"
+    summary: "模型对齐与参数高效微调的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明模型对齐与参数高效微调的关键概念及其先修关系。"
+      - "完成模型对齐与参数高效微调对应的概念理解、计算或实践任务。"
+    core: true
+    review_status: reviewed
+  - id: chapter.10.rag
+    order: 10
+    title:
+      zh: "RAG 检索增强生成"
+      en: "Retrieval-Augmented Generation"
+    summary: "RAG 检索增强生成的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明RAG 检索增强生成的关键概念及其先修关系。"
+      - "完成RAG 检索增强生成对应的概念理解、计算或实践任务。"
+    core: true
+    review_status: reviewed
+  - id: chapter.11.rag-evaluation-and-practice
+    order: 11
+    title:
+      zh: "RAG 评测与综合实训"
+      en: "RAG Evaluation and Practice"
+    summary: "RAG 评测与综合实训的课程主线、核心概念与应用边界。"
+    learning_outcomes:
+      - "说明RAG 评测与综合实训的关键概念及其先修关系。"
+      - "完成RAG 评测与综合实训对应的概念理解、计算或实践任务。"
+    core: true
+    review_status: reviewed
+sections:
+  - id: section.01.linear-algebra
+    chapter_id: chapter.01.math-foundations
+    order: 1
+    title:
+      zh: "线性代数"
+      en: "Linear Algebra"
+    learning_outcomes:
+      - "掌握线性代数中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.01.calculus
+    chapter_id: chapter.01.math-foundations
+    order: 2
+    title:
+      zh: "微积分基础"
+      en: "Calculus"
+    learning_outcomes:
+      - "掌握微积分基础中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.01.probability
+    chapter_id: chapter.01.math-foundations
+    order: 3
+    title:
+      zh: "概率基础"
+      en: "Probability"
+    learning_outcomes:
+      - "掌握概率基础中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.02.data-and-supervised
+    chapter_id: chapter.02.classical-machine-learning
+    order: 1
+    title:
+      zh: "数据与监督学习"
+      en: "Data and Supervised Learning"
+    learning_outcomes:
+      - "掌握数据与监督学习中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.02.generalization-evaluation
+    chapter_id: chapter.02.classical-machine-learning
+    order: 2
+    title:
+      zh: "泛化与评估"
+      en: "Generalization and Evaluation"
+    learning_outcomes:
+      - "掌握泛化与评估中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.02.classical-algorithms
+    chapter_id: chapter.02.classical-machine-learning
+    order: 3
+    title:
+      zh: "经典算法"
+      en: "Classical Algorithms"
+    learning_outcomes:
+      - "掌握经典算法中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.03.network-architecture
+    chapter_id: chapter.03.neural-networks
+    order: 1
+    title:
+      zh: "网络结构"
+      en: "Network Architecture"
+    learning_outcomes:
+      - "掌握网络结构中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.03.differentiation
+    chapter_id: chapter.03.neural-networks
+    order: 2
+    title:
+      zh: "计算图与求导"
+      en: "Computational Graphs and Differentiation"
+    learning_outcomes:
+      - "掌握计算图与求导中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.03.output-and-theory
+    chapter_id: chapter.03.neural-networks
+    order: 3
+    title:
+      zh: "输出层与理论"
+      en: "Output Layers and Theory"
+    learning_outcomes:
+      - "掌握输出层与理论中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.04.optimization
+    chapter_id: chapter.04.training-and-regularization
+    order: 1
+    title:
+      zh: "优化算法"
+      en: "Optimization Algorithms"
+    learning_outcomes:
+      - "掌握优化算法中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.04.regularization
+    chapter_id: chapter.04.training-and-regularization
+    order: 2
+    title:
+      zh: "正则化与稳定训练"
+      en: "Regularization and Stable Training"
+    learning_outcomes:
+      - "掌握正则化与稳定训练中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.04.training-practice
+    chapter_id: chapter.04.training-and-regularization
+    order: 3
+    title:
+      zh: "训练实践"
+      en: "Training Practice"
+    learning_outcomes:
+      - "掌握训练实践中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.05.convolution-basics
+    chapter_id: chapter.05.cnn-representation
+    order: 1
+    title:
+      zh: "卷积基础"
+      en: "Convolution Fundamentals"
+    learning_outcomes:
+      - "掌握卷积基础中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.05.cnn-architecture
+    chapter_id: chapter.05.cnn-representation
+    order: 2
+    title:
+      zh: "CNN 架构"
+      en: "CNN Architecture"
+    learning_outcomes:
+      - "掌握CNN 架构中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.06.symbolic-representation
+    chapter_id: chapter.06.embeddings-and-sequences
+    order: 1
+    title:
+      zh: "符号与嵌入表示"
+      en: "Symbolic and Embedding Representations"
+    learning_outcomes:
+      - "掌握符号与嵌入表示中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.06.sequence-models
+    chapter_id: chapter.06.embeddings-and-sequences
+    order: 2
+    title:
+      zh: "序列模型"
+      en: "Sequence Models"
+    learning_outcomes:
+      - "掌握序列模型中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.07.attention
+    chapter_id: chapter.07.transformer
+    order: 1
+    title:
+      zh: "注意力机制"
+      en: "Attention Mechanisms"
+    learning_outcomes:
+      - "掌握注意力机制中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.07.transformer-components
+    chapter_id: chapter.07.transformer
+    order: 2
+    title:
+      zh: "Transformer 组件"
+      en: "Transformer Components"
+    learning_outcomes:
+      - "掌握Transformer 组件中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.07.transformer-usage
+    chapter_id: chapter.07.transformer
+    order: 3
+    title:
+      zh: "训练、推理与分析"
+      en: "Training, Inference, and Analysis"
+    learning_outcomes:
+      - "掌握训练、推理与分析中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.08.pretraining
+    chapter_id: chapter.08.large-language-models
+    order: 1
+    title:
+      zh: "预训练语言模型"
+      en: "Pretrained Language Models"
+    learning_outcomes:
+      - "掌握预训练语言模型中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.08.prompting-inference
+    chapter_id: chapter.08.large-language-models
+    order: 2
+    title:
+      zh: "提示与推理"
+      en: "Prompting and Inference"
+    learning_outcomes:
+      - "掌握提示与推理中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.09.alignment
+    chapter_id: chapter.09.alignment-and-peft
+    order: 1
+    title:
+      zh: "对齐训练"
+      en: "Alignment Training"
+    learning_outcomes:
+      - "掌握对齐训练中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.09.peft
+    chapter_id: chapter.09.alignment-and-peft
+    order: 2
+    title:
+      zh: "参数高效微调"
+      en: "Parameter-Efficient Fine-Tuning"
+    learning_outcomes:
+      - "掌握参数高效微调中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.10.retrieval
+    chapter_id: chapter.10.rag
+    order: 1
+    title:
+      zh: "检索系统"
+      en: "Retrieval Systems"
+    learning_outcomes:
+      - "掌握检索系统中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.10.generation-diagnostics
+    chapter_id: chapter.10.rag
+    order: 2
+    title:
+      zh: "生成与诊断"
+      en: "Generation and Diagnostics"
+    learning_outcomes:
+      - "掌握生成与诊断中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.11.evaluation
+    chapter_id: chapter.11.rag-evaluation-and-practice
+    order: 1
+    title:
+      zh: "RAG 评测"
+      en: "RAG Evaluation"
+    learning_outcomes:
+      - "掌握RAG 评测中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+  - id: section.11.practice
+    chapter_id: chapter.11.rag-evaluation-and-practice
+    order: 2
+    title:
+      zh: "综合实训"
+      en: "Integrated Practice"
+    learning_outcomes:
+      - "掌握综合实训中的核心概念并能定位其课程位置。"
+    review_status: reviewed
+concepts:
+  - id: math.linear-algebra.scalar
+    names:
+      zh: "标量"
+      en: "Scalar"
+    aliases: []
+    summary: "标量的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释标量的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明标量的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析标量的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.vector
+    names:
+      zh: "向量"
+      en: "Vector"
+    aliases: []
+    summary: "向量的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释向量的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明向量的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析向量的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.matrix
+    names:
+      zh: "矩阵"
+      en: "Matrix"
+    aliases: []
+    summary: "矩阵的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释矩阵的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明矩阵的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析矩阵的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.tensor
+    names:
+      zh: "张量"
+      en: "Tensor"
+    aliases: []
+    summary: "张量的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释张量的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明张量的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析张量的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.matrix-operations
+    names:
+      zh: "矩阵运算"
+      en: "Matrix Operations"
+    aliases: []
+    summary: "矩阵运算的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释矩阵运算的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明矩阵运算的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析矩阵运算的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.matrix-multiplication
+    names:
+      zh: "矩阵乘法"
+      en: "Matrix Multiplication"
+    aliases: []
+    summary: "矩阵乘法的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释矩阵乘法的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明矩阵乘法的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析矩阵乘法的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.norm
+    names:
+      zh: "范数"
+      en: "Norm"
+    aliases: []
+    summary: "范数的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释范数的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明范数的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析范数的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.eigen-decomposition
+    names:
+      zh: "特征值分解"
+      en: "Eigenvalue Decomposition"
+    aliases: []
+    summary: "特征值分解的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释特征值分解的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明特征值分解的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析特征值分解的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.linear-algebra.svd
+    names:
+      zh: "奇异值分解"
+      en: "Singular Value Decomposition"
+    aliases: []
+    summary: "奇异值分解的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释奇异值分解的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明奇异值分解的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析奇异值分解的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.calculus.derivative-gradient
+    names:
+      zh: "导数与梯度"
+      en: "Derivatives and Gradients"
+    aliases: []
+    summary: "导数与梯度的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释导数与梯度的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明导数与梯度的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析导数与梯度的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.probability.random-variable
+    names:
+      zh: "随机变量"
+      en: "Random Variable"
+    aliases: []
+    summary: "随机变量的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释随机变量的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明随机变量的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析随机变量的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.probability.probability-distribution
+    names:
+      zh: "概率分布"
+      en: "Probability Distribution"
+    aliases: []
+    summary: "概率分布的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释概率分布的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明概率分布的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析概率分布的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.data.feature-label
+    names:
+      zh: "特征与标签"
+      en: "Features and Labels"
+    aliases: []
+    summary: "特征与标签的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释特征与标签的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明特征与标签的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析特征与标签的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.data.train-validation-test-split
+    names:
+      zh: "训练、验证与测试划分"
+      en: "Train, Validation, and Test Split"
+    aliases: []
+    summary: "训练、验证与测试划分的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释训练、验证与测试划分的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明训练、验证与测试划分的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析训练、验证与测试划分的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.supervised.learning
+    names:
+      zh: "监督学习"
+      en: "Supervised Learning"
+    aliases: []
+    summary: "监督学习的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释监督学习的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明监督学习的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析监督学习的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.regression.linear-regression
+    names:
+      zh: "线性回归"
+      en: "Linear Regression"
+    aliases: []
+    summary: "线性回归的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释线性回归的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明线性回归的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析线性回归的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.classification.logistic-regression
+    names:
+      zh: "逻辑回归"
+      en: "Logistic Regression"
+    aliases: []
+    summary: "逻辑回归的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释逻辑回归的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明逻辑回归的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析逻辑回归的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.objective.loss-function
+    names:
+      zh: "损失函数"
+      en: "Loss Function"
+    aliases: []
+    summary: "损失函数的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释损失函数的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明损失函数的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析损失函数的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.estimation.maximum-likelihood
+    names:
+      zh: "最大似然估计"
+      en: "Maximum Likelihood Estimation"
+    aliases: []
+    summary: "最大似然估计的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释最大似然估计的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明最大似然估计的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析最大似然估计的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.generalization.bias-variance
+    names:
+      zh: "偏差与方差"
+      en: "Bias and Variance"
+    aliases: []
+    summary: "偏差与方差的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释偏差与方差的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明偏差与方差的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析偏差与方差的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.generalization.overfitting
+    names:
+      zh: "过拟合"
+      en: "Overfitting"
+    aliases: []
+    summary: "过拟合的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释过拟合的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明过拟合的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析过拟合的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.generalization.regularization-introduction
+    names:
+      zh: "正则化导论"
+      en: "Regularization Introduction"
+    aliases: []
+    summary: "正则化导论的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释正则化导论的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明正则化导论的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析正则化导论的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.model-selection.cross-validation
+    names:
+      zh: "交叉验证"
+      en: "Cross Validation"
+    aliases: []
+    summary: "交叉验证的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释交叉验证的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明交叉验证的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析交叉验证的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.evaluation.confusion-matrix
+    names:
+      zh: "混淆矩阵"
+      en: "Confusion Matrix"
+    aliases: []
+    summary: "混淆矩阵的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释混淆矩阵的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明混淆矩阵的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析混淆矩阵的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.evaluation.classification-metrics
+    names:
+      zh: "分类评估指标"
+      en: "Classification Metrics"
+    aliases: []
+    summary: "分类评估指标的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释分类评估指标的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明分类评估指标的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析分类评估指标的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.tree.decision-tree
+    names:
+      zh: "决策树"
+      en: "Decision Tree"
+    aliases: []
+    summary: "决策树的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释决策树的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明决策树的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析决策树的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.ensemble.random-forest
+    names:
+      zh: "随机森林"
+      en: "Random Forest"
+    aliases: []
+    summary: "随机森林的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释随机森林的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明随机森林的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析随机森林的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.clustering.kmeans
+    names:
+      zh: "K 均值聚类"
+      en: "K-Means Clustering"
+    aliases: []
+    summary: "K 均值聚类的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释K 均值聚类的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明K 均值聚类的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析K 均值聚类的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.neuron.perceptron
+    names:
+      zh: "感知机"
+      en: "Perceptron"
+    aliases: []
+    summary: "感知机的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释感知机的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明感知机的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析感知机的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.feedforward.mlp
+    names:
+      zh: "多层感知机"
+      en: "Multilayer Perceptron"
+    aliases: []
+    summary: "多层感知机的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释多层感知机的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明多层感知机的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析多层感知机的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.activation.relu
+    names:
+      zh: "ReLU 激活函数"
+      en: "ReLU Activation"
+    aliases: []
+    summary: "ReLU 激活函数的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释ReLU 激活函数的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明ReLU 激活函数的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析ReLU 激活函数的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.activation.sigmoid-tanh
+    names:
+      zh: "Sigmoid 与 Tanh 激活函数"
+      en: "Sigmoid and Tanh Activations"
+    aliases: []
+    summary: "Sigmoid 与 Tanh 激活函数的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Sigmoid 与 Tanh 激活函数的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Sigmoid 与 Tanh 激活函数的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Sigmoid 与 Tanh 激活函数的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.forward-pass
+    names:
+      zh: "前向传播"
+      en: "Forward Pass"
+    aliases: []
+    summary: "前向传播的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释前向传播的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明前向传播的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析前向传播的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.computation.computational-graph
+    names:
+      zh: "计算图"
+      en: "Computational Graph"
+    aliases: []
+    summary: "计算图的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释计算图的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明计算图的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析计算图的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: math.calculus.chain-rule
+    names:
+      zh: "链式法则"
+      en: "Chain Rule"
+    aliases: []
+    summary: "链式法则的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释链式法则的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明链式法则的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析链式法则的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.backpropagation
+    names:
+      zh: "反向传播"
+      en: "Backpropagation"
+    aliases: []
+    summary: "反向传播的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释反向传播的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明反向传播的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析反向传播的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.initialization.weight-initialization
+    names:
+      zh: "权重初始化"
+      en: "Weight Initialization"
+    aliases: []
+    summary: "权重初始化的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释权重初始化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明权重初始化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析权重初始化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.output-layer
+    names:
+      zh: "输出层"
+      en: "Output Layer"
+    aliases: []
+    summary: "输出层的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释输出层的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明输出层的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析输出层的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.output.softmax
+    names:
+      zh: "Softmax"
+      en: "Softmax"
+    aliases: []
+    summary: "Softmax的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Softmax的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Softmax的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Softmax的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.theory.universal-approximation
+    names:
+      zh: "万能近似定理"
+      en: "Universal Approximation Theorem"
+    aliases: []
+    summary: "万能近似定理的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释万能近似定理的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明万能近似定理的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析万能近似定理的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.optimization.gradient-descent
+    names:
+      zh: "梯度下降"
+      en: "Gradient Descent"
+    aliases: []
+    summary: "梯度下降的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释梯度下降的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明梯度下降的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析梯度下降的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.optimization.stochastic-gradient-descent
+    names:
+      zh: "随机梯度下降"
+      en: "Stochastic Gradient Descent"
+    aliases: []
+    summary: "随机梯度下降的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释随机梯度下降的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明随机梯度下降的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析随机梯度下降的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.optimization.mini-batch
+    names:
+      zh: "小批量训练"
+      en: "Mini-Batch Training"
+    aliases: []
+    summary: "小批量训练的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释小批量训练的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明小批量训练的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析小批量训练的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.optimization.learning-rate
+    names:
+      zh: "学习率"
+      en: "Learning Rate"
+    aliases: []
+    summary: "学习率的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释学习率的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明学习率的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析学习率的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: ml.optimization.momentum
+    names:
+      zh: "动量法"
+      en: "Momentum"
+    aliases: []
+    summary: "动量法的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释动量法的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明动量法的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析动量法的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.optimization.adam
+    names:
+      zh: "Adam 优化器"
+      en: "Adam Optimizer"
+    aliases: []
+    summary: "Adam 优化器的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Adam 优化器的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Adam 优化器的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Adam 优化器的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.optimization.vanishing-exploding-gradient
+    names:
+      zh: "梯度消失与爆炸"
+      en: "Vanishing and Exploding Gradients"
+    aliases: []
+    summary: "梯度消失与爆炸的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释梯度消失与爆炸的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明梯度消失与爆炸的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析梯度消失与爆炸的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.regularization.l1-l2
+    names:
+      zh: "L1 与 L2 正则化"
+      en: "L1 and L2 Regularization"
+    aliases: []
+    summary: "L1 与 L2 正则化的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释L1 与 L2 正则化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明L1 与 L2 正则化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析L1 与 L2 正则化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.regularization.dropout
+    names:
+      zh: "Dropout"
+      en: "Dropout"
+    aliases: []
+    summary: "Dropout的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Dropout的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Dropout的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Dropout的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.regularization.early-stopping
+    names:
+      zh: "早停"
+      en: "Early Stopping"
+    aliases: []
+    summary: "早停的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释早停的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明早停的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析早停的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.optimization.batch-normalization
+    names:
+      zh: "批标准化"
+      en: "Batch Normalization"
+    aliases: []
+    summary: "批标准化的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释批标准化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明批标准化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析批标准化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.regularization.data-augmentation
+    names:
+      zh: "数据增强"
+      en: "Data Augmentation"
+    aliases: []
+    summary: "数据增强的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释数据增强的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明数据增强的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析数据增强的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.practice.hyperparameter-tuning
+    names:
+      zh: "超参数调优"
+      en: "Hyperparameter Tuning"
+    aliases: []
+    summary: "超参数调优的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释超参数调优的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明超参数调优的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析超参数调优的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.practice.grid-random-search
+    names:
+      zh: "网格与随机搜索"
+      en: "Grid and Random Search"
+    aliases: []
+    summary: "网格与随机搜索的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释网格与随机搜索的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明网格与随机搜索的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析网格与随机搜索的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.practice.training-validation-loop
+    names:
+      zh: "训练验证循环"
+      en: "Training and Validation Loop"
+    aliases: []
+    summary: "训练验证循环的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释训练验证循环的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明训练验证循环的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析训练验证循环的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.practice.optimization-diagnostics
+    names:
+      zh: "优化诊断"
+      en: "Optimization Diagnostics"
+    aliases: []
+    summary: "优化诊断的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释优化诊断的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明优化诊断的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析优化诊断的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.vision.image-tensor
+    names:
+      zh: "图像张量"
+      en: "Image Tensor"
+    aliases: []
+    summary: "图像张量的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释图像张量的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明图像张量的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析图像张量的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.convolution
+    names:
+      zh: "卷积运算"
+      en: "Convolution"
+    aliases: []
+    summary: "卷积运算的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释卷积运算的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明卷积运算的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析卷积运算的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.cross-correlation
+    names:
+      zh: "互相关"
+      en: "Cross-Correlation"
+    aliases: []
+    summary: "互相关的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释互相关的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明互相关的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析互相关的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.kernel-filter
+    names:
+      zh: "卷积核与滤波器"
+      en: "Kernel and Filter"
+    aliases: []
+    summary: "卷积核与滤波器的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释卷积核与滤波器的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明卷积核与滤波器的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析卷积核与滤波器的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.padding-stride
+    names:
+      zh: "填充与步幅"
+      en: "Padding and Stride"
+    aliases: []
+    summary: "填充与步幅的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释填充与步幅的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明填充与步幅的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析填充与步幅的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.pooling
+    names:
+      zh: "池化"
+      en: "Pooling"
+    aliases: []
+    summary: "池化的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释池化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明池化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析池化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.receptive-field
+    names:
+      zh: "感受野"
+      en: "Receptive Field"
+    aliases: []
+    summary: "感受野的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释感受野的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明感受野的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析感受野的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.architecture
+    names:
+      zh: "卷积神经网络架构"
+      en: "Convolutional Neural Network Architecture"
+    aliases: []
+    summary: "卷积神经网络架构的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释卷积神经网络架构的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明卷积神经网络架构的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析卷积神经网络架构的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.flatten-fully-connected
+    names:
+      zh: "展平与全连接层"
+      en: "Flatten and Fully Connected Layers"
+    aliases: []
+    summary: "展平与全连接层的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释展平与全连接层的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明展平与全连接层的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析展平与全连接层的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.cnn.backpropagation
+    names:
+      zh: "卷积网络反向传播"
+      en: "CNN Backpropagation"
+    aliases: []
+    summary: "卷积网络反向传播的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释卷积网络反向传播的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明卷积网络反向传播的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析卷积网络反向传播的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.tokenization
+    names:
+      zh: "分词与标记化"
+      en: "Tokenization"
+    aliases: []
+    summary: "分词与标记化的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释分词与标记化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明分词与标记化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析分词与标记化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.representation.one-hot
+    names:
+      zh: "独热表示"
+      en: "One-Hot Representation"
+    aliases: []
+    summary: "独热表示的定义、作用与适用边界。"
+    difficulty: 1
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释独热表示的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明独热表示的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析独热表示的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.representation.embedding
+    names:
+      zh: "嵌入表示"
+      en: "Embedding Representation"
+    aliases: []
+    summary: "嵌入表示的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释嵌入表示的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明嵌入表示的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析嵌入表示的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: dl.representation.cosine-similarity
+    names:
+      zh: "余弦相似度"
+      en: "Cosine Similarity"
+    aliases: []
+    summary: "余弦相似度的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释余弦相似度的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明余弦相似度的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析余弦相似度的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.sequence-modeling
+    names:
+      zh: "序列建模"
+      en: "Sequence Modeling"
+    aliases: []
+    summary: "序列建模的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释序列建模的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明序列建模的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析序列建模的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.rnn
+    names:
+      zh: "循环神经网络"
+      en: "Recurrent Neural Network"
+    aliases: []
+    summary: "循环神经网络的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释循环神经网络的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明循环神经网络的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析循环神经网络的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.lstm-gru
+    names:
+      zh: "LSTM 与 GRU"
+      en: "LSTM and GRU"
+    aliases: []
+    summary: "LSTM 与 GRU的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释LSTM 与 GRU的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明LSTM 与 GRU的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析LSTM 与 GRU的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.encoder-decoder
+    names:
+      zh: "编码器-解码器"
+      en: "Encoder-Decoder"
+    aliases: []
+    summary: "编码器-解码器的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释编码器-解码器的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明编码器-解码器的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析编码器-解码器的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.language-modeling
+    names:
+      zh: "语言建模"
+      en: "Language Modeling"
+    aliases: []
+    summary: "语言建模的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释语言建模的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明语言建模的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析语言建模的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: nlp.positional-information
+    names:
+      zh: "位置信息"
+      en: "Positional Information"
+    aliases: []
+    summary: "位置信息的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释位置信息的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明位置信息的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析位置信息的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.attention.attention
+    names:
+      zh: "注意力机制"
+      en: "Attention Mechanism"
+    aliases: []
+    summary: "注意力机制的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释注意力机制的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明注意力机制的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析注意力机制的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.attention.scaled-dot-product
+    names:
+      zh: "缩放点积注意力"
+      en: "Scaled Dot-Product Attention"
+    aliases: []
+    summary: "缩放点积注意力的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释缩放点积注意力的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明缩放点积注意力的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析缩放点积注意力的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.attention.self-attention
+    names:
+      zh: "自注意力"
+      en: "Self-Attention"
+    aliases: []
+    summary: "自注意力的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释自注意力的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明自注意力的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析自注意力的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.attention.multi-head
+    names:
+      zh: "多头注意力"
+      en: "Multi-Head Attention"
+    aliases: []
+    summary: "多头注意力的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释多头注意力的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明多头注意力的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析多头注意力的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.positional-encoding
+    names:
+      zh: "位置编码"
+      en: "Positional Encoding"
+    aliases: []
+    summary: "位置编码的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释位置编码的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明位置编码的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析位置编码的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.feed-forward
+    names:
+      zh: "前馈子层"
+      en: "Feed-Forward Sub-layer"
+    aliases: []
+    summary: "前馈子层的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释前馈子层的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明前馈子层的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析前馈子层的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.residual-connection
+    names:
+      zh: "残差连接"
+      en: "Residual Connection"
+    aliases: []
+    summary: "残差连接的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释残差连接的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明残差连接的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析残差连接的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.layer-normalization
+    names:
+      zh: "层归一化"
+      en: "Layer Normalization"
+    aliases: []
+    summary: "层归一化的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释层归一化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明层归一化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析层归一化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.encoder
+    names:
+      zh: "Transformer 编码器"
+      en: "Transformer Encoder"
+    aliases: []
+    summary: "Transformer 编码器的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Transformer 编码器的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Transformer 编码器的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Transformer 编码器的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.decoder
+    names:
+      zh: "Transformer 解码器"
+      en: "Transformer Decoder"
+    aliases: []
+    summary: "Transformer 解码器的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Transformer 解码器的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Transformer 解码器的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Transformer 解码器的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.masked-self-attention
+    names:
+      zh: "掩码自注意力"
+      en: "Masked Self-Attention"
+    aliases: []
+    summary: "掩码自注意力的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释掩码自注意力的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明掩码自注意力的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析掩码自注意力的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.cross-attention
+    names:
+      zh: "交叉注意力"
+      en: "Cross-Attention"
+    aliases: []
+    summary: "交叉注意力的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释交叉注意力的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明交叉注意力的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析交叉注意力的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.attention-complexity
+    names:
+      zh: "注意力复杂度"
+      en: "Attention Complexity"
+    aliases: []
+    summary: "注意力复杂度的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释注意力复杂度的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明注意力复杂度的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析注意力复杂度的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.training
+    names:
+      zh: "Transformer 训练"
+      en: "Transformer Training"
+    aliases: []
+    summary: "Transformer 训练的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Transformer 训练的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Transformer 训练的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Transformer 训练的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.inference
+    names:
+      zh: "Transformer 推理"
+      en: "Transformer Inference"
+    aliases: []
+    summary: "Transformer 推理的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释Transformer 推理的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明Transformer 推理的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析Transformer 推理的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.transformer.attention-visualization
+    names:
+      zh: "注意力可视化"
+      en: "Attention Visualization"
+    aliases: []
+    summary: "注意力可视化的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释注意力可视化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明注意力可视化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析注意力可视化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.language-modeling.autoregressive
+    names:
+      zh: "自回归语言模型"
+      en: "Autoregressive Language Model"
+    aliases: []
+    summary: "自回归语言模型的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释自回归语言模型的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明自回归语言模型的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析自回归语言模型的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.language-modeling.masked
+    names:
+      zh: "掩码语言模型"
+      en: "Masked Language Model"
+    aliases: []
+    summary: "掩码语言模型的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释掩码语言模型的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明掩码语言模型的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析掩码语言模型的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.pretraining.bert
+    names:
+      zh: "BERT"
+      en: "BERT"
+    aliases: []
+    summary: "BERT的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释BERT的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明BERT的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析BERT的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.pretraining.gpt
+    names:
+      zh: "GPT"
+      en: "GPT"
+    aliases: []
+    summary: "GPT的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释GPT的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明GPT的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析GPT的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.pretraining.objectives
+    names:
+      zh: "预训练目标"
+      en: "Pretraining Objectives"
+    aliases: []
+    summary: "预训练目标的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释预训练目标的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明预训练目标的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析预训练目标的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.pretraining.data
+    names:
+      zh: "预训练数据"
+      en: "Pretraining Data"
+    aliases: []
+    summary: "预训练数据的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释预训练数据的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明预训练数据的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析预训练数据的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.scaling.scaling-laws
+    names:
+      zh: "缩放定律"
+      en: "Scaling Laws"
+    aliases: []
+    summary: "缩放定律的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释缩放定律的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明缩放定律的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析缩放定律的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.prompt.in-context-learning
+    names:
+      zh: "上下文学习"
+      en: "In-Context Learning"
+    aliases: []
+    summary: "上下文学习的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释上下文学习的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明上下文学习的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析上下文学习的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.prompt.prompt-engineering
+    names:
+      zh: "提示工程"
+      en: "Prompt Engineering"
+    aliases: []
+    summary: "提示工程的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释提示工程的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明提示工程的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析提示工程的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.prompt.few-shot-learning
+    names:
+      zh: "少样本学习"
+      en: "Few-Shot Learning"
+    aliases: []
+    summary: "少样本学习的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释少样本学习的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明少样本学习的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析少样本学习的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.inference.context-window
+    names:
+      zh: "上下文窗口"
+      en: "Context Window"
+    aliases: []
+    summary: "上下文窗口的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释上下文窗口的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明上下文窗口的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析上下文窗口的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.inference.decoding
+    names:
+      zh: "解码策略"
+      en: "Decoding Strategies"
+    aliases: []
+    summary: "解码策略的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释解码策略的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明解码策略的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析解码策略的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.instruction-tuning
+    names:
+      zh: "指令微调"
+      en: "Instruction Tuning"
+    aliases: []
+    summary: "指令微调的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释指令微调的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明指令微调的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析指令微调的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.supervised-fine-tuning
+    names:
+      zh: "监督微调"
+      en: "Supervised Fine-Tuning"
+    aliases: []
+    summary: "监督微调的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释监督微调的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明监督微调的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析监督微调的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.preference-data
+    names:
+      zh: "偏好数据"
+      en: "Preference Data"
+    aliases: []
+    summary: "偏好数据的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释偏好数据的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明偏好数据的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析偏好数据的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.reward-model
+    names:
+      zh: "奖励模型"
+      en: "Reward Model"
+    aliases: []
+    summary: "奖励模型的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释奖励模型的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明奖励模型的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析奖励模型的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.rlhf
+    names:
+      zh: "基于人类反馈的强化学习"
+      en: "Reinforcement Learning from Human Feedback"
+    aliases: []
+    summary: "基于人类反馈的强化学习的定义、作用与适用边界。"
+    difficulty: 4
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释基于人类反馈的强化学习的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明基于人类反馈的强化学习的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析基于人类反馈的强化学习的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.ppo
+    names:
+      zh: "近端策略优化"
+      en: "Proximal Policy Optimization"
+    aliases: []
+    summary: "近端策略优化的定义、作用与适用边界。"
+    difficulty: 4
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释近端策略优化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明近端策略优化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析近端策略优化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.alignment.safety
+    names:
+      zh: "安全对齐"
+      en: "Safety Alignment"
+    aliases: []
+    summary: "安全对齐的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释安全对齐的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明安全对齐的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析安全对齐的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.finetuning.parameter-efficient
+    names:
+      zh: "参数高效微调"
+      en: "Parameter-Efficient Fine-Tuning"
+    aliases: []
+    summary: "参数高效微调的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释参数高效微调的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明参数高效微调的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析参数高效微调的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.finetuning.lora
+    names:
+      zh: "低秩适配"
+      en: "Low-Rank Adaptation"
+    aliases: []
+    summary: "低秩适配的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释低秩适配的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明低秩适配的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析低秩适配的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.finetuning.adapter-tuning
+    names:
+      zh: "适配器微调"
+      en: "Adapter Tuning"
+    aliases: []
+    summary: "适配器微调的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释适配器微调的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明适配器微调的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析适配器微调的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.finetuning.quantization
+    names:
+      zh: "量化"
+      en: "Quantization"
+    aliases: []
+    summary: "量化的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释量化的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明量化的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析量化的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: llm.finetuning.qlora
+    names:
+      zh: "QLoRA"
+      en: "QLoRA"
+    aliases: []
+    summary: "QLoRA的定义、作用与适用边界。"
+    difficulty: 4
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释QLoRA的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明QLoRA的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析QLoRA的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.information-retrieval
+    names:
+      zh: "信息检索"
+      en: "Information Retrieval"
+    aliases: []
+    summary: "信息检索的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释信息检索的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明信息检索的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析信息检索的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.document-chunking
+    names:
+      zh: "文档切分"
+      en: "Document Chunking"
+    aliases: []
+    summary: "文档切分的定义、作用与适用边界。"
+    difficulty: 2
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释文档切分的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明文档切分的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析文档切分的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.dense-retrieval
+    names:
+      zh: "稠密检索"
+      en: "Dense Retrieval"
+    aliases: []
+    summary: "稠密检索的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释稠密检索的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明稠密检索的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析稠密检索的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.vector-index
+    names:
+      zh: "向量索引"
+      en: "Vector Index"
+    aliases: []
+    summary: "向量索引的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释向量索引的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明向量索引的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析向量索引的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.embedding-model
+    names:
+      zh: "嵌入模型"
+      en: "Embedding Model"
+    aliases: []
+    summary: "嵌入模型的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释嵌入模型的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明嵌入模型的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析嵌入模型的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.query-expansion
+    names:
+      zh: "查询扩展"
+      en: "Query Expansion"
+    aliases: []
+    summary: "查询扩展的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释查询扩展的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明查询扩展的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析查询扩展的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.reranking
+    names:
+      zh: "重排序"
+      en: "Reranking"
+    aliases: []
+    summary: "重排序的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释重排序的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明重排序的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析重排序的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.hybrid-retrieval
+    names:
+      zh: "混合检索"
+      en: "Hybrid Retrieval"
+    aliases: []
+    summary: "混合检索的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释混合检索的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明混合检索的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析混合检索的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.retrieval-augmented-generation
+    names:
+      zh: "检索增强生成"
+      en: "Retrieval-Augmented Generation"
+    aliases: []
+    summary: "检索增强生成的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释检索增强生成的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明检索增强生成的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析检索增强生成的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.context-construction
+    names:
+      zh: "上下文构造"
+      en: "Context Construction"
+    aliases: []
+    summary: "上下文构造的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释上下文构造的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明上下文构造的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析上下文构造的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.citation-grounding
+    names:
+      zh: "引用溯源"
+      en: "Citation Grounding"
+    aliases: []
+    summary: "引用溯源的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释引用溯源的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明引用溯源的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析引用溯源的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.retrieval-failure
+    names:
+      zh: "检索失败分析"
+      en: "Retrieval Failure Analysis"
+    aliases: []
+    summary: "检索失败分析的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释检索失败分析的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明检索失败分析的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析检索失败分析的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.generation-failure
+    names:
+      zh: "生成失败分析"
+      en: "Generation Failure Analysis"
+    aliases: []
+    summary: "生成失败分析的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释生成失败分析的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明生成失败分析的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析生成失败分析的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.architecture
+    names:
+      zh: "RAG 系统架构"
+      en: "RAG System Architecture"
+    aliases: []
+    summary: "RAG 系统架构的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释RAG 系统架构的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明RAG 系统架构的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析RAG 系统架构的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation
+    names:
+      zh: "RAG 评测"
+      en: "RAG Evaluation"
+    aliases: []
+    summary: "RAG 评测的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释RAG 评测的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明RAG 评测的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析RAG 评测的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.context-precision-recall
+    names:
+      zh: "上下文精确率与召回率"
+      en: "Context Precision and Recall"
+    aliases: []
+    summary: "上下文精确率与召回率的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释上下文精确率与召回率的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明上下文精确率与召回率的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析上下文精确率与召回率的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.faithfulness
+    names:
+      zh: "忠实性"
+      en: "Faithfulness"
+    aliases: []
+    summary: "忠实性的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释忠实性的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明忠实性的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析忠实性的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.answer-relevancy
+    names:
+      zh: "答案相关性"
+      en: "Answer Relevancy"
+    aliases: []
+    summary: "答案相关性的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释答案相关性的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明答案相关性的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析答案相关性的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.ragas
+    names:
+      zh: "RAGAS"
+      en: "RAGAS"
+    aliases: []
+    summary: "RAGAS的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释RAGAS的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明RAGAS的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析RAGAS的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.offline
+    names:
+      zh: "离线评测"
+      en: "Offline Evaluation"
+    aliases: []
+    summary: "离线评测的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释离线评测的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明离线评测的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析离线评测的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.human
+    names:
+      zh: "人工评测"
+      en: "Human Evaluation"
+    aliases: []
+    summary: "人工评测的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释人工评测的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明人工评测的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析人工评测的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.evaluation.ablation-study
+    names:
+      zh: "消融实验"
+      en: "Ablation Study"
+    aliases: []
+    summary: "消融实验的定义、作用与适用边界。"
+    difficulty: 4
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释消融实验的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明消融实验的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析消融实验的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.practice.experiment-tracking
+    names:
+      zh: "实验追踪"
+      en: "Experiment Tracking"
+    aliases: []
+    summary: "实验追踪的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释实验追踪的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明实验追踪的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析实验追踪的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+  - id: rag.practice.end-to-end
+    names:
+      zh: "端到端 RAG 实训"
+      en: "End-to-End RAG Practice"
+    aliases: []
+    summary: "端到端 RAG 实训的定义、作用与适用边界。"
+    difficulty: 3
+    required: true
+    evidence_status: coverage_gap
+    review_status: reviewed
+    levels:
+      - level: intro
+        learning_outcomes:
+          - "解释端到端 RAG 实训的核心含义并识别其基本场景。"
+        mastery_threshold: 0.4
+        assessment_kinds: [concept]
+      - level: intermediate
+        learning_outcomes:
+          - "说明端到端 RAG 实训的工作原理并完成计算或代码练习。"
+        mastery_threshold: 0.65
+        assessment_kinds: [calculation, code]
+      - level: advanced
+        learning_outcomes:
+          - "分析端到端 RAG 实训的局限并比较可替代方法。"
+        mastery_threshold: 0.85
+        assessment_kinds: [analysis]
+teaches:
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.scalar
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.vector
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.matrix
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.tensor
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.matrix-operations
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.matrix-multiplication
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.norm
+    order: 7
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.eigen-decomposition
+    order: 8
+    required: true
+    review_status: reviewed
+  - section_id: section.01.linear-algebra
+    concept_id: math.linear-algebra.svd
+    order: 9
+    required: true
+    review_status: reviewed
+  - section_id: section.01.calculus
+    concept_id: math.calculus.derivative-gradient
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.01.probability
+    concept_id: math.probability.random-variable
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.01.probability
+    concept_id: math.probability.probability-distribution
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.data.feature-label
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.data.train-validation-test-split
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.supervised.learning
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.regression.linear-regression
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.classification.logistic-regression
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.02.data-and-supervised
+    concept_id: ml.objective.loss-function
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.estimation.maximum-likelihood
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.generalization.bias-variance
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.generalization.overfitting
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.generalization.regularization-introduction
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.model-selection.cross-validation
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.evaluation.confusion-matrix
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.02.generalization-evaluation
+    concept_id: ml.evaluation.classification-metrics
+    order: 7
+    required: true
+    review_status: reviewed
+  - section_id: section.02.classical-algorithms
+    concept_id: ml.tree.decision-tree
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.02.classical-algorithms
+    concept_id: ml.ensemble.random-forest
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.02.classical-algorithms
+    concept_id: ml.clustering.kmeans
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.03.network-architecture
+    concept_id: dl.neuron.perceptron
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.03.network-architecture
+    concept_id: dl.feedforward.mlp
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.03.network-architecture
+    concept_id: dl.activation.relu
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.03.network-architecture
+    concept_id: dl.activation.sigmoid-tanh
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.03.network-architecture
+    concept_id: dl.forward-pass
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.03.network-architecture
+    concept_id: dl.computation.computational-graph
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.03.differentiation
+    concept_id: math.calculus.chain-rule
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.03.differentiation
+    concept_id: dl.backpropagation
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.03.differentiation
+    concept_id: dl.initialization.weight-initialization
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.03.differentiation
+    concept_id: dl.output-layer
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.03.output-and-theory
+    concept_id: dl.output.softmax
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.03.output-and-theory
+    concept_id: dl.theory.universal-approximation
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.04.optimization
+    concept_id: ml.optimization.gradient-descent
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.04.optimization
+    concept_id: ml.optimization.stochastic-gradient-descent
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.04.optimization
+    concept_id: ml.optimization.mini-batch
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.04.optimization
+    concept_id: ml.optimization.learning-rate
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.04.optimization
+    concept_id: ml.optimization.momentum
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.04.optimization
+    concept_id: dl.optimization.adam
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.04.regularization
+    concept_id: dl.optimization.vanishing-exploding-gradient
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.04.regularization
+    concept_id: dl.regularization.l1-l2
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.04.regularization
+    concept_id: dl.regularization.dropout
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.04.regularization
+    concept_id: dl.regularization.early-stopping
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.04.regularization
+    concept_id: dl.optimization.batch-normalization
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.04.regularization
+    concept_id: dl.regularization.data-augmentation
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.04.training-practice
+    concept_id: dl.practice.hyperparameter-tuning
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.04.training-practice
+    concept_id: dl.practice.grid-random-search
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.04.training-practice
+    concept_id: dl.practice.training-validation-loop
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.04.training-practice
+    concept_id: dl.practice.optimization-diagnostics
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.05.convolution-basics
+    concept_id: dl.vision.image-tensor
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.05.convolution-basics
+    concept_id: dl.cnn.convolution
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.05.convolution-basics
+    concept_id: dl.cnn.cross-correlation
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.05.convolution-basics
+    concept_id: dl.cnn.kernel-filter
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.05.convolution-basics
+    concept_id: dl.cnn.padding-stride
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.05.convolution-basics
+    concept_id: dl.cnn.pooling
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.05.cnn-architecture
+    concept_id: dl.cnn.receptive-field
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.05.cnn-architecture
+    concept_id: dl.cnn.architecture
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.05.cnn-architecture
+    concept_id: dl.cnn.flatten-fully-connected
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.05.cnn-architecture
+    concept_id: dl.cnn.backpropagation
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.06.symbolic-representation
+    concept_id: nlp.tokenization
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.06.symbolic-representation
+    concept_id: nlp.representation.one-hot
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.06.symbolic-representation
+    concept_id: dl.representation.embedding
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.06.symbolic-representation
+    concept_id: dl.representation.cosine-similarity
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.06.sequence-models
+    concept_id: nlp.sequence-modeling
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.06.sequence-models
+    concept_id: nlp.rnn
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.06.sequence-models
+    concept_id: nlp.lstm-gru
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.06.sequence-models
+    concept_id: nlp.encoder-decoder
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.06.sequence-models
+    concept_id: nlp.language-modeling
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.06.sequence-models
+    concept_id: nlp.positional-information
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.07.attention
+    concept_id: llm.attention.attention
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.07.attention
+    concept_id: llm.attention.scaled-dot-product
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.07.attention
+    concept_id: llm.attention.self-attention
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.07.attention
+    concept_id: llm.attention.multi-head
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-components
+    concept_id: llm.transformer.positional-encoding
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-components
+    concept_id: llm.transformer.feed-forward
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-components
+    concept_id: llm.transformer.residual-connection
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-components
+    concept_id: llm.transformer.layer-normalization
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-components
+    concept_id: llm.transformer.encoder
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-components
+    concept_id: llm.transformer.decoder
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-usage
+    concept_id: llm.transformer.masked-self-attention
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-usage
+    concept_id: llm.transformer.cross-attention
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-usage
+    concept_id: llm.transformer.attention-complexity
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-usage
+    concept_id: llm.transformer.training
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-usage
+    concept_id: llm.transformer.inference
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.07.transformer-usage
+    concept_id: llm.transformer.attention-visualization
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.08.pretraining
+    concept_id: llm.language-modeling.autoregressive
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.08.pretraining
+    concept_id: llm.language-modeling.masked
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.08.pretraining
+    concept_id: llm.pretraining.bert
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.08.pretraining
+    concept_id: llm.pretraining.gpt
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.08.pretraining
+    concept_id: llm.pretraining.objectives
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.08.pretraining
+    concept_id: llm.pretraining.data
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.08.prompting-inference
+    concept_id: llm.scaling.scaling-laws
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.08.prompting-inference
+    concept_id: llm.prompt.in-context-learning
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.08.prompting-inference
+    concept_id: llm.prompt.prompt-engineering
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.08.prompting-inference
+    concept_id: llm.prompt.few-shot-learning
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.08.prompting-inference
+    concept_id: llm.inference.context-window
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.08.prompting-inference
+    concept_id: llm.inference.decoding
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.instruction-tuning
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.supervised-fine-tuning
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.preference-data
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.reward-model
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.rlhf
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.ppo
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.09.alignment
+    concept_id: llm.alignment.safety
+    order: 7
+    required: true
+    review_status: reviewed
+  - section_id: section.09.peft
+    concept_id: llm.finetuning.parameter-efficient
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.09.peft
+    concept_id: llm.finetuning.lora
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.09.peft
+    concept_id: llm.finetuning.adapter-tuning
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.09.peft
+    concept_id: llm.finetuning.quantization
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.09.peft
+    concept_id: llm.finetuning.qlora
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.information-retrieval
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.document-chunking
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.dense-retrieval
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.vector-index
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.embedding-model
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.query-expansion
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.reranking
+    order: 7
+    required: true
+    review_status: reviewed
+  - section_id: section.10.retrieval
+    concept_id: rag.hybrid-retrieval
+    order: 8
+    required: true
+    review_status: reviewed
+  - section_id: section.10.generation-diagnostics
+    concept_id: rag.retrieval-augmented-generation
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.10.generation-diagnostics
+    concept_id: rag.context-construction
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.10.generation-diagnostics
+    concept_id: rag.citation-grounding
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.10.generation-diagnostics
+    concept_id: rag.retrieval-failure
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.10.generation-diagnostics
+    concept_id: rag.generation-failure
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.10.generation-diagnostics
+    concept_id: rag.architecture
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.11.evaluation
+    concept_id: rag.evaluation
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.11.evaluation
+    concept_id: rag.evaluation.context-precision-recall
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.11.evaluation
+    concept_id: rag.evaluation.faithfulness
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.11.evaluation
+    concept_id: rag.evaluation.answer-relevancy
+    order: 4
+    required: true
+    review_status: reviewed
+  - section_id: section.11.evaluation
+    concept_id: rag.evaluation.ragas
+    order: 5
+    required: true
+    review_status: reviewed
+  - section_id: section.11.evaluation
+    concept_id: rag.evaluation.offline
+    order: 6
+    required: true
+    review_status: reviewed
+  - section_id: section.11.practice
+    concept_id: rag.evaluation.human
+    order: 1
+    required: true
+    review_status: reviewed
+  - section_id: section.11.practice
+    concept_id: rag.evaluation.ablation-study
+    order: 2
+    required: true
+    review_status: reviewed
+  - section_id: section.11.practice
+    concept_id: rag.practice.experiment-tracking
+    order: 3
+    required: true
+    review_status: reviewed
+  - section_id: section.11.practice
+    concept_id: rag.practice.end-to-end
+    order: 4
+    required: true
+    review_status: reviewed
