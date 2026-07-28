@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Annotated
 
@@ -12,6 +13,9 @@ from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 from skillforge_kb.ontology.validation import validate_catalog
 
 app = typer.Typer(no_args_is_help=True)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_COURSE_FILE = PROJECT_ROOT / "resources" / "ontology" / "ai_course_v1.yaml"
+DEFAULT_RELATIONS_FILE = PROJECT_ROOT / "resources" / "ontology" / "ai_relations_v1.yaml"
 
 
 @app.callback()
@@ -47,10 +51,23 @@ def _load_validated_catalog(course_file: Path, relations_file: Path) -> Ontology
 
 @app.command("graph-validate")
 def graph_validate(
-    course_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
-    relations_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+    output: Annotated[Path | None, typer.Option()] = None,
 ) -> None:
-    catalog = _load_validated_catalog(course_file, relations_file)
+    catalog = OntologyCatalog.load(course_file, relations_file)
+    report = validate_catalog(catalog)
+    if output is not None:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
+        )
     typer.echo(
         f"Validated {len(catalog.chapters())} chapters, "
         f"{len(catalog.course_document.sections)} sections, "
@@ -60,10 +77,14 @@ def graph_validate(
 
 @app.command("graph-coverage")
 def graph_coverage(
-    course_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
-    relations_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
     pilot_jsonl: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
     output_file: Annotated[Path, typer.Option()],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
 ) -> None:
     catalog = _load_validated_catalog(course_file, relations_file)
     output_path = output_file.resolve()
@@ -77,8 +98,12 @@ def graph_coverage(
 
 @app.command("graph-publish")
 def graph_publish(
-    course_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
-    relations_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
 ) -> None:
     catalog = _load_validated_catalog(course_file, relations_file)
     settings = Settings()

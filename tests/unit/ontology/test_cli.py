@@ -25,6 +25,28 @@ def test_graph_validate_reports_catalog_scale() -> None:
     assert "140 concepts" in result.stdout
 
 
+def test_graph_validate_writes_report(tmp_path: Path) -> None:
+    output_path = tmp_path / "validation.json"
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "graph-validate",
+            "--course-file",
+            str(RESOURCE_ROOT / "ai_course_v1.yaml"),
+            "--relations-file",
+            str(RESOURCE_ROOT / "ai_relations_v1.yaml"),
+            "--output",
+            str(output_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    report = json.loads(output_path.read_text(encoding="utf-8"))
+    assert report["concept_count"] == 140
+    assert report["section_count"] == 27
+
+
 def test_graph_coverage_writes_read_only_candidate_report(tmp_path: Path) -> None:
     input_path = tmp_path / "pilot.jsonl"
     output_path = tmp_path / "reports" / "coverage.json"

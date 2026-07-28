@@ -10,6 +10,9 @@ The repository currently contains:
 - Governed source acquisition and PDF/HTML loaders.
 - Deterministic normalization and pedagogical chunking.
 - A read-only fusion intake pipeline for the two teammate-built knowledge bases.
+- A versioned bilingual AI course ontology with chapter/section structure, prerequisite DAG validation, three depth levels, and learner-profile adaptation contracts.
+- Candidate concept-coverage reporting that never promotes unreviewed evidence into the graph.
+- Parameterized, idempotent Neo4j publication for the curated course structure.
 - Unit and integration tests for ingestion, governance, storage, and fusion intake.
 - Versioned design documents and implementation plans under `docs/`.
 
@@ -55,21 +58,20 @@ The course graph commands validate and publish only the versioned curriculum str
 
 ```powershell
 uv run skillforge-kb graph-validate `
-  --course-file resources/ontology/ai_course_v1.yaml `
-  --relations-file resources/ontology/ai_relations_v1.yaml
+  --output reports/generated/graph-validation.json
 
 uv run skillforge-kb graph-coverage `
-  --course-file resources/ontology/ai_course_v1.yaml `
-  --relations-file resources/ontology/ai_relations_v1.yaml `
   --pilot-jsonl 'D:\path\to\ai_learning_pilot_chunks.jsonl' `
   --output-file reports/generated/course-graph-coverage.json
 
-uv run skillforge-kb graph-publish `
-  --course-file resources/ontology/ai_course_v1.yaml `
-  --relations-file resources/ontology/ai_relations_v1.yaml
+uv run skillforge-kb graph-publish
 ```
 
 `graph-coverage` is read-only over candidate JSONL and never publishes evidence edges. `graph-publish` validates the complete graph before opening the Neo4j connection.
+
+The graph commands use the versioned ontology assets under `resources/ontology` by default. Pass `--course-file` and `--relations-file` to validate another explicitly versioned catalog. Neo4j integration tests and `graph-publish` require a reachable Neo4j 5 instance; Docker is not required for unit tests or static validation.
+
+Learner profiles must be converted through the versioned `ProfileAdapter` and one-to-one legacy-ID mapping before a later course-planning module consumes them. Raw profile exports and teammate JSONL files stay outside Git; path decisions, resource-generation hints, and agent state are not part of the graph or profile snapshot.
 
 ## Data Policy
 
