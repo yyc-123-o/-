@@ -33,6 +33,11 @@ class GraphValidationError(ValueError):
 
 def validate_catalog(catalog: OntologyCatalog) -> GraphValidationReport:
     errors: list[str] = []
+    course_document = catalog.course_document
+    if course_document.course.version != course_document.version:
+        errors.append("course version mismatch")
+    if catalog.relation_document.version != course_document.version:
+        errors.append("relation document version mismatch")
     concepts = {concept.id: concept for concept in catalog.concepts()}
     sections = {section.id: section for section in catalog.course_document.sections}
     chapters = {chapter.id: chapter for chapter in catalog.chapters()}

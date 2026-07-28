@@ -96,6 +96,7 @@ class Neo4jConceptGraph:
             for level in concept.levels
         )
         with self._driver.session() as session:
+            _create_constraints(session)
             session.execute_write(
                 _publish_transaction,
                 version=course.version,
@@ -149,12 +150,14 @@ class Neo4jConceptGraph:
                 ],
             )
 
-    def prerequisites(self, concept_id: str, max_depth: int = 1) -> list[str]:
+    def prerequisites(self, concept_id: str, max_depth: int = 2) -> list[str]:
         if max_depth not in {1, 2}:
             raise ValueError("max_depth must be 1 or 2")
         query = (
-            "MATCH (target:Concept {id: $concept_id})"
+            "MATCH path=(target:Concept {id: $concept_id})"
             f"<-[:PREREQUISITE_OF*1..{max_depth}]-(source:Concept) "
+            "WHERE all(edge IN relationships(path) "
+            "WHERE coalesce(edge.graph_version, edge.version) = target.graph_version) "
             "RETURN DISTINCT source.id AS id ORDER BY id"
         )
         with self._driver.session() as session:
@@ -173,11 +176,6 @@ def _publish_transaction(
     levels: list[dict[str, str]],
     relations: list[dict[str, Any]],
 ) -> None:
-    for label in ("Course", "Chapter", "Section", "Concept", "ConceptLevel"):
-        tx.run(
-            f"CREATE CONSTRAINT {label.lower()}_id IF NOT EXISTS "
-            f"FOR (node:{label}) REQUIRE node.id IS UNIQUE"
-        ).consume()
     for node in nodes:
         tx.run(
             f"MERGE (node:{node['label']} {{id: $id}}) SET node += $properties",
@@ -246,6 +244,14 @@ def _publish_transaction(
             symmetric=relation_kind
             in {RelationKind.CONTRASTS_WITH, RelationKind.CONFUSED_WITH},
         )
+
+
+def _create_constraints(session: Any) -> None:
+    for label in ("Course", "Chapter", "Section", "Concept", "ConceptLevel"):
+        session.run(
+            f"CREATE CONSTRAINT {label.lower()}_id IF NOT EXISTS "
+            f"FOR (node:{label}) REQUIRE node.id IS UNIQUE"
+        ).consume()
 
 
 def _publish_relation_group(

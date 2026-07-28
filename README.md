@@ -67,7 +67,7 @@ uv run skillforge-kb graph-coverage `
 uv run skillforge-kb graph-publish
 ```
 
-`graph-coverage` is read-only over candidate JSONL and never publishes evidence edges. `graph-publish` validates the complete graph before opening the Neo4j connection.
+`graph-coverage` is read-only over candidate JSONL, requires its report outside the input directory, and never publishes evidence edges. `graph-publish` validates the complete graph before opening the Neo4j connection.
 
 The graph commands use the versioned ontology assets under `resources/ontology` by default. Pass `--course-file` and `--relations-file` to validate another explicitly versioned catalog. Neo4j integration tests and `graph-publish` require a reachable Neo4j 5 instance; Docker is not required for unit tests or static validation.
 

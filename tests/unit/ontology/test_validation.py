@@ -43,3 +43,31 @@ def test_validation_accepts_course_and_reports_key_path(catalog: OntologyCatalog
         "rag.retrieval-augmented-generation",
         "rag.evaluation.ragas",
     ]
+
+
+def test_validation_rejects_mismatched_document_versions(catalog: OntologyCatalog) -> None:
+    mismatched_course = catalog.course_document.model_copy(
+        update={"version": "ai-course-v2"}
+    )
+    mismatched_catalog = OntologyCatalog.from_documents(
+        mismatched_course,
+        catalog.relation_document,
+    )
+
+    with pytest.raises(GraphValidationError, match="relation document version mismatch"):
+        validate_catalog(mismatched_catalog)
+
+    nested_version_mismatch = catalog.course_document.model_copy(
+        update={
+            "course": catalog.course_document.course.model_copy(
+                update={"version": "ai-course-v2"}
+            )
+        }
+    )
+    nested_mismatch_catalog = OntologyCatalog.from_documents(
+        nested_version_mismatch,
+        catalog.relation_document,
+    )
+
+    with pytest.raises(GraphValidationError, match="course version mismatch"):
+        validate_catalog(nested_mismatch_catalog)

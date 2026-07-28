@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from typing import Any
 
 from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
@@ -6,6 +7,9 @@ from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 class RecordingResult:
     def consume(self) -> None:
         return None
+
+    def __iter__(self) -> Iterator[dict[str, str]]:
+        return iter(())
 
 
 class RecordingTransaction:
@@ -20,12 +24,20 @@ class RecordingTransaction:
 class RecordingSession:
     def __init__(self) -> None:
         self.transaction = RecordingTransaction()
+        self.auto_commit_calls: list[tuple[str, dict[str, Any]]] = []
+        self.query_calls: list[tuple[str, dict[str, Any]]] = []
 
     def __enter__(self) -> "RecordingSession":
         return self
 
     def __exit__(self, *args: Any) -> None:
         return None
+
+    def run(self, query: str, **parameters: Any) -> RecordingResult:
+        if not query.startswith("CREATE CONSTRAINT"):
+            self.query_calls.append((query, parameters))
+        self.auto_commit_calls.append((query, parameters))
+        return RecordingResult()
 
     def execute_write(self, callback: Any, **parameters: Any) -> None:
         callback(self.transaction, **parameters)
@@ -105,3 +117,26 @@ def test_publish_attaches_review_status_to_structural_edges(catalog) -> None:
         assert "review_status" in query or all(
             "review_status" in row for row in parameters["rows"]
         )
+
+
+def test_publish_creates_constraints_outside_data_transaction(catalog) -> None:
+    driver = RecordingDriver()
+
+    Neo4jConceptGraph(driver).publish(catalog)
+
+    assert len(driver.session_instance.auto_commit_calls) == 5
+    assert all(
+        query.startswith("CREATE CONSTRAINT")
+        for query, _ in driver.session_instance.auto_commit_calls
+    )
+
+
+def test_prerequisites_are_scoped_to_target_graph_version() -> None:
+    driver = RecordingDriver()
+    graph = Neo4jConceptGraph(driver)
+
+    assert graph.prerequisites("rag.retrieval-augmented-generation") == []
+    query, _ = driver.session_instance.query_calls[0]
+    assert "PREREQUISITE_OF*1..2" in query
+    assert "target.graph_version" in query
+    assert "relationships(path)" in query

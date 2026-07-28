@@ -4,7 +4,7 @@ from .models import EvidenceChunk, SourceRecord
 
 
 class ConceptGraph(Protocol):
-    def prerequisites(self, concept_id: str, max_depth: int = 1) -> list[str]: ...
+    def prerequisites(self, concept_id: str, max_depth: int = 2) -> list[str]: ...
 
 
 class SourceRepository(Protocol):
@@ -19,7 +19,3 @@ class ChunkRepository(Protocol):
     def save_many(self, chunks: list[EvidenceChunk]) -> None: ...
 
     def get_many(self, chunk_ids: list[str]) -> list[EvidenceChunk]: ...
-
-
-class CourseGraph(Protocol):
-    def prerequisites(self, concept_id: str, max_depth: int = 2) -> list[str]: ...
