@@ -1,7 +1,7 @@
 # SkillForge 课程规划内核设计
 
 - 日期：2026-07-28
-- 状态：已确认
+- 状态：已实现
 - 适用范围：课程规划 Agent 的确定性路径与深度决策内核
 - 前置资产：`ai-course-v1` 课程知识图谱与 `LearnerProfileSnapshot`
 

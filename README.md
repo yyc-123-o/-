@@ -73,6 +73,21 @@ The graph commands use the versioned ontology assets under `resources/ontology` 
 
 Learner profiles must be converted through the versioned `ProfileAdapter` and one-to-one legacy-ID mapping before a later course-planning module consumes them. Raw profile exports and teammate JSONL files stay outside Git; path decisions, resource-generation hints, and agent state are not part of the graph or profile snapshot.
 
+The deterministic planning core converts the reviewed catalog and a canonical learner profile into a complete required-course path:
+
+```python
+from skillforge_kb.planning import CoursePlanner, DepthUpdater
+
+decision = CoursePlanner(catalog).plan(profile_snapshot)
+updated = DepthUpdater(catalog).update(
+    decision,
+    updated_profile_snapshot,
+    completed_concept_ids={"math.linear-algebra.scalar"},
+)
+```
+
+The path is generated once, keeps mastered concepts as `skipped`, and preserves its concept set, order, positions, and `path_id` during updates. Only unfinished node readiness and delivery depth may change. LangChain and LangGraph integration remains a separate adapter phase; neither framework participates in the deterministic planning algorithm.
+
 ## Data Policy
 
 Raw PDFs, source repositories, teammate JSONL files, pickle indexes, FAISS indexes, and generated reports are intentionally excluded from Git. They may have separate licensing, size, or reproducibility constraints. See [`data/README.md`](data/README.md) and the source manifest kept with the local data copy.
