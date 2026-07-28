@@ -1,5 +1,9 @@
-from skillforge_kb.ontology.models import RelationKind
+import pytest
+
+from skillforge_kb.ontology.catalog import OntologyCatalog
+from skillforge_kb.ontology.models import Relation, RelationDocument, RelationKind
 from skillforge_kb.planning.ordering import (
+    PlanningError,
     course_positions,
     stable_required_concept_ids,
 )
@@ -33,3 +37,23 @@ def test_course_positions_follow_teaching_assignments(catalog) -> None:
     assert vector.chapter_id == "chapter.01.math-foundations"
     assert vector.section_id == "section.01.linear-algebra"
     assert (vector.chapter_order, vector.section_order, vector.teaching_order) == (1, 1, 2)
+
+
+def test_invalid_catalog_is_reported_as_planning_error(catalog) -> None:
+    cycle = Relation(
+        source="rag.evaluation.ragas",
+        target="math.linear-algebra.vector",
+        kind=RelationKind.HARD_PREREQUISITE,
+        min_mastery=0.6,
+        review_status="reviewed",
+    )
+    invalid = OntologyCatalog.from_documents(
+        catalog.course_document,
+        RelationDocument(
+            version=catalog.relation_document.version,
+            relations=[*catalog.relations(), cycle],
+        ),
+    )
+
+    with pytest.raises(PlanningError, match="invalid course graph"):
+        stable_required_concept_ids(invalid)

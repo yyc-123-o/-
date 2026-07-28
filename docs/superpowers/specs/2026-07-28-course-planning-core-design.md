@@ -125,11 +125,14 @@ path_id
 profile_id
 graph_version
 policy_version
+policy_digest
 generated_at
 nodes[]
 ```
 
-`path_id` 是确定性内容 ID，由 `profile_id`、`graph_version`、`policy_version` 和有序 `concept_id` 列表的规范 JSON 计算 SHA-256。`generated_at` 不参与 `path_id`。重复规划的语义字段必须完全一致；测试比较时排除调用方提供的时间戳。
+`policy_digest` 是完整策略规则规范 JSON 的 SHA-256；相同版本字符串但不同阈值或权重必须产生不同摘要并禁止更新既有路径。`path_id` 是确定性内容 ID，由 `profile_id`、`graph_version`、`policy_version`、`policy_digest` 和有序 `concept_id` 列表的规范 JSON 计算 SHA-256。`generated_at` 不参与 `path_id`。重复规划的语义字段必须完全一致；测试比较时排除调用方提供的时间戳。
+
+`PathNode` 和 `PathDecision` 使用冻结的 Pydantic 模型；节点集合、先修集合、阻塞集合和原因码集合均使用不可变元组。更新结果可以安全复用冻结对象，但任何调用方都不能原地修改既有规划快照。
 
 ## 6. 稳定路径算法
 

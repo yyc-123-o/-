@@ -4,7 +4,7 @@ from heapq import heappop, heappush
 
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import RelationKind
-from skillforge_kb.ontology.validation import validate_catalog
+from skillforge_kb.ontology.validation import GraphValidationError, validate_catalog
 
 
 class PlanningError(ValueError):
@@ -38,7 +38,10 @@ def course_positions(catalog: OntologyCatalog) -> dict[str, CoursePosition]:
 
 
 def stable_required_concept_ids(catalog: OntologyCatalog) -> list[str]:
-    validate_catalog(catalog)
+    try:
+        validate_catalog(catalog)
+    except GraphValidationError as exc:
+        raise PlanningError(f"invalid course graph: {exc}") from exc
     required = {item.id for item in catalog.concepts() if item.required}
     positions = course_positions(catalog)
     incoming = {concept_id: 0 for concept_id in required}

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from math import isclose
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from skillforge_kb.ontology.models import (
     CONCEPT_ID_PATTERN,
@@ -10,12 +10,12 @@ from skillforge_kb.ontology.models import (
     DepthLevel,
 )
 
-ABILITY_DIMENSIONS = {
+ABILITY_DIMENSIONS = (
     "theoretical_understanding",
     "coding_ability",
     "mathematical_foundation",
     "problem_solving",
-}
+)
 
 
 class PathStatus(StrEnum):
@@ -41,6 +41,8 @@ class ReasonCode(StrEnum):
 
 
 class PlannerPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     version: str = Field(default="planner-policy.v1", min_length=1)
     minimum_confidence: float = Field(default=0.60, ge=0, le=1)
     skip_mastery: float = Field(default=0.85, ge=0, le=1)
@@ -62,7 +64,7 @@ class PlannerPolicy(BaseModel):
     def validate_policy(self) -> "PlannerPolicy":
         if not isclose(sum(self.ability_weights.values()), 1.0, abs_tol=1e-9):
             raise ValueError("ability weights must sum to 1")
-        if set(self.ability_weights) != ABILITY_DIMENSIONS:
+        if set(self.ability_weights) != set(ABILITY_DIMENSIONS):
             raise ValueError("ability weights require all four dimensions")
         if any(weight < 0 or weight > 1 for weight in self.ability_weights.values()):
             raise ValueError("ability weights must be between 0 and 1")
@@ -74,15 +76,17 @@ class PlannerPolicy(BaseModel):
 
 
 class PathNode(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
     chapter_id: str = Field(pattern=GRAPH_ID_PATTERN)
     section_id: str = Field(pattern=GRAPH_ID_PATTERN)
     sequence: int = Field(ge=1)
     status: PathStatus
     delivery_depth: DepthLevel | None
-    hard_prerequisite_ids: list[str] = Field(default_factory=list)
-    blocking_prerequisite_ids: list[str] = Field(default_factory=list)
-    reason_codes: list[ReasonCode] = Field(default_factory=list)
+    hard_prerequisite_ids: tuple[str, ...] = ()
+    blocking_prerequisite_ids: tuple[str, ...] = ()
+    reason_codes: tuple[ReasonCode, ...] = ()
 
     @model_validator(mode="after")
     def validate_node(self) -> "PathNode":
@@ -102,13 +106,16 @@ class PathNode(BaseModel):
 
 
 class PathDecision(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     schema_version: str = Field(default="path-decision.v1", min_length=1)
     path_id: str = Field(pattern=r"^path_[0-9a-f]{64}$")
     profile_id: str = Field(min_length=1)
     graph_version: str = Field(min_length=1)
     policy_version: str = Field(min_length=1)
+    policy_digest: str = Field(pattern=r"^policy_[0-9a-f]{64}$")
     generated_at: datetime | None = None
-    nodes: list[PathNode] = Field(min_length=1)
+    nodes: tuple[PathNode, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_nodes(self) -> "PathDecision":

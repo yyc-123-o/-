@@ -1,9 +1,10 @@
 from skillforge_kb.ontology.catalog import OntologyCatalog
-from skillforge_kb.ontology.models import LearnerProfileSnapshot
+from skillforge_kb.ontology.models import LearnerProfileSnapshot, RelationKind
 
 from .models import PathDecision, PathNode, PathStatus, PlannerPolicy
 from .ordering import PlanningError, course_positions, stable_required_concept_ids
 from .planner import CoursePlanner, assign_execution_statuses
+from .serialization import build_path_id
 
 
 class DepthUpdater:
@@ -15,6 +16,7 @@ class DepthUpdater:
         self._catalog = catalog
         self._planner = CoursePlanner(catalog, policy)
         self._policy = self._planner.policy
+        self._policy_digest = self._planner.policy_digest
 
     def update(
         self,
@@ -70,16 +72,36 @@ class DepthUpdater:
             raise PlanningError("existing path graph version does not match catalog")
         if existing.policy_version != self._policy.version:
             raise PlanningError("policy version does not match existing path")
+        if existing.policy_digest != self._policy_digest:
+            raise PlanningError("policy digest does not match existing path")
 
     def _validate_existing_path(self, existing: PathDecision) -> None:
         expected_ids = stable_required_concept_ids(self._catalog)
         if [node.concept_id for node in existing.nodes] != expected_ids:
             raise PlanningError("path no longer matches catalog")
         positions = course_positions(self._catalog)
-        for node in existing.nodes:
+        hard_by_target: dict[str, list[str]] = {}
+        for relation in self._catalog.relations(RelationKind.HARD_PREREQUISITE):
+            hard_by_target.setdefault(relation.target, []).append(relation.source)
+        expected_path_id = build_path_id(
+            existing.profile_id,
+            existing.graph_version,
+            existing.policy_version,
+            expected_ids,
+            existing.policy_digest,
+        )
+        if existing.path_id != expected_path_id:
+            raise PlanningError("path ID does not match path content")
+        for expected_sequence, node in enumerate(existing.nodes, start=1):
             position = positions[node.concept_id]
-            if (node.chapter_id, node.section_id) != (
+            if (
+                node.sequence != expected_sequence
+                or (node.chapter_id, node.section_id)
+                != (
                 position.chapter_id,
                 position.section_id,
+                )
+                or node.hard_prerequisite_ids
+                != tuple(sorted(hard_by_target.get(node.concept_id, [])))
             ):
                 raise PlanningError("path no longer matches catalog")

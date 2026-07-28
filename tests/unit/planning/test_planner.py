@@ -96,7 +96,7 @@ def test_high_confidence_mastery_keeps_node_as_skipped(catalog) -> None:
 
     assert node.status is PathStatus.SKIPPED
     assert node.delivery_depth is None
-    assert node.reason_codes == [ReasonCode.MASTERY_SKIP_THRESHOLD_MET]
+    assert node.reason_codes == (ReasonCode.MASTERY_SKIP_THRESHOLD_MET,)
 
 
 def test_complete_high_readiness_can_select_advanced(catalog) -> None:
@@ -112,7 +112,7 @@ def test_complete_high_readiness_can_select_advanced(catalog) -> None:
     )
 
     assert node.delivery_depth is DepthLevel.ADVANCED
-    assert node.reason_codes == [ReasonCode.READY_FOR_ADVANCED]
+    assert node.reason_codes == (ReasonCode.READY_FOR_ADVANCED,)
 
 
 def test_unassessed_hard_prerequisite_blocks_advanced_depth(catalog) -> None:
@@ -129,7 +129,7 @@ def test_unassessed_hard_prerequisite_blocks_advanced_depth(catalog) -> None:
 
     assert node.status is PathStatus.BLOCKED
     assert node.delivery_depth is DepthLevel.INTRO
-    assert node.blocking_prerequisite_ids == ["math.linear-algebra.scalar"]
+    assert node.blocking_prerequisite_ids == ("math.linear-algebra.scalar",)
     assert ReasonCode.HARD_PREREQUISITE_UNASSESSED in node.reason_codes
 
 

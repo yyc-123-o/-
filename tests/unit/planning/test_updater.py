@@ -9,7 +9,7 @@ from skillforge_kb.ontology.models import (
     KnowledgeMastery,
     LearnerProfileSnapshot,
 )
-from skillforge_kb.planning.models import PathStatus
+from skillforge_kb.planning.models import PathStatus, PlannerPolicy
 from skillforge_kb.planning.ordering import PlanningError
 from skillforge_kb.planning.planner import CoursePlanner
 from skillforge_kb.planning.updater import DepthUpdater
@@ -99,7 +99,7 @@ def test_completed_prerequisite_unblocks_high_readiness_successor(catalog) -> No
     )
 
     vector = node_for(updated, "math.linear-algebra.vector")
-    assert vector.blocking_prerequisite_ids == []
+    assert vector.blocking_prerequisite_ids == ()
     assert vector.status is PathStatus.AVAILABLE
     assert vector.delivery_depth is DepthLevel.ADVANCED
 
@@ -162,4 +162,45 @@ def test_previous_completed_nodes_remain_prerequisite_evidence(catalog) -> None:
     scalar = node_for(second_update, "math.linear-algebra.scalar")
     vector = node_for(second_update, "math.linear-algebra.vector")
     assert scalar.status is PathStatus.COMPLETED
-    assert vector.blocking_prerequisite_ids == []
+    assert vector.blocking_prerequisite_ids == ()
+
+
+def test_update_rejects_same_version_with_different_policy_rules(catalog) -> None:
+    existing = CoursePlanner(catalog).plan(profile(catalog))
+    altered_policy = PlannerPolicy(intermediate_threshold=0.10)
+
+    with pytest.raises(PlanningError, match="policy digest"):
+        DepthUpdater(catalog, altered_policy).update(existing, profile(catalog), set())
+
+
+def test_update_rejects_forged_path_id(catalog) -> None:
+    existing = CoursePlanner(catalog).plan(profile(catalog))
+    forged = existing.model_copy(update={"path_id": f"path_{'0' * 64}"})
+
+    with pytest.raises(PlanningError, match="path ID"):
+        DepthUpdater(catalog).update(forged, profile(catalog), set())
+
+
+def test_path_snapshots_use_immutable_collections(catalog) -> None:
+    existing = CoursePlanner(catalog).plan(profile(catalog))
+    updated = DepthUpdater(catalog).update(existing, profile(catalog), set())
+
+    assert isinstance(existing.nodes, tuple)
+    assert isinstance(updated.nodes[0].reason_codes, tuple)
+    with pytest.raises(AttributeError):
+        updated.nodes[0].reason_codes.clear()
+
+
+def test_update_rejects_tampered_static_prerequisite_metadata(catalog) -> None:
+    existing = CoursePlanner(catalog).plan(profile(catalog))
+    vector_index = next(
+        index
+        for index, node in enumerate(existing.nodes)
+        if node.concept_id == "math.linear-algebra.vector"
+    )
+    vector = existing.nodes[vector_index].model_copy(update={"hard_prerequisite_ids": ()})
+    nodes = (*existing.nodes[:vector_index], vector, *existing.nodes[vector_index + 1 :])
+    tampered = existing.model_copy(update={"nodes": nodes})
+
+    with pytest.raises(PlanningError, match="path no longer matches catalog"):
+        DepthUpdater(catalog).update(tampered, profile(catalog), set())

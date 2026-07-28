@@ -9,7 +9,6 @@ from skillforge_kb.ontology.models import (
     Relation,
     RelationKind,
 )
-from skillforge_kb.ontology.validation import validate_catalog
 
 from .models import (
     ABILITY_DIMENSIONS,
@@ -20,7 +19,7 @@ from .models import (
     ReasonCode,
 )
 from .ordering import PlanningError, course_positions, stable_required_concept_ids
-from .serialization import build_path_id
+from .serialization import build_path_id, build_policy_digest
 
 
 class CoursePlanner:
@@ -29,17 +28,21 @@ class CoursePlanner:
         catalog: OntologyCatalog,
         policy: PlannerPolicy | None = None,
     ) -> None:
-        validate_catalog(catalog)
         self._catalog = catalog
-        self._policy = policy or PlannerPolicy()
-        self._known_ids = {concept.id for concept in catalog.concepts()}
+        self._policy = (policy or PlannerPolicy()).model_copy(deep=True)
+        self._policy_digest = build_policy_digest(self._policy)
         self._ordered_ids = stable_required_concept_ids(catalog)
+        self._known_ids = {concept.id for concept in catalog.concepts()}
         self._positions = course_positions(catalog)
         self._hard_relations = self._index_hard_relations()
 
     @property
     def policy(self) -> PlannerPolicy:
-        return self._policy
+        return self._policy.model_copy(deep=True)
+
+    @property
+    def policy_digest(self) -> str:
+        return self._policy_digest
 
     def plan(
         self,
@@ -54,7 +57,7 @@ class CoursePlanner:
             raise PlanningError(f"unknown completed concept: {sorted(unknown_completed)[0]}")
         mastery = self._mastery_index(profile)
         ability_score, ability_reasons = self._ability_score(profile)
-        nodes = [
+        initial_nodes = [
             self._build_node(
                 concept_id,
                 sequence,
@@ -66,17 +69,19 @@ class CoursePlanner:
             )
             for sequence, concept_id in enumerate(self._ordered_ids, start=1)
         ]
-        nodes = assign_execution_statuses(nodes)
+        nodes = assign_execution_statuses(initial_nodes)
         return PathDecision(
             path_id=build_path_id(
                 profile.profile_id,
                 profile.graph_version,
                 self._policy.version,
                 self._ordered_ids,
+                self._policy_digest,
             ),
             profile_id=profile.profile_id,
             graph_version=profile.graph_version,
             policy_version=self._policy.version,
+            policy_digest=self._policy_digest,
             generated_at=profile.generated_at,
             nodes=nodes,
         )
@@ -100,7 +105,7 @@ class CoursePlanner:
         self,
         profile: LearnerProfileSnapshot,
     ) -> tuple[float | None, list[ReasonCode]]:
-        if set(profile.abilities) != ABILITY_DIMENSIONS:
+        if set(profile.abilities) != set(ABILITY_DIMENSIONS):
             return None, [ReasonCode.ABILITY_INCOMPLETE]
         if any(
             profile.abilities[dimension].confidence < self._policy.minimum_confidence
@@ -137,7 +142,7 @@ class CoursePlanner:
                 status=PathStatus.SKIPPED,
                 delivery_depth=None,
                 hard_prerequisite_ids=self._prerequisite_ids(concept_id),
-                reason_codes=[ReasonCode.MASTERY_SKIP_THRESHOLD_MET],
+                reason_codes=(ReasonCode.MASTERY_SKIP_THRESHOLD_MET,),
             )
 
         blocking_ids, blocking_reasons = self._blocking_prerequisites(
@@ -157,8 +162,8 @@ class CoursePlanner:
             status=PathStatus.BLOCKED if blocking_ids else PathStatus.PENDING,
             delivery_depth=depth,
             hard_prerequisite_ids=self._prerequisite_ids(concept_id),
-            blocking_prerequisite_ids=blocking_ids,
-            reason_codes=_unique([*depth_reasons, *blocking_reasons]),
+            blocking_prerequisite_ids=tuple(blocking_ids),
+            reason_codes=tuple(_unique([*depth_reasons, *blocking_reasons])),
         )
 
     def _can_skip(self, mastery: KnowledgeMastery | None) -> bool:
@@ -247,11 +252,11 @@ class CoursePlanner:
             rows.sort(key=lambda item: item.source)
         return result
 
-    def _prerequisite_ids(self, concept_id: str) -> list[str]:
-        return [relation.source for relation in self._hard_relations[concept_id]]
+    def _prerequisite_ids(self, concept_id: str) -> tuple[str, ...]:
+        return tuple(relation.source for relation in self._hard_relations[concept_id])
 
 
-def assign_execution_statuses(nodes: list[PathNode]) -> list[PathNode]:
+def assign_execution_statuses(nodes: list[PathNode]) -> tuple[PathNode, ...]:
     available_assigned = False
     result: list[PathNode] = []
     for node in nodes:
@@ -262,7 +267,7 @@ def assign_execution_statuses(nodes: list[PathNode]) -> list[PathNode]:
             available_assigned = True
         else:
             result.append(node.model_copy(update={"status": PathStatus.PENDING}))
-    return result
+    return tuple(result)
 
 
 def _unique[T](items: list[T]) -> list[T]:
