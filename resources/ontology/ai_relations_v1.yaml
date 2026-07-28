@@ -1,0 +1,734 @@
+version: ai-course-v1
+relations:
+  - source: math.linear-algebra.scalar
+    target: math.linear-algebra.vector
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: math.linear-algebra.vector
+    target: math.linear-algebra.matrix
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: math.linear-algebra.matrix
+    target: math.linear-algebra.tensor
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: math.linear-algebra.matrix
+    target: math.linear-algebra.matrix-operations
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: math.linear-algebra.matrix-operations
+    target: math.linear-algebra.matrix-multiplication
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: math.linear-algebra.matrix
+    target: math.linear-algebra.norm
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: math.linear-algebra.matrix
+    target: math.linear-algebra.eigen-decomposition
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: math.linear-algebra.eigen-decomposition
+    target: math.linear-algebra.svd
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: math.calculus.derivative-gradient
+    target: math.calculus.chain-rule
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: math.probability.random-variable
+    target: math.probability.probability-distribution
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: ml.data.feature-label
+    target: ml.data.train-validation-test-split
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: ml.data.feature-label
+    target: ml.supervised.learning
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: ml.data.train-validation-test-split
+    target: ml.supervised.learning
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: ml.supervised.learning
+    target: ml.regression.linear-regression
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.supervised.learning
+    target: ml.classification.logistic-regression
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.regression.linear-regression
+    target: ml.objective.loss-function
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: math.probability.probability-distribution
+    target: ml.estimation.maximum-likelihood
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.estimation.maximum-likelihood
+    target: ml.classification.logistic-regression
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: ml.supervised.learning
+    target: ml.generalization.bias-variance
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.generalization.bias-variance
+    target: ml.generalization.overfitting
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.generalization.overfitting
+    target: ml.generalization.regularization-introduction
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.data.train-validation-test-split
+    target: ml.model-selection.cross-validation
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.classification.logistic-regression
+    target: ml.evaluation.confusion-matrix
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.evaluation.confusion-matrix
+    target: ml.evaluation.classification-metrics
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.supervised.learning
+    target: ml.tree.decision-tree
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.tree.decision-tree
+    target: ml.ensemble.random-forest
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.data.feature-label
+    target: ml.clustering.kmeans
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: dl.neuron.perceptron
+    target: dl.feedforward.mlp
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.activation.relu
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.activation.sigmoid-tanh
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.forward-pass
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.forward-pass
+    target: dl.computation.computational-graph
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: math.calculus.chain-rule
+    target: dl.backpropagation
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.computation.computational-graph
+    target: dl.backpropagation
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.initialization.weight-initialization
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.output-layer
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.output-layer
+    target: dl.output.softmax
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.theory.universal-approximation
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.backpropagation
+    target: ml.optimization.gradient-descent
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: ml.optimization.gradient-descent
+    target: ml.optimization.stochastic-gradient-descent
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: ml.optimization.stochastic-gradient-descent
+    target: ml.optimization.mini-batch
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: ml.optimization.gradient-descent
+    target: ml.optimization.learning-rate
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.optimization.gradient-descent
+    target: ml.optimization.momentum
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: ml.optimization.momentum
+    target: dl.optimization.adam
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.optimization.vanishing-exploding-gradient
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: ml.generalization.overfitting
+    target: dl.regularization.l1-l2
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.regularization.l1-l2
+    target: dl.regularization.dropout
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.generalization.overfitting
+    target: dl.regularization.early-stopping
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: dl.optimization.batch-normalization
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: ml.data.feature-label
+    target: dl.regularization.data-augmentation
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: ml.data.train-validation-test-split
+    target: dl.practice.hyperparameter-tuning
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.practice.hyperparameter-tuning
+    target: dl.practice.grid-random-search
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: ml.optimization.mini-batch
+    target: dl.practice.training-validation-loop
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.practice.training-validation-loop
+    target: dl.practice.optimization-diagnostics
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.vision.image-tensor
+    target: dl.cnn.convolution
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: dl.cnn.convolution
+    target: dl.cnn.kernel-filter
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.cnn.convolution
+    target: dl.cnn.padding-stride
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.cnn.convolution
+    target: dl.cnn.pooling
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.cnn.kernel-filter
+    target: dl.cnn.receptive-field
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.cnn.padding-stride
+    target: dl.cnn.architecture
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.cnn.pooling
+    target: dl.cnn.architecture
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.cnn.architecture
+    target: dl.cnn.flatten-fully-connected
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: dl.backpropagation
+    target: dl.cnn.backpropagation
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: dl.cnn.architecture
+    target: dl.cnn.backpropagation
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: nlp.tokenization
+    target: nlp.representation.one-hot
+    kind: hard_prerequisite
+    min_mastery: 0.4
+    review_status: reviewed
+  - source: nlp.representation.one-hot
+    target: dl.representation.embedding
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: math.linear-algebra.vector
+    target: dl.representation.embedding
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.representation.embedding
+    target: dl.representation.cosine-similarity
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.representation.embedding
+    target: nlp.sequence-modeling
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: nlp.sequence-modeling
+    target: nlp.rnn
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: nlp.rnn
+    target: nlp.lstm-gru
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: nlp.sequence-modeling
+    target: nlp.encoder-decoder
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: nlp.sequence-modeling
+    target: nlp.language-modeling
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: nlp.sequence-modeling
+    target: nlp.positional-information
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: dl.representation.embedding
+    target: llm.attention.attention
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: math.linear-algebra.matrix-multiplication
+    target: llm.attention.scaled-dot-product
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: llm.attention.attention
+    target: llm.attention.scaled-dot-product
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: llm.attention.scaled-dot-product
+    target: llm.attention.self-attention
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.attention.self-attention
+    target: llm.attention.multi-head
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: nlp.positional-information
+    target: llm.transformer.positional-encoding
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: llm.transformer.feed-forward
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: dl.feedforward.mlp
+    target: llm.transformer.residual-connection
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: llm.transformer.residual-connection
+    target: llm.transformer.layer-normalization
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: llm.attention.multi-head
+    target: llm.transformer.encoder
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: llm.transformer.positional-encoding
+    target: llm.transformer.encoder
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: llm.transformer.feed-forward
+    target: llm.transformer.encoder
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: llm.transformer.encoder
+    target: llm.transformer.decoder
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.transformer.decoder
+    target: llm.transformer.masked-self-attention
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.transformer.decoder
+    target: llm.transformer.cross-attention
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.attention.self-attention
+    target: llm.transformer.attention-complexity
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.transformer.encoder
+    target: llm.transformer.training
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.transformer.decoder
+    target: llm.transformer.inference
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.attention.self-attention
+    target: llm.transformer.attention-visualization
+    kind: soft_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: llm.transformer.decoder
+    target: llm.language-modeling.autoregressive
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.transformer.encoder
+    target: llm.language-modeling.masked
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.language-modeling.masked
+    target: llm.pretraining.bert
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: llm.language-modeling.autoregressive
+    target: llm.pretraining.gpt
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: llm.pretraining.bert
+    target: llm.pretraining.objectives
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.pretraining.objectives
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.pretraining.objectives
+    target: llm.pretraining.data
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.scaling.scaling-laws
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.prompt.in-context-learning
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.prompt.in-context-learning
+    target: llm.prompt.prompt-engineering
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: llm.prompt.in-context-learning
+    target: llm.prompt.few-shot-learning
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.inference.context-window
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.inference.decoding
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.alignment.instruction-tuning
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: llm.alignment.instruction-tuning
+    target: llm.alignment.supervised-fine-tuning
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.alignment.supervised-fine-tuning
+    target: llm.alignment.preference-data
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.alignment.preference-data
+    target: llm.alignment.reward-model
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: llm.alignment.reward-model
+    target: llm.alignment.rlhf
+    kind: hard_prerequisite
+    min_mastery: 0.75
+    review_status: reviewed
+  - source: llm.alignment.rlhf
+    target: llm.alignment.ppo
+    kind: hard_prerequisite
+    min_mastery: 0.75
+    review_status: reviewed
+  - source: llm.alignment.rlhf
+    target: llm.alignment.safety
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: llm.finetuning.parameter-efficient
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.finetuning.parameter-efficient
+    target: llm.finetuning.lora
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: llm.finetuning.parameter-efficient
+    target: llm.finetuning.adapter-tuning
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.finetuning.lora
+    target: llm.finetuning.quantization
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.finetuning.quantization
+    target: llm.finetuning.qlora
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: dl.representation.embedding
+    target: rag.information-retrieval
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: rag.information-retrieval
+    target: rag.document-chunking
+    kind: hard_prerequisite
+    min_mastery: 0.5
+    review_status: reviewed
+  - source: rag.information-retrieval
+    target: rag.dense-retrieval
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.dense-retrieval
+    target: rag.vector-index
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: dl.representation.embedding
+    target: rag.embedding-model
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.information-retrieval
+    target: rag.query-expansion
+    kind: hard_prerequisite
+    min_mastery: 0.55
+    review_status: reviewed
+  - source: rag.dense-retrieval
+    target: rag.reranking
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.dense-retrieval
+    target: rag.hybrid-retrieval
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.dense-retrieval
+    target: rag.retrieval-augmented-generation
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: llm.pretraining.gpt
+    target: rag.retrieval-augmented-generation
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.retrieval-augmented-generation
+    target: rag.context-construction
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.context-construction
+    target: rag.citation-grounding
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.retrieval-augmented-generation
+    target: rag.retrieval-failure
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.retrieval-augmented-generation
+    target: rag.generation-failure
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.context-construction
+    target: rag.architecture
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.retrieval-augmented-generation
+    target: rag.evaluation
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.evaluation
+    target: rag.evaluation.context-precision-recall
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.evaluation
+    target: rag.evaluation.faithfulness
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.evaluation
+    target: rag.evaluation.answer-relevancy
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.evaluation.faithfulness
+    target: rag.evaluation.ragas
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: rag.evaluation.context-precision-recall
+    target: rag.evaluation.ragas
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: rag.evaluation
+    target: rag.evaluation.offline
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.evaluation
+    target: rag.evaluation.human
+    kind: hard_prerequisite
+    min_mastery: 0.6
+    review_status: reviewed
+  - source: rag.evaluation
+    target: rag.evaluation.ablation-study
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: rag.evaluation.offline
+    target: rag.practice.experiment-tracking
+    kind: hard_prerequisite
+    min_mastery: 0.65
+    review_status: reviewed
+  - source: rag.evaluation.ragas
+    target: rag.practice.end-to-end
+    kind: hard_prerequisite
+    min_mastery: 0.7
+    review_status: reviewed
+  - source: ml.regression.linear-regression
+    target: ml.classification.logistic-regression
+    kind: contrasts_with
+    review_status: reviewed
+  - source: ml.optimization.stochastic-gradient-descent
+    target: dl.optimization.adam
+    kind: contrasts_with
+    review_status: reviewed
+  - source: dl.cnn.convolution
+    target: dl.cnn.cross-correlation
+    kind: confused_with
+    review_status: reviewed

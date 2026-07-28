@@ -3,6 +3,10 @@ from typing import Protocol
 from .models import EvidenceChunk, SourceRecord
 
 
+class ConceptGraph(Protocol):
+    def prerequisites(self, concept_id: str, max_depth: int = 2) -> list[str]: ...
+
+
 class SourceRepository(Protocol):
     def get(self, source_id: str) -> SourceRecord | None: ...
 
