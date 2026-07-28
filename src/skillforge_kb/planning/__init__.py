@@ -1,5 +1,6 @@
 from .models import PathDecision, PathNode, PathStatus, PlannerPolicy, ReasonCode
 from .ordering import CoursePosition, PlanningError, stable_required_concept_ids
+from .planner import CoursePlanner
 from .serialization import build_path_id
 
 __all__ = [
@@ -10,6 +11,7 @@ __all__ = [
     "PlannerPolicy",
     "ReasonCode",
     "CoursePosition",
+    "CoursePlanner",
     "build_path_id",
     "stable_required_concept_ids",
 ]
