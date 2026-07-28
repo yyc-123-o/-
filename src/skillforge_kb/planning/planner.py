@@ -29,7 +29,8 @@ class CoursePlanner:
         policy: PlannerPolicy | None = None,
     ) -> None:
         self._catalog = catalog
-        self._policy = (policy or PlannerPolicy()).model_copy(deep=True)
+        source_policy = policy or PlannerPolicy()
+        self._policy = PlannerPolicy.model_validate(source_policy.model_dump())
         self._policy_digest = build_policy_digest(self._policy)
         self._ordered_ids = stable_required_concept_ids(catalog)
         self._known_ids = {concept.id for concept in catalog.concepts()}

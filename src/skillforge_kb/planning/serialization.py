@@ -19,16 +19,15 @@ def build_path_id(
     graph_version: str,
     policy_version: str,
     concept_ids: list[str],
-    policy_digest: str | None = None,
+    policy_digest: str,
 ) -> str:
     payload = {
         "concept_ids": concept_ids,
         "graph_version": graph_version,
+        "policy_digest": policy_digest,
         "policy_version": policy_version,
         "profile_id": profile_id,
     }
-    if policy_digest is not None:
-        payload["policy_digest"] = policy_digest
     canonical = json.dumps(
         payload,
         sort_keys=True,

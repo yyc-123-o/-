@@ -53,3 +53,10 @@ def test_learning_node_requires_a_depth() -> None:
             status=PathStatus.PENDING,
             delivery_depth=None,
         )
+
+
+def test_policy_ability_weights_are_deeply_immutable() -> None:
+    policy = PlannerPolicy()
+
+    with pytest.raises(ValidationError, match="Instance is frozen"):
+        policy.ability_weights.coding_ability = 0.90

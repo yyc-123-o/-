@@ -40,6 +40,34 @@ class ReasonCode(StrEnum):
     READY_FOR_ADVANCED = "ready_for_advanced"
 
 
+class AbilityWeights(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    theoretical_understanding: float = Field(default=0.30, ge=0, le=1)
+    coding_ability: float = Field(default=0.25, ge=0, le=1)
+    mathematical_foundation: float = Field(default=0.25, ge=0, le=1)
+    problem_solving: float = Field(default=0.20, ge=0, le=1)
+
+    def values(self) -> tuple[float, float, float, float]:
+        return (
+            self.theoretical_understanding,
+            self.coding_ability,
+            self.mathematical_foundation,
+            self.problem_solving,
+        )
+
+    def __getitem__(self, dimension: str) -> float:
+        if dimension == "theoretical_understanding":
+            return self.theoretical_understanding
+        if dimension == "coding_ability":
+            return self.coding_ability
+        if dimension == "mathematical_foundation":
+            return self.mathematical_foundation
+        if dimension == "problem_solving":
+            return self.problem_solving
+        raise KeyError(dimension)
+
+
 class PlannerPolicy(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -51,23 +79,12 @@ class PlannerPolicy(BaseModel):
     ability_weight: float = Field(default=0.40, ge=0, le=1)
     intermediate_threshold: float = Field(default=0.65, ge=0, le=1)
     advanced_threshold: float = Field(default=0.85, ge=0, le=1)
-    ability_weights: dict[str, float] = Field(
-        default_factory=lambda: {
-            "theoretical_understanding": 0.30,
-            "coding_ability": 0.25,
-            "mathematical_foundation": 0.25,
-            "problem_solving": 0.20,
-        }
-    )
+    ability_weights: AbilityWeights = Field(default_factory=AbilityWeights)
 
     @model_validator(mode="after")
     def validate_policy(self) -> "PlannerPolicy":
         if not isclose(sum(self.ability_weights.values()), 1.0, abs_tol=1e-9):
             raise ValueError("ability weights must sum to 1")
-        if set(self.ability_weights) != set(ABILITY_DIMENSIONS):
-            raise ValueError("ability weights require all four dimensions")
-        if any(weight < 0 or weight > 1 for weight in self.ability_weights.values()):
-            raise ValueError("ability weights must be between 0 and 1")
         if not isclose(self.mastery_weight + self.ability_weight, 1.0, abs_tol=1e-9):
             raise ValueError("mastery and ability weights must sum to 1")
         if self.intermediate_threshold >= self.advanced_threshold:

@@ -34,7 +34,7 @@
 
 **Interfaces:**
 - Consumes: `DepthLevel` and graph ID patterns from `skillforge_kb.ontology.models`.
-- Produces: `PlannerPolicy`, `PathStatus`, `ReasonCode`, `PathNode`, `PathDecision`, and `build_path_id(profile_id, graph_version, policy_version, concept_ids)`.
+- Produces: `AbilityWeights`, `PlannerPolicy`, `PathStatus`, `ReasonCode`, `PathNode`, `PathDecision`, and `build_path_id(profile_id, graph_version, policy_version, concept_ids, policy_digest)`.
 
 - [ ] **Step 1: Write failing policy and path-model tests**
 
@@ -105,7 +105,7 @@ class ReasonCode(StrEnum):
     READY_FOR_ADVANCED = "ready_for_advanced"
 ```
 
-Implement the exact approved defaults in `PlannerPolicy`. Validate both weight sums with `math.isclose(..., abs_tol=1e-9)`, ordered depth thresholds, continuous `sequence >= 1`, unique concepts, valid status/depth combinations, and unique reason/blocker lists. `PathDecision.generated_at` is `datetime | None` so planning remains deterministic when the profile has no generation time.
+Implement the exact approved defaults in `PlannerPolicy` and a frozen nested `AbilityWeights` model. Validate both weight sums with `math.isclose(..., abs_tol=1e-9)`, ordered depth thresholds, continuous `sequence >= 1`, unique concepts, valid status/depth combinations, and unique reason/blocker lists. `PathDecision.generated_at` is `datetime | None` so planning remains deterministic when the profile has no generation time.
 
 - [ ] **Step 4: Verify model tests are GREEN**
 
@@ -116,18 +116,20 @@ Expected: PASS.
 - [ ] **Step 5: Write the failing canonical ID test**
 
 ```python
-from skillforge_kb.planning.serialization import build_path_id
+from skillforge_kb.planning.models import PlannerPolicy
+from skillforge_kb.planning.serialization import build_path_id, build_policy_digest
 
 
 def test_path_id_is_stable_and_order_sensitive() -> None:
+    policy_digest = build_policy_digest(PlannerPolicy())
     first = build_path_id(
-        "profile-1", "ai-course-v1", "planner-policy.v1", ["a", "b"]
+        "profile-1", "ai-course-v1", "planner-policy.v1", ["a", "b"], policy_digest
     )
     repeated = build_path_id(
-        "profile-1", "ai-course-v1", "planner-policy.v1", ["a", "b"]
+        "profile-1", "ai-course-v1", "planner-policy.v1", ["a", "b"], policy_digest
     )
     reversed_id = build_path_id(
-        "profile-1", "ai-course-v1", "planner-policy.v1", ["b", "a"]
+        "profile-1", "ai-course-v1", "planner-policy.v1", ["b", "a"], policy_digest
     )
     assert first == repeated
     assert first != reversed_id

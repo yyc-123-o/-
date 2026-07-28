@@ -50,7 +50,7 @@ PlannerPolicy -------------+
 
 ```text
 planning/
-  models.py      PlannerPolicy、PathNode、PathDecision 和枚举
+  models.py      AbilityWeights、PlannerPolicy、PathNode、PathDecision 和枚举
   ordering.py    必修概念的稳定拓扑排序与位置索引
   planner.py     首次路径生成、状态/深度决策和解释原因
   updater.py     保持路径不变的章节后更新
@@ -82,14 +82,14 @@ planning/
 | `intermediate_threshold` | `0.65` | 进阶层最低准备度 |
 | `advanced_threshold` | `0.85` | 专业层最低准备度 |
 
-能力权重固定为：
+能力权重由冻结的 `AbilityWeights` 值对象承载，固定为：
 
 - `theoretical_understanding`: `0.30`
 - `coding_ability`: `0.25`
 - `mathematical_foundation`: `0.25`
 - `problem_solving`: `0.20`
 
-模型校验必须保证能力权重和为 1、掌握度与能力权重和为 1、`intermediate_threshold < advanced_threshold`，且所有阈值位于 `[0, 1]`。
+模型校验必须保证能力权重和为 1、掌握度与能力权重和为 1、`intermediate_threshold < advanced_threshold`，且所有阈值位于 `[0, 1]`。策略及嵌套能力权重均不可原地修改。
 
 ### 5.2 PathNode
 
