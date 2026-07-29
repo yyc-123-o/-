@@ -11,7 +11,14 @@ from skillforge_kb.ontology.models import (
     KnowledgeMastery,
     LearnerProfileSnapshot,
 )
-from skillforge_kb.planning.adaptation import NodeWeightEngine
+from skillforge_kb.planning.adaptation import (
+    NodeWeightEngine,
+    NodeWeightFeatures,
+    NodeWeightPolicy,
+    SupportIntensity,
+    build_node_weight_policy_digest,
+    score_node_support,
+)
 from skillforge_kb.planning.models import PathNode, PathStatus, PlannerPolicy
 
 
@@ -200,3 +207,43 @@ def test_lower_mastery_cannot_reduce_support_need(catalog) -> None:
     high = engine.evaluate(_profile(catalog, mastery=0.8), _node())
 
     assert low.support_need_score >= high.support_need_score
+
+
+def test_pure_support_score_applies_weighted_factors_and_floor() -> None:
+    score = score_node_support(
+        NodeWeightFeatures(
+            mastery_gap=0.5,
+            error_risk=0.2,
+            ability_gap=0.3,
+            support_floor=0.6,
+        ),
+        NodeWeightPolicy(),
+    )
+
+    assert score.support_need_score == pytest.approx(0.6)
+    assert score.support_intensity is SupportIntensity.SCAFFOLDED
+    assert sum(item.contribution for item in score.contributions) == pytest.approx(0.6)
+
+
+def test_pure_support_score_forces_blocked_remediation() -> None:
+    score = score_node_support(
+        NodeWeightFeatures(
+            mastery_gap=0.0,
+            error_risk=0.0,
+            ability_gap=0.0,
+            support_floor=0.0,
+            blocked=True,
+        ),
+        NodeWeightPolicy(),
+    )
+
+    assert score.support_intensity is SupportIntensity.REMEDIATION
+
+
+def test_node_weight_policy_digest_is_stable_and_content_sensitive() -> None:
+    baseline = NodeWeightPolicy()
+    same = NodeWeightPolicy.model_validate(baseline.model_dump())
+    changed = baseline.model_copy(update={"compact_threshold": 0.2})
+
+    assert build_node_weight_policy_digest(baseline) == build_node_weight_policy_digest(same)
+    assert build_node_weight_policy_digest(baseline) != build_node_weight_policy_digest(changed)

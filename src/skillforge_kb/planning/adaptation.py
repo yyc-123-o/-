@@ -57,6 +57,86 @@ class FactorContribution(BaseModel):
     contribution: float = Field(ge=0, le=1)
 
 
+class NodeWeightFeatures(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    mastery_gap: float = Field(ge=0, le=1)
+    error_risk: float = Field(ge=0, le=1)
+    ability_gap: float = Field(ge=0, le=1)
+    support_floor: float = Field(default=0.0, ge=0, le=1)
+    blocked: bool = False
+
+
+class NodeSupportScore(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    support_need_score: float = Field(ge=0, le=1)
+    support_intensity: SupportIntensity
+    contributions: tuple[FactorContribution, ...]
+
+    @model_validator(mode="after")
+    def validate_contributions(self) -> "NodeSupportScore":
+        if not isclose(
+            sum(item.contribution for item in self.contributions),
+            self.support_need_score,
+            abs_tol=1e-9,
+        ):
+            raise ValueError("support contributions must sum to support need score")
+        return self
+
+
+def score_node_support(
+    features: NodeWeightFeatures,
+    policy: NodeWeightPolicy,
+) -> NodeSupportScore:
+    contributions: tuple[FactorContribution, ...] = (
+        FactorContribution(
+            factor="mastery_gap",
+            normalized_value=features.mastery_gap,
+            coefficient=policy.mastery_gap_weight,
+            contribution=policy.mastery_gap_weight * features.mastery_gap,
+        ),
+        FactorContribution(
+            factor="error_risk",
+            normalized_value=features.error_risk,
+            coefficient=policy.error_risk_weight,
+            contribution=policy.error_risk_weight * features.error_risk,
+        ),
+        FactorContribution(
+            factor="ability_gap",
+            normalized_value=features.ability_gap,
+            coefficient=policy.ability_gap_weight,
+            contribution=policy.ability_gap_weight * features.ability_gap,
+        ),
+    )
+    base_support_need = sum(item.contribution for item in contributions)
+    floor_contribution = max(0.0, features.support_floor - base_support_need)
+    if floor_contribution:
+        contributions = (
+            *contributions,
+            FactorContribution(
+                factor="conservative_evidence_floor",
+                normalized_value=floor_contribution,
+                coefficient=1.0,
+                contribution=floor_contribution,
+            ),
+        )
+    support_need = sum(item.contribution for item in contributions)
+    if features.blocked:
+        intensity = SupportIntensity.REMEDIATION
+    elif support_need >= policy.scaffolded_threshold:
+        intensity = SupportIntensity.SCAFFOLDED
+    elif support_need >= policy.compact_threshold:
+        intensity = SupportIntensity.STANDARD
+    else:
+        intensity = SupportIntensity.COMPACT
+    return NodeSupportScore(
+        support_need_score=support_need,
+        support_intensity=intensity,
+        contributions=contributions,
+    )
+
+
 class NodeAdaptationPayload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -117,6 +197,10 @@ def build_adaptation_digest(payload: object) -> str:
     return f"adaptation_{_hash(payload)}"
 
 
+def build_node_weight_policy_digest(policy: NodeWeightPolicy) -> str:
+    return f"node_policy_{_hash(policy.model_dump(mode='json'))}"
+
+
 class NodeWeightEngine:
     def __init__(
         self,
@@ -137,7 +221,7 @@ class NodeWeightEngine:
             (node_weight_policy or NodeWeightPolicy()).model_dump()
         )
         self._policy_digest = build_policy_digest(self._policy)
-        self._node_policy_digest = f"node_policy_{_hash(self._node_policy.model_dump(mode='json'))}"
+        self._node_policy_digest = build_node_weight_policy_digest(self._node_policy)
 
     def evaluate(
         self,
@@ -185,47 +269,21 @@ class NodeWeightEngine:
         difficulty = attributes.difficulty_prior
         ability_gap = max(0.0, difficulty - ability_fit)
         error_risk = self._error_risk(profile, path_node.concept_id)
-        support_contributions: tuple[FactorContribution, ...] = (
-            FactorContribution(
-                factor="mastery_gap",
-                normalized_value=1.0 - effective_mastery,
-                coefficient=self._node_policy.mastery_gap_weight,
-                contribution=self._node_policy.mastery_gap_weight
-                * (1.0 - effective_mastery),
-            ),
-            FactorContribution(
-                factor="error_risk",
-                normalized_value=error_risk,
-                coefficient=self._node_policy.error_risk_weight,
-                contribution=self._node_policy.error_risk_weight * error_risk,
-            ),
-            FactorContribution(
-                factor="ability_gap",
-                normalized_value=ability_gap,
-                coefficient=self._node_policy.ability_gap_weight,
-                contribution=self._node_policy.ability_gap_weight * ability_gap,
-            ),
-        )
         support_floor = 0.0
         if mastery is None or mastery.assessment_status is AssessmentStatus.NOT_ASSESSED:
             support_floor = 1.0
         elif not mastery_is_reliable or not ability_is_reliable:
             support_floor = max(0.60, self._node_policy.scaffolded_threshold)
-        base_support_need = sum(
-            item.contribution for item in support_contributions
+        support_score = score_node_support(
+            NodeWeightFeatures(
+                mastery_gap=1.0 - effective_mastery,
+                error_risk=error_risk,
+                ability_gap=ability_gap,
+                support_floor=support_floor,
+                blocked=path_node.status is PathStatus.BLOCKED,
+            ),
+            self._node_policy,
         )
-        floor_contribution = max(0.0, support_floor - base_support_need)
-        if floor_contribution:
-            support_contributions = (
-                *support_contributions,
-                FactorContribution(
-                    factor="conservative_evidence_floor",
-                    normalized_value=floor_contribution,
-                    coefficient=1.0,
-                    contribution=floor_contribution,
-                ),
-            )
-        support_need = sum(item.contribution for item in support_contributions)
         readiness_contributions: tuple[FactorContribution, ...] = (
             FactorContribution(
                 factor="mastery_readiness",
@@ -244,16 +302,12 @@ class NodeWeightEngine:
             readiness_contributions = ()
         readiness = sum(item.contribution for item in readiness_contributions)
         if path_node.status is PathStatus.BLOCKED:
-            intensity = SupportIntensity.REMEDIATION
             reasons: tuple[str, ...] = ("hard_prerequisite_blocked",)
-        elif support_need >= self._node_policy.scaffolded_threshold:
-            intensity = SupportIntensity.SCAFFOLDED
+        elif support_score.support_intensity is SupportIntensity.SCAFFOLDED:
             reasons = ("support_need_high",)
-        elif support_need >= self._node_policy.compact_threshold:
-            intensity = SupportIntensity.STANDARD
+        elif support_score.support_intensity is SupportIntensity.STANDARD:
             reasons = ("support_need_standard",)
         else:
-            intensity = SupportIntensity.COMPACT
             reasons = ("support_need_low",)
         if not mastery_is_reliable or not ability_is_reliable:
             reasons = (*reasons, "evidence_uncertain")
@@ -266,12 +320,12 @@ class NodeWeightEngine:
                 else delivery_depth
             ),
             readiness_score=readiness,
-            support_need_score=support_need,
-            support_intensity=intensity,
-            effort_multiplier=1.0 + support_need,
+            support_need_score=support_score.support_need_score,
+            support_intensity=support_score.support_intensity,
+            effort_multiplier=1.0 + support_score.support_need_score,
             assessment_emphasis=assessment,
             reason_codes=reasons,
-            support_contributions=support_contributions,
+            support_contributions=support_score.contributions,
             readiness_contributions=readiness_contributions,
             profile_digest=_profile_digest(profile),
             policy_digest=self._policy_digest,
