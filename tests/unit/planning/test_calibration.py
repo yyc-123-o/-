@@ -399,8 +399,8 @@ def test_search_prefers_intensity_match_rate_before_other_metrics(dataset) -> No
         mastery_gap_weights=(0.55,),
         error_risk_weights=(0.25,),
         ability_gap_weights=(0.2,),
-        compact_thresholds=(0.2, 0.25),
-        scaffolded_thresholds=(0.6, 0.7),
+        compact_thresholds=(0.1, 0.25),
+        scaffolded_thresholds=(0.6, 0.65),
     )
 
     report = search_node_weight_policies(unscored, search_space, NodeWeightPolicy())
@@ -410,7 +410,7 @@ def test_search_prefers_intensity_match_rate_before_other_metrics(dataset) -> No
         0.55,
         0.25,
         0.2,
-        0.2,
+        0.1,
         0.6,
     )
 
