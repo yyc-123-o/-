@@ -1,7 +1,7 @@
 import json
 from enum import StrEnum
 from hashlib import sha256
-from math import isclose
+from math import fsum, isclose
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -40,8 +40,16 @@ class NodeWeightPolicy(BaseModel):
 
     @model_validator(mode="after")
     def validate_policy(self) -> "NodeWeightPolicy":
-        total = self.mastery_gap_weight + self.error_risk_weight + self.ability_gap_weight
-        if not isclose(total, 1.0, abs_tol=1e-9):
+        total = fsum(
+            (
+                self.mastery_gap_weight,
+                self.error_risk_weight,
+                self.ability_gap_weight,
+            )
+        )
+        if total > 1.0:
+            raise ValueError("node weight factor sum must not exceed 1")
+        if not isclose(total, 1.0, rel_tol=0.0, abs_tol=1e-9):
             raise ValueError("node weight factors must sum to 1")
         if self.compact_threshold >= self.scaffolded_threshold:
             raise ValueError("compact threshold must be below scaffolded threshold")

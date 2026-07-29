@@ -247,3 +247,12 @@ def test_node_weight_policy_digest_is_stable_and_content_sensitive() -> None:
 
     assert build_node_weight_policy_digest(baseline) == build_node_weight_policy_digest(same)
     assert build_node_weight_policy_digest(baseline) != build_node_weight_policy_digest(changed)
+
+
+def test_node_weight_policy_rejects_positive_sum_overshoot_within_tolerance() -> None:
+    with pytest.raises(ValueError, match="must not exceed 1"):
+        NodeWeightPolicy(
+            mastery_gap_weight=0.5500000005,
+            error_risk_weight=0.25,
+            ability_gap_weight=0.2,
+        )

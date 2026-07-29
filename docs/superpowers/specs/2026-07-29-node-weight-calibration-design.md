@@ -80,7 +80,7 @@ the compact/scaffolded thresholds. Candidate generation takes the Cartesian prod
 only policies where:
 
 - all values are within `[0, 1]`;
-- the three factor weights sum to `1` within `1e-9`;
+- the three factor weights do not exceed `1` and may undershoot it by at most `1e-9`;
 - `compact_threshold < scaffolded_threshold`.
 
 Generation order and candidate versions are stable. Empty or invalid grids fail explicitly.
@@ -107,6 +107,10 @@ Alternative candidates are ranked by:
 The first result is named `best_fitting_candidate`, not an approved or production policy. Search
 never mutates engine configuration or writes policy files.
 
+Deserialized evaluations require unique case IDs. Reports require every evaluation to use the
+same ordered case IDs and target coverage, exclude baseline-equivalent and duplicate candidates,
+and preserve the documented complete ranking order.
+
 ### 4.5 Ablation and sensitivity
 
 Weight ablation creates one candidate per positive factor by setting that factor to zero and
@@ -131,6 +135,7 @@ not presented as causal effects.
 
 - Invalid datasets fail during model validation.
 - Invalid search axes fail during model validation.
+- A policy whose factor sum exceeds `1`, even within the lower-bound tolerance, fails validation.
 - A grid with no mathematically valid policy raises `ValueError`.
 - A grid containing no alternative to the baseline raises `ValueError` during search.
 - An ablation that leaves no positive remaining weight raises `ValueError`.

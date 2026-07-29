@@ -12,6 +12,7 @@ from skillforge_kb.planning.calibration import (
     NodeWeightCalibrationExample,
     NodeWeightCalibrationReport,
     NodeWeightFactor,
+    NodeWeightPolicyEvaluation,
     NodeWeightSearchSpace,
     NodeWeightSensitivityPoint,
     build_calibration_dataset_digest,
@@ -162,6 +163,21 @@ def test_candidate_generation_rejects_a_grid_without_valid_weights() -> None:
         generate_node_weight_policies(search_space)
 
 
+def test_candidate_generation_filters_positive_weight_overshoot() -> None:
+    search_space = NodeWeightSearchSpace(
+        mastery_gap_weights=(0.5, 0.5000000005),
+        error_risk_weights=(0.3,),
+        ability_gap_weights=(0.2,),
+        compact_thresholds=(0.25,),
+        scaffolded_thresholds=(0.6,),
+    )
+
+    policies = generate_node_weight_policies(search_space)
+
+    assert len(policies) == 1
+    assert policies[0].mastery_gap_weight == 0.5
+
+
 def test_policy_evaluation_reports_label_fit_and_score_error(dataset) -> None:
     evaluation = evaluate_node_weight_policy(dataset, NodeWeightPolicy())
 
@@ -187,6 +203,21 @@ def test_policy_evaluation_validates_derived_metrics(dataset) -> None:
         type(evaluation).model_validate(invalid.model_dump())
 
 
+def test_policy_evaluation_rejects_duplicate_case_ids(dataset) -> None:
+    evaluation = evaluate_node_weight_policy(dataset, NodeWeightPolicy())
+    duplicated = evaluation.model_copy(
+        update={
+            "case_results": (
+                *evaluation.case_results[:-1],
+                evaluation.case_results[0],
+            )
+        }
+    )
+
+    with pytest.raises(ValidationError, match="case IDs must be unique"):
+        NodeWeightPolicyEvaluation.model_validate(duplicated.model_dump())
+
+
 def test_search_is_deterministic_and_excludes_the_baseline(dataset, search_space) -> None:
     baseline = NodeWeightPolicy()
     first = search_node_weight_policies(dataset, search_space, baseline)
@@ -202,8 +233,104 @@ def test_search_is_deterministic_and_excludes_the_baseline(dataset, search_space
     assert NodeWeightCalibrationReport.model_validate_json(first.model_dump_json()) == first
 
 
+def test_report_rejects_candidate_case_order_mismatch(dataset, search_space) -> None:
+    report = search_node_weight_policies(dataset, search_space, NodeWeightPolicy())
+    first = report.ranked_candidates[0]
+    reordered = NodeWeightPolicyEvaluation.model_validate(
+        first.model_copy(update={"case_results": tuple(reversed(first.case_results))}).model_dump()
+    )
+    invalid = report.model_copy(
+        update={
+            "ranked_candidates": (reordered, *report.ranked_candidates[1:]),
+            "best_fitting_candidate": reordered,
+        }
+    )
+
+    with pytest.raises(ValidationError, match="same ordered cases"):
+        NodeWeightCalibrationReport.model_validate(invalid.model_dump())
+
+
+def test_report_rejects_candidate_target_coverage_mismatch(dataset, search_space) -> None:
+    report = search_node_weight_policies(dataset, search_space, NodeWeightPolicy())
+    first = report.ranked_candidates[0]
+    case_results = (
+        first.case_results[0].model_copy(update={"absolute_error": None}),
+        *first.case_results[1:],
+    )
+    errors = tuple(item.absolute_error for item in case_results if item.absolute_error is not None)
+    changed = NodeWeightPolicyEvaluation.model_validate(
+        first.model_copy(
+            update={
+                "target_case_count": len(errors),
+                "mean_absolute_error": sum(errors) / len(errors),
+                "case_results": case_results,
+            }
+        ).model_dump()
+    )
+    invalid = report.model_copy(
+        update={
+            "ranked_candidates": (changed, *report.ranked_candidates[1:]),
+            "best_fitting_candidate": changed,
+        }
+    )
+
+    with pytest.raises(ValidationError, match="target coverage"):
+        NodeWeightCalibrationReport.model_validate(invalid.model_dump())
+
+
+def test_report_rejects_duplicate_candidate_tunables(dataset, search_space) -> None:
+    report = search_node_weight_policies(dataset, search_space, NodeWeightPolicy())
+    duplicated = report.model_copy(
+        update={
+            "ranked_candidates": (
+                report.ranked_candidates[0],
+                report.ranked_candidates[0],
+                *report.ranked_candidates[2:],
+            )
+        }
+    )
+
+    with pytest.raises(ValidationError, match="candidate tunables must be unique"):
+        NodeWeightCalibrationReport.model_validate(duplicated.model_dump())
+
+
+def test_report_rejects_baseline_in_ranked_candidates(dataset, search_space) -> None:
+    report = search_node_weight_policies(dataset, search_space, NodeWeightPolicy())
+    invalid = report.model_copy(
+        update={
+            "ranked_candidates": (report.baseline, *report.ranked_candidates),
+            "best_fitting_candidate": report.baseline,
+        }
+    )
+
+    with pytest.raises(ValidationError, match="must exclude baseline"):
+        NodeWeightCalibrationReport.model_validate(invalid.model_dump())
+
+
+def test_report_rejects_reversed_candidate_ranking(dataset, search_space) -> None:
+    report = search_node_weight_policies(dataset, search_space, NodeWeightPolicy())
+    reversed_candidates = tuple(reversed(report.ranked_candidates))
+    invalid = report.model_copy(
+        update={
+            "ranked_candidates": reversed_candidates,
+            "best_fitting_candidate": reversed_candidates[0],
+        }
+    )
+
+    with pytest.raises(ValidationError, match="candidate ranking"):
+        NodeWeightCalibrationReport.model_validate(invalid.model_dump())
+
+
 def test_search_prefers_equal_fit_closest_to_the_baseline(dataset) -> None:
     baseline = NodeWeightPolicy()
+    unscored = dataset.model_copy(
+        update={
+            "examples": tuple(
+                example.model_copy(update={"target_support_need_score": None})
+                for example in dataset.examples
+            )
+        }
+    )
     search_space = NodeWeightSearchSpace(
         mastery_gap_weights=(0.5, 0.55),
         error_risk_weights=(0.25, 0.3),
@@ -212,7 +339,7 @@ def test_search_prefers_equal_fit_closest_to_the_baseline(dataset) -> None:
         scaffolded_thresholds=(0.6,),
     )
 
-    report = search_node_weight_policies(dataset, search_space, baseline)
+    report = search_node_weight_policies(unscored, search_space, baseline)
 
     assert _tunable_values(report.best_fitting_candidate.policy) == (
         0.55,
@@ -221,6 +348,116 @@ def test_search_prefers_equal_fit_closest_to_the_baseline(dataset) -> None:
         0.2,
         0.6,
     )
+
+
+def test_search_prefers_lower_score_error_before_policy_distance(dataset) -> None:
+    targets = {
+        "compact": 0.07,
+        "standard": 0.37,
+        "scaffolded": 0.62,
+        "blocked": 0.0,
+    }
+    targeted = dataset.model_copy(
+        update={
+            "examples": tuple(
+                example.model_copy(
+                    update={"target_support_need_score": targets[example.case_id]}
+                )
+                for example in dataset.examples
+            )
+        }
+    )
+    search_space = NodeWeightSearchSpace(
+        mastery_gap_weights=(0.5, 0.55),
+        error_risk_weights=(0.25, 0.3),
+        ability_gap_weights=(0.2,),
+        compact_thresholds=(0.2, 0.25),
+        scaffolded_thresholds=(0.6,),
+    )
+
+    report = search_node_weight_policies(targeted, search_space, NodeWeightPolicy())
+
+    assert _tunable_values(report.best_fitting_candidate.policy) == (
+        0.5,
+        0.3,
+        0.2,
+        0.25,
+        0.6,
+    )
+
+
+def test_search_prefers_intensity_match_rate_before_other_metrics(dataset) -> None:
+    unscored = dataset.model_copy(
+        update={
+            "examples": tuple(
+                example.model_copy(update={"target_support_need_score": None})
+                for example in dataset.examples
+            )
+        }
+    )
+    search_space = NodeWeightSearchSpace(
+        mastery_gap_weights=(0.55,),
+        error_risk_weights=(0.25,),
+        ability_gap_weights=(0.2,),
+        compact_thresholds=(0.2, 0.25),
+        scaffolded_thresholds=(0.6, 0.7),
+    )
+
+    report = search_node_weight_policies(unscored, search_space, NodeWeightPolicy())
+
+    assert report.best_fitting_candidate.exact_match_rate == 1.0
+    assert _tunable_values(report.best_fitting_candidate.policy) == (
+        0.55,
+        0.25,
+        0.2,
+        0.2,
+        0.6,
+    )
+
+
+def test_search_uses_policy_digest_as_the_final_tie_break(dataset) -> None:
+    unscored = dataset.model_copy(
+        update={
+            "examples": tuple(
+                example.model_copy(
+                    update={
+                        "features": (
+                            NodeWeightFeatures(
+                                mastery_gap=1.0,
+                                error_risk=1.0,
+                                ability_gap=1.0,
+                            )
+                            if example.case_id == "scaffolded"
+                            else example.features
+                        ),
+                        "target_support_need_score": None,
+                    }
+                )
+                for example in dataset.examples
+            )
+        }
+    )
+    search_space = NodeWeightSearchSpace(
+        mastery_gap_weights=(0.55,),
+        error_risk_weights=(0.25,),
+        ability_gap_weights=(0.2,),
+        compact_thresholds=(0.125, 0.25),
+        scaffolded_thresholds=(0.6, 0.725),
+    )
+
+    report = search_node_weight_policies(unscored, search_space, NodeWeightPolicy())
+    tied_values = {
+        (0.55, 0.25, 0.2, 0.125, 0.6),
+        (0.55, 0.25, 0.2, 0.25, 0.725),
+    }
+    tied = tuple(
+        item
+        for item in report.ranked_candidates
+        if _tunable_values(item.policy) in tied_values
+    )
+
+    assert len(tied) == 2
+    assert report.best_fitting_candidate == min(tied, key=lambda item: item.policy_digest)
 
 
 def test_search_rejects_a_grid_without_an_alternative(dataset) -> None:

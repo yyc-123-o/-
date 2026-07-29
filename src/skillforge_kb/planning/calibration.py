@@ -2,7 +2,7 @@ import json
 from enum import StrEnum
 from hashlib import sha256
 from itertools import pairwise, product
-from math import isclose
+from math import fsum, isclose
 from statistics import fmean
 from typing import Annotated, Literal
 
@@ -130,6 +130,9 @@ class NodeWeightPolicyEvaluation(BaseModel):
             raise ValueError("policy digest does not match policy")
         if self.case_count != len(self.case_results):
             raise ValueError("case count does not match case results")
+        case_ids = tuple(item.case_id for item in self.case_results)
+        if len(case_ids) != len(set(case_ids)):
+            raise ValueError("evaluation case IDs must be unique")
         exact_match_count = sum(item.intensity_matches for item in self.case_results)
         if self.exact_match_count != exact_match_count:
             raise ValueError("exact match count does not match case results")
@@ -172,6 +175,29 @@ class NodeWeightCalibrationReport(BaseModel):
 
     @model_validator(mode="after")
     def validate_best_candidate(self) -> "NodeWeightCalibrationReport":
+        baseline_case_ids = _case_ids(self.baseline)
+        baseline_target_coverage = _target_coverage(self.baseline)
+        baseline_values = _tunable_values(self.baseline.policy)
+        candidate_values: list[tuple[float, ...]] = []
+        for candidate in self.ranked_candidates:
+            if _case_ids(candidate) != baseline_case_ids:
+                raise ValueError("all policy evaluations must use the same ordered cases")
+            if _target_coverage(candidate) != baseline_target_coverage:
+                raise ValueError("all policy evaluations must use the same target coverage")
+            values = _tunable_values(candidate.policy)
+            if values == baseline_values:
+                raise ValueError("ranked candidates must exclude baseline tunables")
+            candidate_values.append(values)
+        if len(candidate_values) != len(set(candidate_values)):
+            raise ValueError("ranked candidate tunables must be unique")
+        expected_ranking = tuple(
+            sorted(
+                self.ranked_candidates,
+                key=lambda item: _ranking_key(item, self.baseline.policy),
+            )
+        )
+        if self.ranked_candidates != expected_ranking:
+            raise ValueError("candidate ranking does not match documented ordering")
         if self.best_fitting_candidate != self.ranked_candidates[0]:
             raise ValueError("best fitting candidate must be the first ranked candidate")
         return self
@@ -210,7 +236,13 @@ def generate_node_weight_policies(
         search_space.scaffolded_thresholds,
     )
     for mastery, error, ability, compact, scaffolded in combinations:
-        if not isclose(mastery + error + ability, 1.0, abs_tol=1e-9):
+        weight_sum = fsum((mastery, error, ability))
+        if weight_sum > 1.0 or not isclose(
+            weight_sum,
+            1.0,
+            rel_tol=0.0,
+            abs_tol=1e-9,
+        ):
             continue
         if compact >= scaffolded:
             continue
@@ -283,16 +315,12 @@ def search_node_weight_policies(
         raise ValueError("search space contains no alternative policy")
     evaluations = [evaluate_node_weight_policy(dataset, policy) for policy in alternatives]
 
-    def ranking_key(evaluation: NodeWeightPolicyEvaluation) -> tuple[float, float, float, str]:
-        error = evaluation.mean_absolute_error
-        return (
-            -evaluation.exact_match_rate,
-            0.0 if error is None else error,
-            _policy_distance(evaluation.policy, baseline_policy),
-            evaluation.policy_digest,
+    ranked = tuple(
+        sorted(
+            evaluations,
+            key=lambda item: _ranking_key(item, baseline_policy),
         )
-
-    ranked = tuple(sorted(evaluations, key=ranking_key))
+    )
     return NodeWeightCalibrationReport(
         dataset_id=dataset.dataset_id,
         data_version=dataset.data_version,
@@ -397,6 +425,32 @@ def _policy_distance(left: NodeWeightPolicy, right: NodeWeightPolicy) -> float:
             _tunable_values(right),
             strict=True,
         )
+    )
+
+
+def _ranking_key(
+    evaluation: NodeWeightPolicyEvaluation,
+    baseline: NodeWeightPolicy,
+) -> tuple[float, float, float, str]:
+    error = evaluation.mean_absolute_error
+    return (
+        -evaluation.exact_match_rate,
+        0.0 if error is None else error,
+        _policy_distance(evaluation.policy, baseline),
+        evaluation.policy_digest,
+    )
+
+
+def _case_ids(evaluation: NodeWeightPolicyEvaluation) -> tuple[str, ...]:
+    return tuple(item.case_id for item in evaluation.case_results)
+
+
+def _target_coverage(
+    evaluation: NodeWeightPolicyEvaluation,
+) -> tuple[tuple[str, bool], ...]:
+    return tuple(
+        (item.case_id, item.absolute_error is not None)
+        for item in evaluation.case_results
     )
 
 

@@ -247,7 +247,7 @@ Add validators for blocked labels and unique case IDs. Build the dataset digest 
 
 - [ ] **Step 4: Implement and validate the search space**
 
-Use bounded `Annotated[float, Field(ge=0, le=1)]` axis items. Require every axis to be non-empty and strictly increasing. Generate the Cartesian product in field order, retain legal policies, and assign stable versions `<policy_version_prefix>.<four-digit-index>`. Raise `ValueError("search space contains no valid policy")` when filtering removes every combination.
+Use bounded `Annotated[float, Field(ge=0, le=1)]` axis items. Require every axis to be non-empty and strictly increasing. Generate the Cartesian product in field order, reject any positive factor-sum overshoot, allow at most `1e-9` undershoot, retain legal policies, and assign stable versions `<policy_version_prefix>.<four-digit-index>`. Raise `ValueError("search space contains no valid policy")` when filtering removes every combination.
 
 - [ ] **Step 5: Write failing evaluation and search tests**
 
@@ -317,7 +317,9 @@ class NodeWeightCalibrationReport(BaseModel):
     best_fitting_candidate: NodeWeightPolicyEvaluation
 ```
 
-All models use `ConfigDict(frozen=True, extra="forbid")`; add consistency validators for counts, rates, result lengths, policy digests, and the best candidate.
+All models use `ConfigDict(frozen=True, extra="forbid")`; add consistency validators for counts,
+rates, result lengths, unique case IDs, policy digests, common ordered case/target coverage,
+baseline exclusion, unique candidate tunables, complete ranking order, and the best candidate.
 
 - [ ] **Step 8: Implement evaluation and deterministic search**
 
