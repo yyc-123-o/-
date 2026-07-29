@@ -1,14 +1,23 @@
 import json
+from collections.abc import Callable
 from enum import StrEnum
 from hashlib import sha256
-from typing import Literal
+from typing import Literal, TypedDict
 
 from langchain_core.tools import StructuredTool
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
 from skillforge_kb.planning.models import PathDecision, PlannerPolicy
+from skillforge_kb.planning.ordering import PlanningError
 from skillforge_kb.planning.planner import CoursePlanner
 from skillforge_kb.planning.updater import DepthUpdater
 
@@ -16,6 +25,17 @@ from skillforge_kb.planning.updater import DepthUpdater
 class PlanningOperation(StrEnum):
     CREATE = "create_course_plan"
     UPDATE = "update_course_plan"
+
+
+class PlanningNodeStatus(StrEnum):
+    PLANNED = "planned"
+    UPDATED = "updated"
+    FAILED = "failed"
+
+
+class PlanningFailureCode(StrEnum):
+    INVALID_STATE = "invalid_state"
+    PLANNING_ERROR = "planning_error"
 
 
 class CreateCoursePlanInput(BaseModel):
@@ -82,6 +102,24 @@ class PlanningToolResult(BaseModel):
         if self.audit.result_digest != expected:
             raise ValueError("result digest does not match result content")
         return self
+
+
+class PlanningNodeFailure(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    code: PlanningFailureCode
+    operation: PlanningOperation
+    message: str = Field(min_length=1)
+
+
+class CoursePlanningState(TypedDict, total=False):
+    profile: LearnerProfileSnapshot
+    path: PathDecision
+    completed_concept_ids: tuple[str, ...]
+    allow_skips: bool
+    planning_status: PlanningNodeStatus
+    planning_audit: PlanningToolAudit | None
+    planning_failure: PlanningNodeFailure | None
 
 
 def build_request_digest(
@@ -201,6 +239,112 @@ def update_course_plan_tool(
     )
 
 
+def build_create_course_plan_node(
+    catalog: OntologyCatalog,
+    policy: PlannerPolicy | None = None,
+) -> Callable[[CoursePlanningState], CoursePlanningState]:
+    tool = create_course_plan_tool(catalog, policy)
+
+    def create_course_plan_node(state: CoursePlanningState) -> CoursePlanningState:
+        raw_profile = state.get("profile")
+        if raw_profile is None:
+            return _node_failure(
+                PlanningOperation.CREATE,
+                PlanningFailureCode.INVALID_STATE,
+                "profile is required",
+            )
+        try:
+            request = CreateCoursePlanInput(
+                profile=LearnerProfileSnapshot.model_validate(raw_profile),
+                completed_concept_ids=state.get("completed_concept_ids", ()),
+                allow_skips=state.get("allow_skips", True),
+            )
+        except ValidationError as exc:
+            return _node_failure(
+                PlanningOperation.CREATE,
+                PlanningFailureCode.INVALID_STATE,
+                str(exc),
+            )
+        try:
+            result = PlanningToolResult.model_validate(
+                tool.invoke(request.model_dump(mode="python"))
+            )
+        except PlanningError as exc:
+            return _node_failure(
+                PlanningOperation.CREATE,
+                PlanningFailureCode.PLANNING_ERROR,
+                str(exc),
+            )
+        except (ValidationError, ValueError) as exc:
+            return _node_failure(
+                PlanningOperation.CREATE,
+                PlanningFailureCode.PLANNING_ERROR,
+                str(exc),
+            )
+        return {
+            "path": result.path,
+            "planning_status": PlanningNodeStatus.PLANNED,
+            "planning_audit": result.audit,
+            "planning_failure": None,
+        }
+
+    return create_course_plan_node
+
+
+def build_update_course_plan_node(
+    catalog: OntologyCatalog,
+    policy: PlannerPolicy | None = None,
+) -> Callable[[CoursePlanningState], CoursePlanningState]:
+    tool = update_course_plan_tool(catalog, policy)
+
+    def update_course_plan_node(state: CoursePlanningState) -> CoursePlanningState:
+        raw_profile = state.get("profile")
+        existing = state.get("path")
+        if raw_profile is None or existing is None:
+            missing = "profile" if raw_profile is None else "path"
+            return _node_failure(
+                PlanningOperation.UPDATE,
+                PlanningFailureCode.INVALID_STATE,
+                f"{missing} is required",
+            )
+        try:
+            request = UpdateCoursePlanInput(
+                existing=PathDecision.model_validate(existing),
+                profile=LearnerProfileSnapshot.model_validate(raw_profile),
+                completed_concept_ids=state.get("completed_concept_ids", ()),
+            )
+        except ValidationError as exc:
+            return _node_failure(
+                PlanningOperation.UPDATE,
+                PlanningFailureCode.INVALID_STATE,
+                str(exc),
+            )
+        try:
+            result = PlanningToolResult.model_validate(
+                tool.invoke(request.model_dump(mode="python"))
+            )
+        except PlanningError as exc:
+            return _node_failure(
+                PlanningOperation.UPDATE,
+                PlanningFailureCode.PLANNING_ERROR,
+                str(exc),
+            )
+        except (ValidationError, ValueError) as exc:
+            return _node_failure(
+                PlanningOperation.UPDATE,
+                PlanningFailureCode.PLANNING_ERROR,
+                str(exc),
+            )
+        return {
+            "path": result.path,
+            "planning_status": PlanningNodeStatus.UPDATED,
+            "planning_audit": result.audit,
+            "planning_failure": None,
+        }
+
+    return update_course_plan_node
+
+
 def _build_result(
     operation: PlanningOperation,
     request: CreateCoursePlanInput | UpdateCoursePlanInput,
@@ -221,6 +365,22 @@ def _build_result(
             policy_digest=path.policy_digest,
         ),
     )
+
+
+def _node_failure(
+    operation: PlanningOperation,
+    code: PlanningFailureCode,
+    message: str,
+) -> CoursePlanningState:
+    return {
+        "planning_status": PlanningNodeStatus.FAILED,
+        "planning_audit": None,
+        "planning_failure": PlanningNodeFailure(
+            code=code,
+            operation=operation,
+            message=message,
+        ),
+    }
 
 
 def _validate_unique_completed_ids(value: tuple[str, ...]) -> tuple[str, ...]:

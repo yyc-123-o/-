@@ -5,12 +5,16 @@ from pydantic import ValidationError
 
 from skillforge_kb.agents.planning_tools import (
     CreateCoursePlanInput,
+    PlanningFailureCode,
+    PlanningNodeStatus,
     PlanningOperation,
     PlanningToolAudit,
     PlanningToolResult,
     UpdateCoursePlanInput,
+    build_create_course_plan_node,
     build_request_digest,
     build_result_digest,
+    build_update_course_plan_node,
     create_course_plan_tool,
     update_course_plan_tool,
 )
@@ -211,3 +215,88 @@ def test_tool_rejects_unknown_completed_concept(catalog, profile) -> None:
                 "completed_concept_ids": ["unknown.concept"],
             }
         )
+
+
+def test_create_node_returns_planned_state(catalog, profile) -> None:
+    update = build_create_course_plan_node(catalog)({"profile": profile})
+
+    assert update["planning_status"] is PlanningNodeStatus.PLANNED
+    assert update["path"].profile_id == profile.profile_id
+    assert update["planning_audit"] is not None
+    assert update["planning_audit"].path_id == update["path"].path_id
+    assert update["planning_failure"] is None
+
+
+def test_create_node_returns_invalid_state_for_missing_profile(catalog) -> None:
+    update = build_create_course_plan_node(catalog)({})
+
+    assert update["planning_status"] is PlanningNodeStatus.FAILED
+    assert update["planning_audit"] is None
+    assert update["planning_failure"] is not None
+    assert update["planning_failure"].code is PlanningFailureCode.INVALID_STATE
+    assert "profile" in update["planning_failure"].message
+    assert "path" not in update
+
+
+def test_create_node_returns_planning_error_for_graph_mismatch(
+    catalog,
+    profile,
+) -> None:
+    invalid_profile = profile.model_copy(update={"graph_version": "ai-course-v2"})
+
+    update = build_create_course_plan_node(catalog)({"profile": invalid_profile})
+
+    assert update["planning_status"] is PlanningNodeStatus.FAILED
+    assert update["planning_failure"] is not None
+    assert update["planning_failure"].code is PlanningFailureCode.PLANNING_ERROR
+    assert "graph version" in update["planning_failure"].message
+
+
+def test_update_node_returns_updated_state_and_preserves_identity(
+    catalog,
+    profile,
+) -> None:
+    existing = CoursePlanner(catalog).plan(profile)
+    completed = existing.nodes[0].concept_id
+
+    update = build_update_course_plan_node(catalog)(
+        {
+            "profile": profile,
+            "path": existing,
+            "completed_concept_ids": (completed,),
+        }
+    )
+
+    assert update["planning_status"] is PlanningNodeStatus.UPDATED
+    assert update["path"].path_id == existing.path_id
+    assert update["planning_audit"] is not None
+    assert update["planning_failure"] is None
+
+
+def test_update_node_failure_does_not_replace_existing_path(catalog, profile) -> None:
+    existing = CoursePlanner(catalog).plan(profile)
+
+    update = build_update_course_plan_node(catalog)(
+        {
+            "profile": profile,
+            "path": existing,
+            "completed_concept_ids": ("unknown.concept",),
+        }
+    )
+
+    assert update["planning_status"] is PlanningNodeStatus.FAILED
+    assert update["planning_audit"] is None
+    assert update["planning_failure"] is not None
+    assert update["planning_failure"].code is PlanningFailureCode.PLANNING_ERROR
+    assert "path" not in update
+
+
+def test_planning_adapter_is_available_from_agents_public_api() -> None:
+    from skillforge_kb import agents
+
+    assert agents.CreateCoursePlanInput is CreateCoursePlanInput
+    assert agents.PlanningToolResult is PlanningToolResult
+    assert agents.create_course_plan_tool is create_course_plan_tool
+    assert agents.update_course_plan_tool is update_course_plan_tool
+    assert agents.build_create_course_plan_node is build_create_course_plan_node
+    assert agents.build_update_course_plan_node is build_update_course_plan_node
