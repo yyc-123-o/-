@@ -79,6 +79,11 @@ class NodeAdaptationDecision(BaseModel):
     def contributions(self) -> tuple[FactorContribution, ...]:
         return self.support_contributions
 
+    @property
+    def resource_mode(self) -> SupportIntensity:
+        """Compatibility name for the canonical support-intensity decision."""
+        return self.support_intensity
+
     @model_validator(mode="after")
     def validate_contribution_sums(self) -> "NodeAdaptationDecision":
         if not isclose(

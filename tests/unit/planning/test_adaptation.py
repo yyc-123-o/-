@@ -162,6 +162,7 @@ def test_low_confidence_or_missing_evidence_is_at_least_scaffolded(
 
     assert decision.support_need_score >= 0.60
     assert decision.support_intensity.value == "scaffolded"
+    assert decision.resource_mode is decision.support_intensity
 
 
 def test_factor_contributions_reproduce_scores(catalog) -> None:

@@ -79,6 +79,11 @@ def test_loaded_catalogs_are_deeply_immutable(catalog) -> None:
     assert isinstance(attributes.attributes, tuple)
     assert isinstance(blueprints.blueprints, tuple)
 
+    with pytest.raises(ValidationError):
+        attributes.attributes[0].difficulty_prior = 1.0
+    with pytest.raises(TypeError):
+        blueprints.blueprints[0].resource_types[0] = "lecture"
+
 
 def test_resource_blueprints_reject_unknown_resource_type(tmp_path, catalog) -> None:
     path = tmp_path / "blueprints.yaml"
