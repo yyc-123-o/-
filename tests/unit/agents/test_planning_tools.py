@@ -11,9 +11,12 @@ from skillforge_kb.agents.planning_tools import (
     UpdateCoursePlanInput,
     build_request_digest,
     build_result_digest,
+    create_course_plan_tool,
+    update_course_plan_tool,
 )
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
 from skillforge_kb.planning.planner import CoursePlanner
+from skillforge_kb.planning.updater import DepthUpdater
 
 
 @pytest.fixture
@@ -133,3 +136,78 @@ def test_result_rejects_inconsistent_audit_identity(catalog, profile) -> None:
 
     with pytest.raises(ValidationError, match="audit path ID"):
         PlanningToolResult(path=path, audit=invalid_audit)
+
+
+def test_create_tool_matches_planner_and_is_idempotent(catalog, profile) -> None:
+    tool = create_course_plan_tool(catalog)
+    payload = {"profile": profile.model_dump(mode="json")}
+
+    first = PlanningToolResult.model_validate(tool.invoke(payload))
+    second = PlanningToolResult.model_validate(tool.invoke(payload))
+
+    assert tool.name == "create_course_plan"
+    assert "deterministic" in tool.description.lower()
+    assert tool.args_schema is CreateCoursePlanInput
+    assert first == second
+    assert first.path == CoursePlanner(catalog).plan(profile)
+    assert first.audit.path_id == first.path.path_id
+
+
+def test_create_tool_digest_ignores_completed_id_order(catalog, profile) -> None:
+    tool = create_course_plan_tool(catalog)
+    completed_ids = [
+        "math.linear-algebra.scalar",
+        "math.linear-algebra.vector",
+    ]
+    payload = {
+        "profile": profile.model_dump(mode="json"),
+        "completed_concept_ids": completed_ids,
+    }
+    reversed_payload = {
+        **payload,
+        "completed_concept_ids": list(reversed(completed_ids)),
+    }
+
+    first = PlanningToolResult.model_validate(tool.invoke(payload))
+    second = PlanningToolResult.model_validate(tool.invoke(reversed_payload))
+
+    assert first.audit.request_digest == second.audit.request_digest
+    assert first == second
+
+
+def test_update_tool_matches_updater_and_preserves_path_identity(
+    catalog,
+    profile,
+) -> None:
+    existing = CoursePlanner(catalog).plan(profile)
+    completed = existing.nodes[0].concept_id
+    tool = update_course_plan_tool(catalog)
+    payload = {
+        "existing": existing.model_dump(mode="json"),
+        "profile": profile.model_dump(mode="json"),
+        "completed_concept_ids": [completed],
+    }
+
+    result = PlanningToolResult.model_validate(tool.invoke(payload))
+    expected = DepthUpdater(catalog).update(existing, profile, {completed})
+
+    assert tool.name == "update_course_plan"
+    assert tool.args_schema is UpdateCoursePlanInput
+    assert result.path == expected
+    assert result.path.path_id == existing.path_id
+    assert [node.concept_id for node in result.path.nodes] == [
+        node.concept_id for node in existing.nodes
+    ]
+
+
+def test_tool_rejects_unknown_completed_concept(catalog, profile) -> None:
+    existing = CoursePlanner(catalog).plan(profile)
+
+    with pytest.raises(ValueError, match="completed concept"):
+        update_course_plan_tool(catalog).invoke(
+            {
+                "existing": existing.model_dump(mode="json"),
+                "profile": profile.model_dump(mode="json"),
+                "completed_concept_ids": ["unknown.concept"],
+            }
+        )

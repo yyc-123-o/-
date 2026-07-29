@@ -3,10 +3,14 @@ from enum import StrEnum
 from hashlib import sha256
 from typing import Literal
 
+from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
-from skillforge_kb.planning.models import PathDecision
+from skillforge_kb.planning.models import PathDecision, PlannerPolicy
+from skillforge_kb.planning.planner import CoursePlanner
+from skillforge_kb.planning.updater import DepthUpdater
 
 
 class PlanningOperation(StrEnum):
@@ -114,6 +118,109 @@ def build_result_digest(
         "path": path.model_dump(mode="json"),
     }
     return f"result_{_hash(digest_payload)}"
+
+
+def create_course_plan_tool(
+    catalog: OntologyCatalog,
+    policy: PlannerPolicy | None = None,
+) -> StructuredTool:
+    planner = CoursePlanner(catalog, policy)
+
+    def create_course_plan(
+        profile: LearnerProfileSnapshot,
+        completed_concept_ids: tuple[str, ...] = (),
+        allow_skips: bool = True,
+    ) -> dict[str, object]:
+        request = CreateCoursePlanInput(
+            profile=profile,
+            completed_concept_ids=completed_concept_ids,
+            allow_skips=allow_skips,
+        )
+        path = planner.plan(
+            request.profile,
+            set(request.completed_concept_ids),
+            allow_skips=request.allow_skips,
+        )
+        return _build_result(
+            PlanningOperation.CREATE,
+            request,
+            path,
+            planner.policy_digest,
+        ).model_dump(mode="json")
+
+    return StructuredTool.from_function(
+        func=create_course_plan,
+        name=PlanningOperation.CREATE.value,
+        description=(
+            "Create a deterministic, prerequisite-safe course path from a validated "
+            "learner profile."
+        ),
+        args_schema=CreateCoursePlanInput,
+        infer_schema=False,
+    )
+
+
+def update_course_plan_tool(
+    catalog: OntologyCatalog,
+    policy: PlannerPolicy | None = None,
+) -> StructuredTool:
+    planner = CoursePlanner(catalog, policy)
+    updater = DepthUpdater(catalog, policy)
+
+    def update_course_plan(
+        existing: PathDecision,
+        profile: LearnerProfileSnapshot,
+        completed_concept_ids: tuple[str, ...],
+    ) -> dict[str, object]:
+        request = UpdateCoursePlanInput(
+            existing=existing,
+            profile=profile,
+            completed_concept_ids=completed_concept_ids,
+        )
+        path = updater.update(
+            request.existing,
+            request.profile,
+            set(request.completed_concept_ids),
+        )
+        return _build_result(
+            PlanningOperation.UPDATE,
+            request,
+            path,
+            planner.policy_digest,
+        ).model_dump(mode="json")
+
+    return StructuredTool.from_function(
+        func=update_course_plan,
+        name=PlanningOperation.UPDATE.value,
+        description=(
+            "Update only unfinished course path nodes after validated concept "
+            "completion evidence."
+        ),
+        args_schema=UpdateCoursePlanInput,
+        infer_schema=False,
+    )
+
+
+def _build_result(
+    operation: PlanningOperation,
+    request: CreateCoursePlanInput | UpdateCoursePlanInput,
+    path: PathDecision,
+    policy_digest: str,
+) -> PlanningToolResult:
+    request_digest = build_request_digest(operation, request, policy_digest)
+    result_digest = build_result_digest(operation, request_digest, path)
+    return PlanningToolResult(
+        path=path,
+        audit=PlanningToolAudit(
+            operation=operation,
+            request_digest=request_digest,
+            result_digest=result_digest,
+            path_id=path.path_id,
+            profile_id=path.profile_id,
+            graph_version=path.graph_version,
+            policy_digest=path.policy_digest,
+        ),
+    )
 
 
 def _validate_unique_completed_ids(value: tuple[str, ...]) -> tuple[str, ...]:
