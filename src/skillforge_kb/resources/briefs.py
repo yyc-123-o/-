@@ -18,7 +18,7 @@ from skillforge_kb.ontology.resource_blueprints import (
     resource_blueprint,
 )
 from skillforge_kb.planning.adaptation import NodeAdaptationDecision
-from skillforge_kb.planning.models import PathDecision, PathStatus
+from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus
 
 from .models import (
     AcceptanceChecks,
@@ -91,6 +91,7 @@ class ResourceBriefBuilder(BaseModel):
             raise ValueError("completed nodes cannot generate resource briefs")
         if node.delivery_depth is None:
             raise ValueError("resource brief requires a delivery depth")
+        self._validate_node_structure(node)
 
         adaptation = next(
             (item for item in self.adaptations if item.concept_id == concept_id),
@@ -165,6 +166,19 @@ class ResourceBriefBuilder(BaseModel):
             raise ValueError("profile graph version does not match catalog")
         if decision.profile_id != profile.profile_id:
             raise ValueError("path profile does not match learner profile")
+
+    def _validate_node_structure(self, node: PathNode) -> None:
+        section = self.catalog.section_for(node.concept_id)
+        if node.section_id != section.id or node.chapter_id != section.chapter_id:
+            raise ValueError("path node does not match catalog position")
+        expected_hard = self._incoming_ids(
+            node.concept_id,
+            RelationKind.HARD_PREREQUISITE,
+        )
+        if node.hard_prerequisite_ids != expected_hard:
+            raise ValueError("path node hard prerequisites do not match catalog")
+        if not set(node.blocking_prerequisite_ids).issubset(expected_hard):
+            raise ValueError("path node blockers are not hard prerequisites")
 
     def _require_published_evidence(
         self,

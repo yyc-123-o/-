@@ -18,7 +18,21 @@ class EvidenceBoundItem(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     text: NonEmptyString
-    evidence_ids: tuple[str, ...] = Field(min_length=1)
+    citations: tuple["CitationRecord", ...] = Field(min_length=1)
+
+    @property
+    def evidence_ids(self) -> tuple[str, ...]:
+        return tuple(citation.evidence_id for citation in self.citations)
+
+
+class CitationRecord(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    evidence_id: str = Field(pattern=r"^evidence_[0-9a-f]{64}$")
+    source_id: NonEmptyString
+    chunk_id: NonEmptyString
+    locator: NonEmptyString
+    normalized_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
 class ResourceArtifactBase(BaseModel):

@@ -8,6 +8,7 @@ from skillforge_kb.resources.briefs import RESOURCE_EVIDENCE_KINDS
 from skillforge_kb.resources.evidence_bundle import EvidenceBundle
 from skillforge_kb.resources.generator_contracts import (
     AssessmentResource,
+    CitationRecord,
     EvidenceBoundItem,
     GeneratedArtifact,
     LectureResource,
@@ -38,8 +39,14 @@ class FakeResourceGenerator:
     ) -> tuple[GeneratedArtifact, ...]:
         artifacts: list[GeneratedArtifact] = []
         for resource_type in brief.required_resource_types:
-            evidence_ids = tuple(
-                record.evidence_id
+            citations = tuple(
+                CitationRecord(
+                    evidence_id=record.evidence_id,
+                    source_id=record.source_id,
+                    chunk_id=record.chunk_id,
+                    locator=record.locator,
+                    normalized_hash=record.normalized_hash,
+                )
                 for record in bundle.records
                 if record.content_kind in RESOURCE_EVIDENCE_KINDS[resource_type]
             )
@@ -54,7 +61,7 @@ class FakeResourceGenerator:
                 "items": (
                     EvidenceBoundItem(
                         text=f"{resource_type.value}: {brief.learning_outcomes[0]}",
-                        evidence_ids=evidence_ids,
+                        citations=citations,
                     ),
                 ),
             }
@@ -136,17 +143,25 @@ class ResourceGenerationTool:
             if not artifact.items:
                 raise ValueError("generated artifact requires evidence-bound items")
             for item in artifact.items:
-                if not item.evidence_ids:
+                if not item.citations:
                     raise ValueError("generated item requires a citation")
                 unknown = set(item.evidence_ids) - allowed_evidence_ids
                 if unknown:
                     raise ValueError("generated item cites unknown evidence")
                 allowed_kinds = set(RESOURCE_EVIDENCE_KINDS[artifact.resource_type])
-                if any(
-                    evidence_by_id[evidence_id].content_kind not in allowed_kinds
-                    for evidence_id in item.evidence_ids
-                ):
-                    raise ValueError("generated item cites the wrong resource evidence kind")
+                for citation in item.citations:
+                    record = evidence_by_id[citation.evidence_id]
+                    if (
+                        citation.source_id != record.source_id
+                        or citation.chunk_id != record.chunk_id
+                        or citation.locator != record.locator
+                        or citation.normalized_hash != record.normalized_hash
+                    ):
+                        raise ValueError("generated citation metadata does not match evidence")
+                    if record.content_kind not in allowed_kinds:
+                        raise ValueError(
+                            "generated item cites the wrong resource evidence kind"
+                        )
             if isinstance(artifact, AssessmentResource) and (
                 artifact.assessment_kinds != brief.assessment_kinds
             ):

@@ -198,6 +198,37 @@ def test_mismatched_profile_or_adaptation_is_rejected(catalog) -> None:
         builder.build(decision, changed_profile, node.concept_id)
 
 
+def test_path_node_structure_must_match_catalog(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+
+    wrong_position = node.model_copy(update={"chapter_id": "chapter.99.invalid"})
+    wrong_position_decision = decision.model_copy(
+        update={
+            "nodes": tuple(
+                wrong_position if item.concept_id == node.concept_id else item
+                for item in decision.nodes
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="catalog position"):
+        builder.build(wrong_position_decision, profile, node.concept_id)
+
+    wrong_prerequisites = node.model_copy(
+        update={"hard_prerequisite_ids": ("math.linear-algebra.vector",)}
+    )
+    wrong_prerequisites_decision = decision.model_copy(
+        update={
+            "nodes": tuple(
+                wrong_prerequisites if item.concept_id == node.concept_id else item
+                for item in decision.nodes
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="hard prerequisites"):
+        builder.build(wrong_prerequisites_decision, profile, node.concept_id)
+
+
 @pytest.mark.parametrize(
     ("mastery", "ability", "expected_depth"),
     [

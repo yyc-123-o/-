@@ -2,6 +2,7 @@ from .briefs import ResourceBriefBuilder
 from .evidence_bundle import EvidenceBundle, build_evidence_bundle
 from .generator_contracts import (
     AssessmentResource,
+    CitationRecord,
     EvidenceBoundItem,
     LectureResource,
     PracticalGuideResource,
@@ -20,6 +21,7 @@ from .models import (
 __all__ = [
     "AcceptanceChecks",
     "AssessmentResource",
+    "CitationRecord",
     "CitationRequirements",
     "EvidenceBoundItem",
     "EvidenceBundle",
