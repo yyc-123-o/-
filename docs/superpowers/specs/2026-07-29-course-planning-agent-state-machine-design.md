@@ -102,6 +102,7 @@ failed
 start_current_node
 wait_for_event
 course_complete
+retry_event
 reset_required
 ```
 
@@ -204,7 +205,8 @@ event_id: str
 失败结果必须满足：
 
 - `status=failed`。
-- `next_action=reset_required`。
+- 未进入状态图的 `invalid_event` 返回 `next_action=retry_event`，并且不修改 checkpoint。
+- 已进入状态图的其他失败返回 `next_action=reset_required`。
 - 保留最后有效 `profile`、`path` 和 `adaptations`。
 - 不把失败事件标记为成功处理；事件 ID 冲突除外，其已有成功记录保持不变。
 - 未预期程序异常继续抛出，不伪装成业务失败。

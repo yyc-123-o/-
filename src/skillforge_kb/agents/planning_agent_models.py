@@ -37,6 +37,7 @@ class PlanningNextAction(StrEnum):
     START_CURRENT_NODE = "start_current_node"
     WAIT_FOR_EVENT = "wait_for_event"
     COURSE_COMPLETE = "course_complete"
+    RETRY_EVENT = "retry_event"
     RESET_REQUIRED = "reset_required"
 
 
@@ -167,8 +168,13 @@ class CoursePlanningAgentResult(BaseModel):
         if self.status is PlanningAgentStatus.FAILED:
             if self.failure is None:
                 raise ValueError("failed result requires failure details")
-            if self.next_action is not PlanningNextAction.RESET_REQUIRED:
-                raise ValueError("failed result must require reset")
+            expected_action = (
+                PlanningNextAction.RETRY_EVENT
+                if self.failure.code is PlanningAgentFailureCode.INVALID_EVENT
+                else PlanningNextAction.RESET_REQUIRED
+            )
+            if self.next_action is not expected_action:
+                raise ValueError("failed result has an invalid recovery action")
         elif self.failure is not None:
             raise ValueError("non-failed result cannot contain failure details")
         return self

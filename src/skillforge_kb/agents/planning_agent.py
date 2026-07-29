@@ -120,7 +120,7 @@ class CoursePlanningAgent:
         return CoursePlanningAgentResult(
             thread_id=thread_id,
             status=PlanningAgentStatus.FAILED,
-            next_action=PlanningNextAction.RESET_REQUIRED,
+            next_action=PlanningNextAction.RETRY_EVENT,
             path=previous.path if previous is not None else None,
             current_node=previous.current_node if previous is not None else None,
             current_adaptation=(

@@ -358,6 +358,7 @@ def test_invalid_raw_event_preserves_checkpointed_state(agent, profile) -> None:
     result = agent.invoke(invalid_event, thread_id="student-1")
 
     assert result.status is PlanningAgentStatus.FAILED
+    assert result.next_action is PlanningNextAction.RETRY_EVENT
     assert result.path == initial.path
     assert result.adaptations == initial.adaptations
     assert result.failure is not None

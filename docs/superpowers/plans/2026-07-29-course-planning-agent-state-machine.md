@@ -124,6 +124,7 @@ class PlanningNextAction(StrEnum):
     START_CURRENT_NODE = "start_current_node"
     WAIT_FOR_EVENT = "wait_for_event"
     COURSE_COMPLETE = "course_complete"
+    RETRY_EVENT = "retry_event"
     RESET_REQUIRED = "reset_required"
 
 
