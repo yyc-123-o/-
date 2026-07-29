@@ -25,6 +25,12 @@ class CalibrationDataKind(StrEnum):
     OBSERVED = "observed"
 
 
+class NodeWeightFactor(StrEnum):
+    MASTERY_GAP = "mastery_gap_weight"
+    ERROR_RISK = "error_risk_weight"
+    ABILITY_GAP = "ability_gap_weight"
+
+
 class NodeWeightCalibrationExample(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -171,6 +177,23 @@ class NodeWeightCalibrationReport(BaseModel):
         return self
 
 
+class NodeWeightAblationResult(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    removed_factor: NodeWeightFactor
+    evaluation: NodeWeightPolicyEvaluation
+
+
+class NodeWeightSensitivityPoint(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    factor: NodeWeightFactor
+    value: float = Field(ge=0, le=1)
+    candidate_count: int = Field(ge=1)
+    mean_exact_match_rate: float = Field(ge=0, le=1)
+    mean_absolute_error: float | None = Field(default=None, ge=0, le=1)
+
+
 def build_calibration_dataset_digest(dataset: NodeWeightCalibrationDataset) -> str:
     return f"calibration_dataset_{_hash(dataset.model_dump(mode='json'))}"
 
@@ -279,6 +302,81 @@ def search_node_weight_policies(
         ranked_candidates=ranked,
         best_fitting_candidate=ranked[0],
     )
+
+
+def evaluate_node_weight_ablations(
+    dataset: NodeWeightCalibrationDataset,
+    baseline: NodeWeightPolicy,
+) -> tuple[NodeWeightAblationResult, ...]:
+    results: list[NodeWeightAblationResult] = []
+    for factor in NodeWeightFactor:
+        removed_weight = getattr(baseline, factor.value)
+        if removed_weight == 0:
+            continue
+        remaining_weight = sum(
+            getattr(baseline, candidate.value)
+            for candidate in NodeWeightFactor
+            if candidate is not factor
+        )
+        if remaining_weight <= 0:
+            raise ValueError("ablation leaves no positive remaining weight")
+        updates = {
+            candidate.value: (
+                0.0
+                if candidate is factor
+                else getattr(baseline, candidate.value) / remaining_weight
+            )
+            for candidate in NodeWeightFactor
+        }
+        updates["version"] = (
+            f"{baseline.version}.ablate-{factor.value.removesuffix('_weight')}"
+        )
+        policy = NodeWeightPolicy.model_validate(
+            {**baseline.model_dump(), **updates}
+        )
+        results.append(
+            NodeWeightAblationResult(
+                removed_factor=factor,
+                evaluation=evaluate_node_weight_policy(dataset, policy),
+            )
+        )
+    return tuple(results)
+
+
+def summarize_node_weight_sensitivity(
+    report: NodeWeightCalibrationReport,
+) -> tuple[NodeWeightSensitivityPoint, ...]:
+    points: list[NodeWeightSensitivityPoint] = []
+    for factor in NodeWeightFactor:
+        values = sorted(
+            {
+                getattr(evaluation.policy, factor.value)
+                for evaluation in report.ranked_candidates
+            }
+        )
+        for value in values:
+            matching = tuple(
+                evaluation
+                for evaluation in report.ranked_candidates
+                if getattr(evaluation.policy, factor.value) == value
+            )
+            errors = tuple(
+                evaluation.mean_absolute_error
+                for evaluation in matching
+                if evaluation.mean_absolute_error is not None
+            )
+            points.append(
+                NodeWeightSensitivityPoint(
+                    factor=factor,
+                    value=value,
+                    candidate_count=len(matching),
+                    mean_exact_match_rate=fmean(
+                        evaluation.exact_match_rate for evaluation in matching
+                    ),
+                    mean_absolute_error=fmean(errors) if errors else None,
+                )
+            )
+    return tuple(points)
 
 
 def _tunable_values(policy: NodeWeightPolicy) -> tuple[float, ...]:

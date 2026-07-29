@@ -11,11 +11,15 @@ from skillforge_kb.planning.calibration import (
     NodeWeightCalibrationDataset,
     NodeWeightCalibrationExample,
     NodeWeightCalibrationReport,
+    NodeWeightFactor,
     NodeWeightSearchSpace,
+    NodeWeightSensitivityPoint,
     build_calibration_dataset_digest,
+    evaluate_node_weight_ablations,
     evaluate_node_weight_policy,
     generate_node_weight_policies,
     search_node_weight_policies,
+    summarize_node_weight_sensitivity,
 )
 
 
@@ -227,6 +231,110 @@ def test_search_rejects_a_grid_without_an_alternative(dataset) -> None:
         search_node_weight_policies(dataset, search_space, baseline)
 
 
+def test_default_policy_ablation_removes_each_factor_and_renormalizes(dataset) -> None:
+    results = evaluate_node_weight_ablations(dataset, NodeWeightPolicy())
+
+    assert tuple(item.removed_factor for item in results) == tuple(NodeWeightFactor)
+    for item in results:
+        policy = item.evaluation.policy
+        assert getattr(policy, item.removed_factor.value) == 0.0
+        assert sum(_weight_values(policy)) == pytest.approx(1.0)
+        assert item.evaluation.case_count == len(dataset.examples)
+
+
+def test_ablation_rejects_a_policy_with_no_remaining_weight(dataset) -> None:
+    policy = NodeWeightPolicy(
+        mastery_gap_weight=1.0,
+        error_risk_weight=0.0,
+        ability_gap_weight=0.0,
+    )
+
+    with pytest.raises(ValueError, match="no positive remaining weight"):
+        evaluate_node_weight_ablations(dataset, policy)
+
+
+def test_sensitivity_summarizes_every_factor_value_deterministically(
+    dataset,
+    search_space,
+) -> None:
+    report = search_node_weight_policies(dataset, search_space, NodeWeightPolicy())
+
+    first = summarize_node_weight_sensitivity(report)
+    second = summarize_node_weight_sensitivity(report)
+
+    assert first == second
+    assert all(isinstance(item, NodeWeightSensitivityPoint) for item in first)
+    expected_keys = tuple(
+        (factor, value)
+        for factor in NodeWeightFactor
+        for value in sorted(
+            {
+                getattr(evaluation.policy, factor.value)
+                for evaluation in report.ranked_candidates
+            }
+        )
+    )
+    assert tuple((item.factor, item.value) for item in first) == expected_keys
+    for item in first:
+        matching = tuple(
+            evaluation
+            for evaluation in report.ranked_candidates
+            if getattr(evaluation.policy, item.factor.value) == item.value
+        )
+        assert item.candidate_count == len(matching)
+        assert item.mean_exact_match_rate == pytest.approx(
+            sum(evaluation.exact_match_rate for evaluation in matching) / len(matching)
+        )
+        assert item.mean_absolute_error == pytest.approx(
+            sum(
+                evaluation.mean_absolute_error
+                for evaluation in matching
+                if evaluation.mean_absolute_error is not None
+            )
+            / len(matching)
+        )
+
+
+def test_sensitivity_preserves_missing_score_error(dataset, search_space) -> None:
+    unscored = dataset.model_copy(
+        update={
+            "examples": tuple(
+                example.model_copy(update={"target_support_need_score": None})
+                for example in dataset.examples
+            )
+        }
+    )
+    report = search_node_weight_policies(unscored, search_space, NodeWeightPolicy())
+
+    points = summarize_node_weight_sensitivity(report)
+
+    assert all(item.mean_absolute_error is None for item in points)
+
+
+def test_calibration_api_is_available_from_planning_package() -> None:
+    from skillforge_kb.planning import (
+        NodeWeightCalibrationDataset as PublicDataset,
+    )
+    from skillforge_kb.planning import (
+        evaluate_node_weight_ablations as public_ablation,
+    )
+    from skillforge_kb.planning import (
+        score_node_support as public_score,
+    )
+    from skillforge_kb.planning import (
+        search_node_weight_policies as public_search,
+    )
+    from skillforge_kb.planning import (
+        summarize_node_weight_sensitivity as public_sensitivity,
+    )
+
+    assert PublicDataset is NodeWeightCalibrationDataset
+    assert public_ablation is evaluate_node_weight_ablations
+    assert public_score.__name__ == "score_node_support"
+    assert public_search is search_node_weight_policies
+    assert public_sensitivity is summarize_node_weight_sensitivity
+
+
 def _tunable_values(policy: NodeWeightPolicy) -> tuple[float, ...]:
     return (
         policy.mastery_gap_weight,
@@ -234,4 +342,12 @@ def _tunable_values(policy: NodeWeightPolicy) -> tuple[float, ...]:
         policy.ability_gap_weight,
         policy.compact_threshold,
         policy.scaffolded_threshold,
+    )
+
+
+def _weight_values(policy: NodeWeightPolicy) -> tuple[float, float, float]:
+    return (
+        policy.mastery_gap_weight,
+        policy.error_risk_weight,
+        policy.ability_gap_weight,
     )
