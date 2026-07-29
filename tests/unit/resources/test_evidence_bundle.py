@@ -43,3 +43,14 @@ def test_bundle_rejects_cross_version_index(catalog) -> None:
 
     with pytest.raises(ValueError, match="graph version"):
         build_evidence_bundle(brief, other_version)
+
+
+def test_bundle_digest_rejects_content_mutation(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    brief = builder.build(decision, profile, node.concept_id)
+    bundle = build_evidence_bundle(brief, builder.evidence_index)
+    invalid = bundle.model_copy(update={"records": bundle.records[:-1]})
+
+    with pytest.raises(ValueError, match="bundle ID"):
+        type(bundle).model_validate(invalid.model_dump())

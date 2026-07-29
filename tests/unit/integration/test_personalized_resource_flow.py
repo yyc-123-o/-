@@ -11,7 +11,11 @@ from skillforge_kb.agents.resource_tools import (
 )
 from skillforge_kb.domain.enums import ContentKind, Language, LicenseStatus
 from skillforge_kb.evidence.manifest import EvidenceIndex
-from skillforge_kb.evidence.models import EvidenceRecord, EvidenceReviewStatus
+from skillforge_kb.evidence.models import (
+    EvidenceRecord,
+    EvidenceReviewStatus,
+    build_evidence_id,
+)
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.concept_attributes import load_concept_attributes
 from skillforge_kb.ontology.models import (
@@ -143,7 +147,19 @@ def _evidence_index(catalog: OntologyCatalog) -> EvidenceIndex:
                 digest = sha256(identity.encode("utf-8")).hexdigest()
                 records.append(
                     EvidenceRecord(
-                        evidence_id=f"evidence_{digest}",
+                        evidence_id=build_evidence_id(
+                            graph_version=catalog.course_document.version,
+                            source_id=f"fixture-source-{digest[:12]}",
+                            chunk_id=f"fixture-chunk-{digest[12:24]}",
+                            concept_id=concept.id,
+                            depth=depth.level,
+                            locator=f"fixture:{identity}",
+                            normalized_hash=sha256(
+                                f"normalized:{identity}".encode()
+                            ).hexdigest(),
+                            language=Language.EN,
+                            content_kind=content_kind,
+                        ),
                         graph_version=catalog.course_document.version,
                         source_id=f"fixture-source-{digest[:12]}",
                         chunk_id=f"fixture-chunk-{digest[12:24]}",

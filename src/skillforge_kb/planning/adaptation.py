@@ -57,7 +57,7 @@ class FactorContribution(BaseModel):
     contribution: float = Field(ge=0, le=1)
 
 
-class NodeAdaptationDecision(BaseModel):
+class NodeAdaptationPayload(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     concept_id: str = Field(min_length=1)
@@ -73,7 +73,6 @@ class NodeAdaptationDecision(BaseModel):
     profile_digest: str = Field(pattern=r"^profile_[0-9a-f]{64}$")
     policy_digest: str = Field(pattern=r"^policy_[0-9a-f]{64}$")
     node_weight_policy_digest: str = Field(pattern=r"^node_policy_[0-9a-f]{64}$")
-    adaptation_digest: str = Field(pattern=r"^adaptation_[0-9a-f]{64}$")
 
     @property
     def contributions(self) -> tuple[FactorContribution, ...]:
@@ -85,7 +84,7 @@ class NodeAdaptationDecision(BaseModel):
         return self.support_intensity
 
     @model_validator(mode="after")
-    def validate_contribution_sums(self) -> "NodeAdaptationDecision":
+    def validate_contribution_sums(self) -> "NodeAdaptationPayload":
         if not isclose(
             sum(item.contribution for item in self.support_contributions),
             self.support_need_score,
@@ -99,6 +98,23 @@ class NodeAdaptationDecision(BaseModel):
         ):
             raise ValueError("readiness contributions must sum to readiness score")
         return self
+
+
+class NodeAdaptationDecision(NodeAdaptationPayload):
+    adaptation_digest: str = Field(pattern=r"^adaptation_[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_adaptation_digest(self) -> "NodeAdaptationDecision":
+        expected = build_adaptation_digest(
+            self.model_dump(mode="json", exclude={"adaptation_digest"})
+        )
+        if self.adaptation_digest != expected:
+            raise ValueError("adaptation digest does not match decision content")
+        return self
+
+
+def build_adaptation_digest(payload: object) -> str:
+    return f"adaptation_{_hash(payload)}"
 
 
 class NodeWeightEngine:
@@ -242,25 +258,7 @@ class NodeWeightEngine:
         if not mastery_is_reliable or not ability_is_reliable:
             reasons = (*reasons, "evidence_uncertain")
         assessment = ("error_correction",) if error_risk > 0 else ()
-        digest_payload = {
-            "concept_id": path_node.concept_id,
-            "completed": sorted(completed),
-            "delivery_depth": delivery_depth.value,
-            "policy_digest": self._policy_digest,
-            "node_weight_policy_digest": self._node_policy_digest,
-            "profile_digest": _profile_digest(profile),
-            "readiness_contributions": [
-                item.model_dump(mode="json") for item in readiness_contributions
-            ],
-            "readiness": readiness,
-            "reasons": reasons,
-            "support_contributions": [
-                item.model_dump(mode="json") for item in support_contributions
-            ],
-            "support_need": support_need,
-        }
-        adaptation_digest = f"adaptation_{_hash(digest_payload)}"
-        return NodeAdaptationDecision(
+        payload = NodeAdaptationPayload(
             concept_id=path_node.concept_id,
             delivery_depth=(
                 DepthLevel.INTRO
@@ -278,7 +276,10 @@ class NodeWeightEngine:
             profile_digest=_profile_digest(profile),
             policy_digest=self._policy_digest,
             node_weight_policy_digest=self._node_policy_digest,
-            adaptation_digest=adaptation_digest,
+        )
+        return NodeAdaptationDecision(
+            **payload.model_dump(),
+            adaptation_digest=build_adaptation_digest(payload.model_dump(mode="json")),
         )
 
     def _ability_fit(

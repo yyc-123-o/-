@@ -176,6 +176,14 @@ def test_factor_contributions_reproduce_scores(catalog) -> None:
     )
 
 
+def test_adaptation_digest_rejects_content_mutation(catalog) -> None:
+    decision = _engine(catalog).evaluate(_profile(catalog, mastery=0.4), _node())
+    invalid = decision.model_copy(update={"effort_multiplier": 0.5})
+
+    with pytest.raises(ValueError, match="adaptation digest"):
+        type(decision).model_validate(invalid.model_dump())
+
+
 def test_completed_and_unknown_completion_ids_are_rejected(catalog) -> None:
     engine = _engine(catalog)
     profile = _profile(catalog, mastery=0.4)

@@ -4,16 +4,39 @@ import yaml
 
 from skillforge_kb.domain.enums import ContentKind, Language
 from skillforge_kb.evidence.manifest import EvidenceIndex, load_evidence_index
+from skillforge_kb.evidence.models import build_evidence_id
 from skillforge_kb.ontology.models import DepthLevel
 
 
 def _write_manifest(path: Path) -> None:
+    published_id = build_evidence_id(
+        graph_version="ai-course-v1",
+        source_id="source-2",
+        chunk_id="chunk-2",
+        concept_id="math.linear-algebra.scalar",
+        depth=DepthLevel.INTRO,
+        locator="section 2",
+        normalized_hash="c" * 64,
+        language=Language.EN,
+        content_kind=ContentKind.DEFINITION,
+    )
+    candidate_id = build_evidence_id(
+        graph_version="ai-course-v1",
+        source_id="source-1",
+        chunk_id="chunk-1",
+        concept_id="math.linear-algebra.scalar",
+        depth=DepthLevel.INTRO,
+        locator="section 1",
+        normalized_hash="d" * 64,
+        language=Language.EN,
+        content_kind=ContentKind.DEFINITION,
+    )
     raw = {
         "version": "evidence-manifest-v1",
         "graph_version": "ai-course-v1",
         "records": [
             {
-                "evidence_id": "evidence_" + "b" * 64,
+                "evidence_id": published_id,
                 "graph_version": "ai-course-v1",
                 "source_id": "source-2",
                 "chunk_id": "chunk-2",
@@ -31,7 +54,7 @@ def _write_manifest(path: Path) -> None:
                 "reviewed_at": "2026-07-29T00:00:00Z",
             },
             {
-                "evidence_id": "evidence_" + "a" * 64,
+                "evidence_id": candidate_id,
                 "graph_version": "ai-course-v1",
                 "source_id": "source-1",
                 "chunk_id": "chunk-1",

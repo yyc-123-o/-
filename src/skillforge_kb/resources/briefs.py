@@ -19,6 +19,7 @@ from skillforge_kb.ontology.resource_blueprints import (
 )
 from skillforge_kb.planning.adaptation import NodeAdaptationDecision
 from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus
+from skillforge_kb.planning.serialization import build_path_id
 
 from .models import (
     AcceptanceChecks,
@@ -28,6 +29,7 @@ from .models import (
     PresentationPreferences,
     ResourceBrief,
     ResourceBriefPayload,
+    build_brief_id,
 )
 
 RESOURCE_EVIDENCE_KINDS: dict[ResourceType, tuple[ContentKind, ...]] = {
@@ -62,6 +64,10 @@ class ResourceBriefBuilder(BaseModel):
 
     @model_validator(mode="after")
     def validate_dependencies(self) -> "ResourceBriefBuilder":
+        self._validate_dependency_contract()
+        return self
+
+    def _validate_dependency_contract(self) -> None:
         graph_version = self.catalog.course_document.version
         if self.blueprints.graph_version != graph_version:
             raise ValueError("resource blueprint graph version does not match catalog")
@@ -70,7 +76,6 @@ class ResourceBriefBuilder(BaseModel):
         concept_ids = [item.concept_id for item in self.adaptations]
         if len(concept_ids) != len(set(concept_ids)):
             raise ValueError("adaptation concept IDs must be unique")
-        return self
 
     def build(
         self,
@@ -78,6 +83,9 @@ class ResourceBriefBuilder(BaseModel):
         profile: LearnerProfileSnapshot,
         concept_id: str,
     ) -> ResourceBrief:
+        self._validate_runtime_dependencies()
+        decision = PathDecision.model_validate(decision.model_dump())
+        profile = LearnerProfileSnapshot.model_validate(profile.model_dump())
         self._validate_versions(decision, profile)
         node = next(
             (item for item in decision.nodes if item.concept_id == concept_id),
@@ -148,11 +156,18 @@ class ResourceBriefBuilder(BaseModel):
                 assessment_kinds=blueprint.assessment_kinds,
             ),
         )
-        brief_id = f"brief_{_hash(payload.model_dump(mode='json'))}"
+        brief_id = build_brief_id(payload.model_dump(mode="json"))
         return ResourceBrief(
             **payload.model_dump(),
             brief_id=brief_id,
         )
+
+    def _validate_runtime_dependencies(self) -> None:
+        ResourceBlueprintCatalog.model_validate(self.blueprints.model_dump())
+        EvidenceIndex.model_validate(self.evidence_index.model_dump())
+        for adaptation in self.adaptations:
+            NodeAdaptationDecision.model_validate(adaptation.model_dump())
+        self._validate_dependency_contract()
 
     def _validate_versions(
         self,
@@ -166,6 +181,15 @@ class ResourceBriefBuilder(BaseModel):
             raise ValueError("profile graph version does not match catalog")
         if decision.profile_id != profile.profile_id:
             raise ValueError("path profile does not match learner profile")
+        expected_path_id = build_path_id(
+            decision.profile_id,
+            decision.graph_version,
+            decision.policy_version,
+            [node.concept_id for node in decision.nodes],
+            decision.policy_digest,
+        )
+        if decision.path_id != expected_path_id:
+            raise ValueError("path ID does not match structural path content")
 
     def _validate_node_structure(self, node: PathNode) -> None:
         section = self.catalog.section_for(node.concept_id)

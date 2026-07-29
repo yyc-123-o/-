@@ -1,5 +1,7 @@
+import json
 from datetime import datetime
 from enum import StrEnum
+from hashlib import sha256
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
@@ -13,6 +15,38 @@ class EvidenceReviewStatus(StrEnum):
     PUBLISHED = "published"
     REJECTED = "rejected"
     REVOKED = "revoked"
+
+
+def build_evidence_id(
+    *,
+    graph_version: str,
+    source_id: str,
+    chunk_id: str,
+    concept_id: str,
+    depth: DepthLevel,
+    locator: str,
+    normalized_hash: str,
+    language: Language,
+    content_kind: ContentKind,
+) -> str:
+    payload = {
+        "chunk_id": chunk_id,
+        "concept_id": concept_id,
+        "content_kind": content_kind.value,
+        "depth": depth.value,
+        "graph_version": graph_version,
+        "language": language.value,
+        "locator": locator,
+        "normalized_hash": normalized_hash,
+        "source_id": source_id,
+    }
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return f"evidence_{sha256(canonical.encode('utf-8')).hexdigest()}"
 
 
 class EvidenceRecord(BaseModel):
@@ -48,4 +82,17 @@ class EvidenceRecord(BaseModel):
             and self.license_status is not LicenseStatus.ALLOWED
         ):
             raise ValueError("published evidence requires an allowed source license")
+        expected = build_evidence_id(
+            graph_version=self.graph_version,
+            source_id=self.source_id,
+            chunk_id=self.chunk_id,
+            concept_id=self.concept_id,
+            depth=self.depth,
+            locator=self.locator,
+            normalized_hash=self.normalized_hash,
+            language=self.language,
+            content_kind=self.content_kind,
+        )
+        if self.evidence_id != expected:
+            raise ValueError("evidence ID does not match evidence identity")
         return self

@@ -15,3 +15,14 @@ def test_resource_contracts_reject_empty_requirements() -> None:
         AcceptanceChecks(required_resource_types=())
     with pytest.raises(ValidationError):
         EvidenceFilters(concept_id="", graph_version="ai-course-v1")
+
+
+def test_evidence_filters_cannot_disable_governance_gates() -> None:
+    with pytest.raises(ValidationError):
+        EvidenceFilters(
+            graph_version="ai-course-v1",
+            concept_id="math.linear-algebra.scalar",
+            depth="intro",
+            content_kinds=("definition",),
+            published_only=False,
+        )

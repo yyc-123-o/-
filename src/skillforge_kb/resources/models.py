@@ -1,4 +1,6 @@
-from typing import Annotated
+import json
+from hashlib import sha256
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
@@ -25,8 +27,8 @@ class EvidenceFilters(BaseModel):
     depth: DepthLevel
     languages: tuple[Language, ...] = tuple(Language)
     content_kinds: tuple[ContentKind, ...] = Field(min_length=1)
-    published_only: bool = True
-    allowed_license_only: bool = True
+    published_only: Literal[True] = True
+    allowed_license_only: Literal[True] = True
 
 
 class CitationRequirements(BaseModel):
@@ -111,6 +113,29 @@ class ResourceBriefPayload(BaseModel):
             raise ValueError("adaptation concept does not match brief concept")
         if self.node_adaptation.delivery_depth is not self.delivery_depth:
             raise ValueError("adaptation depth does not match brief depth")
+        if self.node_adaptation.policy_digest != self.policy_digest:
+            raise ValueError("adaptation policy does not match brief policy")
+        if (
+            self.evidence_filters.graph_version != self.graph_version
+            or self.evidence_filters.concept_id != self.concept_id
+            or self.evidence_filters.depth is not self.delivery_depth
+        ):
+            raise ValueError("evidence filters do not match brief scope")
+        if (
+            self.acceptance_checks.required_resource_types
+            != self.required_resource_types
+            or self.acceptance_checks.learning_outcomes != self.learning_outcomes
+            or self.acceptance_checks.assessment_kinds != self.assessment_kinds
+        ):
+            raise ValueError("acceptance checks do not match brief requirements")
+        if self.citation_requirements.min_evidence_records < len(
+            self.evidence_filters.content_kinds
+        ):
+            raise ValueError("citation requirements do not cover evidence filters")
+        if not set(self.blocking_prerequisite_ids).issubset(
+            self.hard_prerequisite_ids
+        ):
+            raise ValueError("blocking prerequisites must be hard prerequisites")
         if self.status is PathStatus.BLOCKED:
             if self.delivery_depth is not DepthLevel.INTRO:
                 raise ValueError("blocked resource briefs require intro depth")
@@ -118,8 +143,27 @@ class ResourceBriefPayload(BaseModel):
                 raise ValueError("blocked resource briefs require remediation mode")
             if not self.blocking_prerequisite_ids:
                 raise ValueError("blocked resource briefs require blocker IDs")
+        elif self.blocking_prerequisite_ids:
+            raise ValueError("non-blocked resource briefs cannot carry blocker IDs")
         return self
 
 
 class ResourceBrief(ResourceBriefPayload):
     brief_id: str = Field(pattern=r"^brief_[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_brief_id(self) -> "ResourceBrief":
+        expected = build_brief_id(self.model_dump(mode="json", exclude={"brief_id"}))
+        if self.brief_id != expected:
+            raise ValueError("brief ID does not match brief content")
+        return self
+
+
+def build_brief_id(payload: object) -> str:
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return f"brief_{sha256(canonical.encode('utf-8')).hexdigest()}"

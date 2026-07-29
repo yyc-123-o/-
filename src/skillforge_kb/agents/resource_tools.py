@@ -1,6 +1,6 @@
-import json
-from hashlib import sha256
 from typing import TypedDict
+
+from pydantic import TypeAdapter
 
 from skillforge_kb.ontology.models import DepthLevel
 from skillforge_kb.ontology.resource_blueprints import ResourceType
@@ -16,6 +16,7 @@ from skillforge_kb.resources.generator_contracts import (
     ProjectResource,
     ResourceGenerator,
     ValidatedResourcePackage,
+    build_resource_result_id,
 )
 from skillforge_kb.resources.models import ResourceBrief
 
@@ -29,6 +30,9 @@ class _ArtifactFields(TypedDict):
     hard_prerequisite_ids: tuple[str, ...]
     covered_learning_outcomes: tuple[str, ...]
     items: tuple[EvidenceBoundItem, ...]
+
+
+_ARTIFACTS_ADAPTER = TypeAdapter(tuple[GeneratedArtifact, ...])
 
 
 class FakeResourceGenerator:
@@ -104,7 +108,12 @@ class ResourceGenerationTool:
         bundle: EvidenceBundle,
         generator: ResourceGenerator,
     ) -> ValidatedResourcePackage:
-        return self.validate(brief, bundle, generator.generate(brief, bundle))
+        validated_brief, validated_bundle = self._validate_inputs(brief, bundle)
+        return self.validate(
+            validated_brief,
+            validated_bundle,
+            generator.generate(validated_brief, validated_bundle),
+        )
 
     def validate(
         self,
@@ -112,6 +121,8 @@ class ResourceGenerationTool:
         bundle: EvidenceBundle,
         artifacts: tuple[GeneratedArtifact, ...],
     ) -> ValidatedResourcePackage:
+        brief, bundle = self._validate_inputs(brief, bundle)
+        artifacts = _ARTIFACTS_ADAPTER.validate_python(artifacts)
         if bundle.brief_id != brief.brief_id:
             raise ValueError("evidence bundle does not match resource brief")
         if (
@@ -142,6 +153,7 @@ class ResourceGenerationTool:
                 raise ValueError("generated artifact does not cover learning outcomes")
             if not artifact.items:
                 raise ValueError("generated artifact requires evidence-bound items")
+            cited_kinds = set()
             for item in artifact.items:
                 if not item.citations:
                     raise ValueError("generated item requires a citation")
@@ -162,6 +174,11 @@ class ResourceGenerationTool:
                         raise ValueError(
                             "generated item cites the wrong resource evidence kind"
                         )
+                    cited_kinds.add(record.content_kind)
+            if not allowed_kinds.issubset(cited_kinds):
+                raise ValueError(
+                    "generated artifact does not cite all required evidence kinds"
+                )
             if isinstance(artifact, AssessmentResource) and (
                 artifact.assessment_kinds != brief.assessment_kinds
             ):
@@ -176,18 +193,18 @@ class ResourceGenerationTool:
             "bundle_id": bundle.bundle_id,
         }
         return ValidatedResourcePackage(
-            result_id=f"resource_result_{_hash(payload)}",
+            result_id=build_resource_result_id(payload),
             brief_id=brief.brief_id,
             bundle_id=bundle.bundle_id,
             artifacts=ordered,
         )
 
-
-def _hash(payload: object) -> str:
-    canonical = json.dumps(
-        payload,
-        sort_keys=True,
-        ensure_ascii=True,
-        separators=(",", ":"),
-    )
-    return sha256(canonical.encode("utf-8")).hexdigest()
+    @staticmethod
+    def _validate_inputs(
+        brief: ResourceBrief,
+        bundle: EvidenceBundle,
+    ) -> tuple[ResourceBrief, EvidenceBundle]:
+        return (
+            ResourceBrief.model_validate(brief.model_dump()),
+            EvidenceBundle.model_validate(bundle.model_dump()),
+        )

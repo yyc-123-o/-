@@ -1,6 +1,14 @@
+import json
+from hashlib import sha256
 from typing import Annotated, Literal, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from skillforge_kb.ontology.models import CONCEPT_ID_PATTERN, DepthLevel
 from skillforge_kb.ontology.resource_blueprints import ResourceType
@@ -81,6 +89,25 @@ class ValidatedResourcePackage(BaseModel):
     brief_id: str = Field(pattern=r"^brief_[0-9a-f]{64}$")
     bundle_id: str = Field(pattern=r"^bundle_[0-9a-f]{64}$")
     artifacts: tuple[GeneratedArtifact, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_result_id(self) -> "ValidatedResourcePackage":
+        expected = build_resource_result_id(
+            self.model_dump(mode="json", exclude={"result_id"})
+        )
+        if self.result_id != expected:
+            raise ValueError("resource result ID does not match package content")
+        return self
+
+
+def build_resource_result_id(payload: object) -> str:
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    )
+    return f"resource_result_{sha256(canonical.encode('utf-8')).hexdigest()}"
 
 
 class ResourceGenerator(Protocol):

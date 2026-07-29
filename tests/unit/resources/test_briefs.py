@@ -6,7 +6,11 @@ from pydantic import ValidationError
 
 from skillforge_kb.domain.enums import ContentKind, Language, LicenseStatus
 from skillforge_kb.evidence.manifest import EvidenceIndex
-from skillforge_kb.evidence.models import EvidenceRecord, EvidenceReviewStatus
+from skillforge_kb.evidence.models import (
+    EvidenceRecord,
+    EvidenceReviewStatus,
+    build_evidence_id,
+)
 from skillforge_kb.ontology.concept_attributes import load_concept_attributes
 from skillforge_kb.ontology.models import (
     AbilityScore,
@@ -20,6 +24,7 @@ from skillforge_kb.planning.adaptation import NodeWeightEngine
 from skillforge_kb.planning.models import PathStatus
 from skillforge_kb.planning.planner import CoursePlanner
 from skillforge_kb.resources.briefs import ResourceBriefBuilder
+from skillforge_kb.resources.models import ResourceBrief, build_brief_id
 
 ABILITY_IDS = (
     "theoretical_understanding",
@@ -73,17 +78,31 @@ def _evidence_index(catalog, concept_id: str, depth) -> EvidenceIndex:
         (ContentKind.DEFINITION, ContentKind.CODE, ContentKind.EXERCISE),
         start=1,
     ):
+        source_id = f"source-{index}"
+        chunk_id = f"chunk-{index}"
+        locator = f"section {index}"
+        normalized_hash = f"{index + 10:064x}"
         records.append(
             EvidenceRecord(
-                evidence_id=f"evidence_{index:064x}",
+                evidence_id=build_evidence_id(
+                    graph_version=catalog.course_document.version,
+                    source_id=source_id,
+                    chunk_id=chunk_id,
+                    concept_id=concept_id,
+                    depth=depth,
+                    locator=locator,
+                    normalized_hash=normalized_hash,
+                    language=Language.EN,
+                    content_kind=kind,
+                ),
                 graph_version=catalog.course_document.version,
-                source_id=f"source-{index}",
-                chunk_id=f"chunk-{index}",
+                source_id=source_id,
+                chunk_id=chunk_id,
                 concept_id=concept_id,
                 depth=depth,
                 source_url=f"https://example.edu/source-{index}",
-                locator=f"section {index}",
-                normalized_hash=f"{index + 10:064x}",
+                locator=locator,
+                normalized_hash=normalized_hash,
                 language=Language.EN,
                 content_kind=kind,
                 difficulty=1,
@@ -153,6 +172,35 @@ def test_brief_is_frozen_and_rejects_path_field_override(catalog) -> None:
         brief.path_id = "path_" + "0" * 64
 
 
+def test_brief_rejects_internally_inconsistent_filters(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    brief = builder.build(decision, profile, node.concept_id)
+    payload = brief.model_dump(mode="json")
+    payload["evidence_filters"]["concept_id"] = "math.linear-algebra.vector"
+    payload["brief_id"] = build_brief_id(
+        {key: value for key, value in payload.items() if key != "brief_id"}
+    )
+
+    with pytest.raises(ValidationError, match="evidence filters"):
+        ResourceBrief.model_validate(payload)
+
+
+def test_nonblocked_brief_rejects_blocking_prerequisites(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    brief = builder.build(decision, profile, node.concept_id)
+    payload = brief.model_dump(mode="json")
+    payload["blocking_prerequisite_ids"] = ("math.linear-algebra.vector",)
+    payload["hard_prerequisite_ids"] = ("math.linear-algebra.vector",)
+    payload["brief_id"] = build_brief_id(
+        {key: value for key, value in payload.items() if key != "brief_id"}
+    )
+
+    with pytest.raises(ValidationError, match="non-blocked"):
+        ResourceBrief.model_validate(payload)
+
+
 def test_skipped_and_completed_nodes_cannot_generate_briefs(catalog) -> None:
     profile = _profile(catalog)
     builder, decision, node = _builder(catalog, profile)
@@ -197,6 +245,13 @@ def test_mismatched_profile_or_adaptation_is_rejected(catalog) -> None:
     with pytest.raises(ValueError, match="adaptation profile"):
         builder.build(decision, changed_profile, node.concept_id)
 
+    invalid_index = builder.evidence_index.model_copy(
+        update={"graph_version": "ai-course-v2"}
+    )
+    invalid_builder = builder.model_copy(update={"evidence_index": invalid_index})
+    with pytest.raises(ValueError, match="evidence graph version"):
+        invalid_builder.build(decision, profile, node.concept_id)
+
 
 def test_path_node_structure_must_match_catalog(catalog) -> None:
     profile = _profile(catalog)
@@ -227,6 +282,15 @@ def test_path_node_structure_must_match_catalog(catalog) -> None:
     )
     with pytest.raises(ValueError, match="hard prerequisites"):
         builder.build(wrong_prerequisites_decision, profile, node.concept_id)
+
+
+def test_path_id_must_match_structural_path_content(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    invalid = decision.model_copy(update={"path_id": "path_" + "0" * 64})
+
+    with pytest.raises(ValueError, match="path ID"):
+        builder.build(invalid, profile, node.concept_id)
 
 
 @pytest.mark.parametrize(

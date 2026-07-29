@@ -97,6 +97,33 @@ def test_tool_rejects_resource_irrelevant_citations(resource_case) -> None:
         )
 
 
+def test_tool_requires_all_resource_evidence_kinds(resource_case) -> None:
+    brief, bundle = resource_case
+    generated = FakeResourceGenerator().generate(brief, bundle)
+    project = next(
+        artifact for artifact in generated if artifact.resource_type.value == "project"
+    )
+    code_citation = next(
+        citation
+        for citation in project.items[0].citations
+        if next(
+            record
+            for record in bundle.records
+            if record.evidence_id == citation.evidence_id
+        ).content_kind.value
+        == "code"
+    )
+    invalid_item = project.items[0].model_copy(update={"citations": (code_citation,)})
+    invalid_project = project.model_copy(update={"items": (invalid_item,)})
+    artifacts = tuple(
+        invalid_project if artifact.resource_type.value == "project" else artifact
+        for artifact in generated
+    )
+
+    with pytest.raises(ValueError, match="required evidence kinds"):
+        ResourceGenerationTool().validate(brief, bundle, artifacts)
+
+
 def test_tool_rejects_citation_metadata_mutation(resource_case) -> None:
     brief, bundle = resource_case
     generated = FakeResourceGenerator().generate(brief, bundle)
@@ -111,3 +138,36 @@ def test_tool_rejects_citation_metadata_mutation(resource_case) -> None:
             bundle,
             (invalid_artifact, *generated[1:]),
         )
+
+
+def test_tool_rejects_brief_digest_mutation(resource_case) -> None:
+    brief, bundle = resource_case
+    invalid_brief = brief.model_copy(update={"sequence": brief.sequence + 1})
+
+    with pytest.raises(ValueError, match="brief ID"):
+        ResourceGenerationTool().invoke(
+            invalid_brief,
+            bundle,
+            FakeResourceGenerator(),
+        )
+
+
+def test_resource_result_digest_rejects_content_mutation(resource_case) -> None:
+    brief, bundle = resource_case
+    result = ResourceGenerationTool().invoke(
+        brief,
+        bundle,
+        FakeResourceGenerator(),
+    )
+    invalid = result.model_copy(update={"bundle_id": "bundle_" + "0" * 64})
+
+    with pytest.raises(ValueError, match="resource result ID"):
+        type(result).model_validate(invalid.model_dump())
+
+
+def test_tool_rejects_untyped_generator_output(resource_case) -> None:
+    brief, bundle = resource_case
+    invalid = ({"resource_type": "unsupported"},)
+
+    with pytest.raises(ValueError):
+        ResourceGenerationTool().validate(brief, bundle, invalid)  # type: ignore[arg-type]

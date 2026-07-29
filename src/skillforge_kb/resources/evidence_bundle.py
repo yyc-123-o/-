@@ -35,6 +35,11 @@ class EvidenceBundle(BaseModel):
                 raise ValueError("evidence bundle requires published evidence")
             if record.license_status is not LicenseStatus.ALLOWED:
                 raise ValueError("evidence bundle requires allowed evidence")
+        expected = build_bundle_id(
+            self.model_dump(mode="json", exclude={"bundle_id"})
+        )
+        if self.bundle_id != expected:
+            raise ValueError("bundle ID does not match bundle content")
         return self
 
 
@@ -42,6 +47,8 @@ def build_evidence_bundle(
     brief: ResourceBrief,
     index: EvidenceIndex,
 ) -> EvidenceBundle:
+    brief = ResourceBrief.model_validate(brief.model_dump())
+    index = EvidenceIndex.model_validate(index.model_dump())
     filters = brief.evidence_filters
     if index.graph_version != brief.graph_version:
         raise ValueError("evidence index graph version does not match brief")
@@ -75,13 +82,13 @@ def build_evidence_bundle(
         raise ValueError("evidence bundle does not meet minimum record count")
     payload = {
         "brief_id": brief.brief_id,
+        "graph_version": brief.graph_version,
         "concept_id": brief.concept_id,
         "depth": brief.delivery_depth.value,
-        "graph_version": brief.graph_version,
         "records": [record.model_dump(mode="json") for record in records],
     }
     return EvidenceBundle(
-        bundle_id=f"bundle_{_hash(payload)}",
+        bundle_id=build_bundle_id(payload),
         brief_id=brief.brief_id,
         graph_version=brief.graph_version,
         concept_id=brief.concept_id,
@@ -90,11 +97,11 @@ def build_evidence_bundle(
     )
 
 
-def _hash(payload: object) -> str:
+def build_bundle_id(payload: object) -> str:
     canonical = json.dumps(
         payload,
         sort_keys=True,
         ensure_ascii=True,
         separators=(",", ":"),
     )
-    return sha256(canonical.encode("utf-8")).hexdigest()
+    return f"bundle_{sha256(canonical.encode('utf-8')).hexdigest()}"
