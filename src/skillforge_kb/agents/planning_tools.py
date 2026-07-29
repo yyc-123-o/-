@@ -231,8 +231,8 @@ def update_course_plan_tool(
         func=update_course_plan,
         name=PlanningOperation.UPDATE.value,
         description=(
-            "Update only unfinished course path nodes after validated concept "
-            "completion evidence."
+            "Update only unfinished course path nodes after a profile refresh and "
+            "optional completion evidence."
         ),
         args_schema=UpdateCoursePlanInput,
         infer_schema=False,

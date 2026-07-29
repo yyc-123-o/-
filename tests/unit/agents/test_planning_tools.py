@@ -197,6 +197,8 @@ def test_update_tool_matches_updater_and_preserves_path_identity(
     expected = DepthUpdater(catalog).update(existing, profile, {completed})
 
     assert tool.name == "update_course_plan"
+    assert "profile refresh" in tool.description.lower()
+    assert "optional completion evidence" in tool.description.lower()
     assert tool.args_schema is UpdateCoursePlanInput
     assert result.path == expected
     assert result.path.path_id == existing.path_id
