@@ -1,3 +1,10 @@
+from .adaptation import (
+    FactorContribution,
+    NodeAdaptationDecision,
+    NodeWeightEngine,
+    NodeWeightPolicy,
+    SupportIntensity,
+)
 from .models import (
     AbilityWeights,
     PathDecision,
@@ -13,12 +20,17 @@ from .updater import DepthUpdater
 
 __all__ = [
     "AbilityWeights",
+    "FactorContribution",
+    "NodeAdaptationDecision",
+    "NodeWeightEngine",
+    "NodeWeightPolicy",
     "PathDecision",
     "PathNode",
     "PathStatus",
     "PlanningError",
     "PlannerPolicy",
     "ReasonCode",
+    "SupportIntensity",
     "CoursePosition",
     "CoursePlanner",
     "DepthUpdater",
