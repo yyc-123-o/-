@@ -93,6 +93,12 @@ class Concept(BaseModel):
     def validate_levels(self) -> "Concept":
         if [item.level for item in self.levels] != list(DepthLevel):
             raise ValueError("concept requires exactly one of each depth level in enum order")
+        thresholds = [item.mastery_threshold for item in self.levels]
+        if any(
+            current >= following
+            for current, following in zip(thresholds, thresholds[1:], strict=False)
+        ):
+            raise ValueError("mastery thresholds must increase with depth")
         return self
 
 

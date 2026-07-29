@@ -1,7 +1,3 @@
 version: profile-id-map-v1
 graph_version: ai-course-v1
-mappings:
-  - legacy_id: KG-DL-004
-    concept_id: dl.cnn.architecture
-    graph_version: ai-course-v1
-    reviewed_by: ontology-reviewer
+mappings: []

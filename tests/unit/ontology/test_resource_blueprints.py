@@ -1,5 +1,9 @@
 from pathlib import Path
 
+import pytest
+import yaml
+from pydantic import ValidationError
+
 from skillforge_kb.ontology.concept_attributes import (
     concept_attributes,
     load_concept_attributes,
@@ -60,3 +64,52 @@ def test_chapter_defaults_distinguish_math_and_applied_nodes(catalog) -> None:
 
     assert math.mathematical_foundation > math.coding_ability
     assert applied.coding_ability > math.coding_ability
+
+
+def test_loaded_catalogs_are_deeply_immutable(catalog) -> None:
+    attributes = load_concept_attributes(
+        catalog,
+        Path(__file__).parents[3] / "resources" / "ontology" / "concept_attributes_v1.yaml",
+    )
+    blueprints = load_resource_blueprints(
+        catalog,
+        Path(__file__).parents[3] / "resources" / "ontology" / "resource_blueprints_v1.yaml",
+    )
+
+    assert isinstance(attributes.attributes, tuple)
+    assert isinstance(blueprints.blueprints, tuple)
+
+
+def test_resource_blueprints_reject_unknown_resource_type(tmp_path, catalog) -> None:
+    path = tmp_path / "blueprints.yaml"
+    path.write_text(
+        yaml.safe_dump(
+            {
+                "version": "resource-blueprints-v1",
+                "graph_version": "ai-course-v1",
+                "defaults": {
+                    "resource_types": ["unsupported"],
+                    "estimated_minutes": 60,
+                    "levels": {},
+                },
+                "overrides": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError):
+        load_resource_blueprints(catalog, path)
+
+
+def test_core_chapters_have_distinct_cnn_and_rag_attributes(catalog) -> None:
+    attributes = load_concept_attributes(
+        catalog,
+        Path(__file__).parents[3] / "resources" / "ontology" / "concept_attributes_v1.yaml",
+    )
+    cnn = concept_attributes(attributes, "dl.cnn.architecture")
+    rag = concept_attributes(attributes, "rag.retrieval-augmented-generation")
+
+    assert cnn.ability_demand != rag.ability_demand
+    assert cnn.chapter_id == "chapter.05.cnn-representation"
+    assert rag.chapter_id == "chapter.10.rag"

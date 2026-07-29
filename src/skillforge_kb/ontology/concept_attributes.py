@@ -52,7 +52,7 @@ class ConceptAttributeCatalog(BaseModel):
 
     version: str = Field(min_length=1)
     graph_version: str = Field(min_length=1)
-    attributes: dict[str, ConceptAttributes]
+    attributes: tuple[ConceptAttributes, ...]
 
 
 class _AttributeManifest(BaseModel):
@@ -77,24 +77,26 @@ def load_concept_attributes(
         raise ValueError("concept attributes require one default for every chapter")
     for concept_id in manifest.concept_overrides:
         catalog.get_concept(concept_id)
-    rows: dict[str, ConceptAttributes] = {}
+    rows: list[ConceptAttributes] = []
     for concept in catalog.concepts():
         section = catalog.section_for(concept.id)
         chapter = chapters[section.chapter_id]
-        rows[concept.id] = ConceptAttributes(
-            graph_version=manifest.graph_version,
-            concept_id=concept.id,
-            chapter_id=chapter.id,
-            difficulty_prior=concept.difficulty / 4,
-            chapter_core=chapter.core,
-            ability_demand=manifest.concept_overrides.get(
-                concept.id, manifest.chapter_defaults[chapter.id]
-            ),
+        rows.append(
+            ConceptAttributes(
+                graph_version=manifest.graph_version,
+                concept_id=concept.id,
+                chapter_id=chapter.id,
+                difficulty_prior=concept.difficulty / 4,
+                chapter_core=chapter.core,
+                ability_demand=manifest.concept_overrides.get(
+                    concept.id, manifest.chapter_defaults[chapter.id]
+                ),
+            )
         )
     return ConceptAttributeCatalog(
         version=manifest.version,
         graph_version=manifest.graph_version,
-        attributes=rows,
+        attributes=tuple(rows),
     )
 
 
@@ -102,7 +104,7 @@ def concept_attributes(
     catalog: ConceptAttributeCatalog,
     concept_id: str,
 ) -> ConceptAttributes:
-    try:
-        return catalog.attributes[concept_id]
-    except KeyError as exc:
-        raise KeyError(f"concept attributes not found: {concept_id}") from exc
+    for attributes in catalog.attributes:
+        if attributes.concept_id == concept_id:
+            return attributes
+    raise KeyError(f"concept attributes not found: {concept_id}")

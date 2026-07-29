@@ -68,11 +68,32 @@ class NodeAdaptationDecision(BaseModel):
     effort_multiplier: float = Field(ge=0.5, le=2)
     assessment_emphasis: tuple[str, ...] = ()
     reason_codes: tuple[str, ...] = ()
-    contributions: tuple[FactorContribution, ...] = ()
+    support_contributions: tuple[FactorContribution, ...] = ()
+    readiness_contributions: tuple[FactorContribution, ...] = ()
     profile_digest: str = Field(pattern=r"^profile_[0-9a-f]{64}$")
     policy_digest: str = Field(pattern=r"^policy_[0-9a-f]{64}$")
     node_weight_policy_digest: str = Field(pattern=r"^node_policy_[0-9a-f]{64}$")
     adaptation_digest: str = Field(pattern=r"^adaptation_[0-9a-f]{64}$")
+
+    @property
+    def contributions(self) -> tuple[FactorContribution, ...]:
+        return self.support_contributions
+
+    @model_validator(mode="after")
+    def validate_contribution_sums(self) -> "NodeAdaptationDecision":
+        if not isclose(
+            sum(item.contribution for item in self.support_contributions),
+            self.support_need_score,
+            abs_tol=1e-9,
+        ):
+            raise ValueError("support contributions must sum to support need score")
+        if not isclose(
+            sum(item.contribution for item in self.readiness_contributions),
+            self.readiness_score,
+            abs_tol=1e-9,
+        ):
+            raise ValueError("readiness contributions must sum to readiness score")
+        return self
 
 
 class NodeWeightEngine:
@@ -84,6 +105,7 @@ class NodeWeightEngine:
         node_weight_policy: NodeWeightPolicy | None = None,
     ) -> None:
         self._catalog = catalog
+        self._concept_ids = frozenset(item.id for item in catalog.concepts())
         if attributes.graph_version != catalog.course_document.version:
             raise ValueError("concept attribute graph version does not match catalog")
         self._attributes = attributes
@@ -104,7 +126,7 @@ class NodeWeightEngine:
     ) -> NodeAdaptationDecision:
         if profile.graph_version != self._catalog.course_document.version:
             raise ValueError("profile graph version does not match catalog")
-        if path_node.concept_id not in {item.id for item in self._catalog.concepts()}:
+        if path_node.concept_id not in self._concept_ids:
             raise ValueError(f"unknown concept: {path_node.concept_id}")
         if (
             path_node.status in {PathStatus.SKIPPED, PathStatus.COMPLETED}
@@ -112,38 +134,37 @@ class NodeWeightEngine:
         ):
             raise ValueError("node adaptation requires unfinished learning nodes")
         delivery_depth = path_node.delivery_depth
-        completed = completed_concept_ids or set()
+        completed = frozenset(completed_concept_ids or ())
+        unknown_completed = completed - self._concept_ids
+        if unknown_completed:
+            raise ValueError(
+                f"unknown completed concept: {sorted(unknown_completed)[0]}"
+            )
+        if path_node.concept_id in completed:
+            raise ValueError("completed node cannot be adapted")
         mastery = next(
             (item for item in profile.knowledge_mastery if item.concept_id == path_node.concept_id),
             None,
         )
-        effective_mastery = (
-            mastery.mastery_score
-            if mastery is not None
+        mastery_is_reliable = (
+            mastery is not None
             and mastery.assessment_status is AssessmentStatus.ASSESSED
             and mastery.mastery_score is not None
             and mastery.confidence >= self._policy.minimum_confidence
+        )
+        effective_mastery = (
+            mastery.mastery_score
+            if mastery_is_reliable and mastery is not None
+            and mastery.mastery_score is not None
             else 0.0
         )
         attributes = concept_attributes(self._attributes, path_node.concept_id)
+        ability_is_reliable = self._has_reliable_ability_evidence(profile)
         ability_fit = self._ability_fit(profile, attributes.ability_demand)
         difficulty = attributes.difficulty_prior
         ability_gap = max(0.0, difficulty - ability_fit)
         error_risk = self._error_risk(profile, path_node.concept_id)
-        confidence = mastery.confidence if mastery is not None else 0.0
-        uncertainty = 1.0 - confidence
-        support_need = (
-            self._node_policy.mastery_gap_weight * (1.0 - effective_mastery)
-            + self._node_policy.error_risk_weight * error_risk
-            + self._node_policy.ability_gap_weight * ability_gap
-        )
-        if mastery is None or mastery.assessment_status is AssessmentStatus.NOT_ASSESSED:
-            support_need = 1.0
-        support_need = min(1.0, max(0.0, support_need))
-        readiness = min(1.0, max(0.0, 0.60 * effective_mastery + 0.40 * ability_fit))
-        if path_node.status is PathStatus.BLOCKED:
-            readiness = 0.0
-        contributions = (
+        support_contributions: tuple[FactorContribution, ...] = (
             FactorContribution(
                 factor="mastery_gap",
                 normalized_value=1.0 - effective_mastery,
@@ -164,6 +185,43 @@ class NodeWeightEngine:
                 contribution=self._node_policy.ability_gap_weight * ability_gap,
             ),
         )
+        support_floor = 0.0
+        if mastery is None or mastery.assessment_status is AssessmentStatus.NOT_ASSESSED:
+            support_floor = 1.0
+        elif not mastery_is_reliable or not ability_is_reliable:
+            support_floor = max(0.60, self._node_policy.scaffolded_threshold)
+        base_support_need = sum(
+            item.contribution for item in support_contributions
+        )
+        floor_contribution = max(0.0, support_floor - base_support_need)
+        if floor_contribution:
+            support_contributions = (
+                *support_contributions,
+                FactorContribution(
+                    factor="conservative_evidence_floor",
+                    normalized_value=floor_contribution,
+                    coefficient=1.0,
+                    contribution=floor_contribution,
+                ),
+            )
+        support_need = sum(item.contribution for item in support_contributions)
+        readiness_contributions: tuple[FactorContribution, ...] = (
+            FactorContribution(
+                factor="mastery_readiness",
+                normalized_value=effective_mastery,
+                coefficient=self._policy.mastery_weight,
+                contribution=self._policy.mastery_weight * effective_mastery,
+            ),
+            FactorContribution(
+                factor="ability_readiness",
+                normalized_value=ability_fit,
+                coefficient=self._policy.ability_weight,
+                contribution=self._policy.ability_weight * ability_fit,
+            ),
+        )
+        if path_node.status is PathStatus.BLOCKED:
+            readiness_contributions = ()
+        readiness = sum(item.contribution for item in readiness_contributions)
         if path_node.status is PathStatus.BLOCKED:
             intensity = SupportIntensity.REMEDIATION
             reasons: tuple[str, ...] = ("hard_prerequisite_blocked",)
@@ -176,19 +234,24 @@ class NodeWeightEngine:
         else:
             intensity = SupportIntensity.COMPACT
             reasons = ("support_need_low",)
-        if uncertainty >= 0.40:
+        if not mastery_is_reliable or not ability_is_reliable:
             reasons = (*reasons, "evidence_uncertain")
         assessment = ("error_correction",) if error_risk > 0 else ()
         digest_payload = {
             "concept_id": path_node.concept_id,
             "completed": sorted(completed),
-            "contributions": [item.model_dump(mode="json") for item in contributions],
             "delivery_depth": delivery_depth.value,
             "policy_digest": self._policy_digest,
             "node_weight_policy_digest": self._node_policy_digest,
             "profile_digest": _profile_digest(profile),
+            "readiness_contributions": [
+                item.model_dump(mode="json") for item in readiness_contributions
+            ],
             "readiness": readiness,
             "reasons": reasons,
+            "support_contributions": [
+                item.model_dump(mode="json") for item in support_contributions
+            ],
             "support_need": support_need,
         }
         adaptation_digest = f"adaptation_{_hash(digest_payload)}"
@@ -205,7 +268,8 @@ class NodeWeightEngine:
             effort_multiplier=1.0 + support_need,
             assessment_emphasis=assessment,
             reason_codes=reasons,
-            contributions=contributions,
+            support_contributions=support_contributions,
+            readiness_contributions=readiness_contributions,
             profile_digest=_profile_digest(profile),
             policy_digest=self._policy_digest,
             node_weight_policy_digest=self._node_policy_digest,
@@ -217,15 +281,19 @@ class NodeWeightEngine:
         profile: LearnerProfileSnapshot,
         demand: AbilityDemand,
     ) -> float:
-        if set(profile.abilities) != set(ABILITY_DIMENSIONS):
-            return 0.0
-        if any(
-            profile.abilities[dimension].confidence < self._policy.minimum_confidence
-            for dimension in ABILITY_DIMENSIONS
-        ):
+        if not self._has_reliable_ability_evidence(profile):
             return 0.0
         return sum(
             profile.abilities[dimension].score * demand[dimension]
+            for dimension in ABILITY_DIMENSIONS
+        )
+
+    def _has_reliable_ability_evidence(
+        self,
+        profile: LearnerProfileSnapshot,
+    ) -> bool:
+        return set(profile.abilities) == set(ABILITY_DIMENSIONS) and all(
+            profile.abilities[dimension].confidence >= self._policy.minimum_confidence
             for dimension in ABILITY_DIMENSIONS
         )
 

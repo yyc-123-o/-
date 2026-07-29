@@ -1,8 +1,9 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
-from skillforge_kb.ontology.models import ProfileIdMapping
+from skillforge_kb.ontology.models import ProfileIdMapping, ProfileMappingDocument
 from skillforge_kb.ontology.profile import ProfileAdaptationError, ProfileAdapter
 
 
@@ -86,11 +87,29 @@ def _complete_raw_profile() -> dict[str, object]:
     }
 
 
-def test_adapter_preserves_complete_profile_facts(catalog) -> None:
+@pytest.fixture
+def reviewed_mapping() -> ProfileIdMapping:
+    return ProfileIdMapping(
+        legacy_id="KG-DL-004",
+        concept_id="dl.cnn.architecture",
+        graph_version="ai-course-v1",
+        reviewed_by="ontology-reviewer",
+    )
+
+
+def test_production_mapping_manifest_is_empty() -> None:
     mapping_path = (
         Path(__file__).parents[3] / "resources" / "ontology" / "legacy_profile_ids_v1.yaml"
     )
-    snapshot = ProfileAdapter.load_mappings(catalog, mapping_path).adapt(
+    document = ProfileMappingDocument.model_validate(
+        yaml.safe_load(mapping_path.read_text(encoding="utf-8"))
+    )
+
+    assert document.mappings == []
+
+
+def test_adapter_preserves_complete_profile_facts(catalog, reviewed_mapping) -> None:
+    snapshot = ProfileAdapter(catalog, mappings=[reviewed_mapping]).adapt(
         _complete_raw_profile()
     )
 

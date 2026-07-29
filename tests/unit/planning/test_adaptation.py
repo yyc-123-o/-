@@ -21,6 +21,7 @@ def _profile(
     mastery: float | None,
     confidence: float = 0.9,
     ability_scores: dict[str, float] | None = None,
+    ability_confidence: float = 0.9,
 ) -> LearnerProfileSnapshot:
     records = []
     if mastery is not None:
@@ -40,7 +41,11 @@ def _profile(
         "problem_solving": 0.6,
     }
     abilities = {
-        dimension: AbilityScore(score=score, confidence=0.9, assessment_run_id="run-1")
+        dimension: AbilityScore(
+            score=score,
+            confidence=ability_confidence,
+            assessment_run_id="run-1",
+        )
         for dimension, score in scores.items()
     }
     return LearnerProfileSnapshot(
@@ -140,3 +145,49 @@ def test_math_node_uses_concept_specific_ability_demand(catalog) -> None:
     assert _engine(catalog).evaluate(high_math, _node()).readiness_score > _engine(
         catalog
     ).evaluate(high_coding, _node()).readiness_score
+
+
+@pytest.mark.parametrize(
+    "profile_factory",
+    [
+        lambda catalog: _profile(catalog, mastery=0.4, confidence=0.2),
+        lambda catalog: _profile(catalog, mastery=0.4, ability_confidence=0.2),
+        lambda catalog: _profile(catalog, mastery=0.4).model_copy(update={"abilities": {}}),
+    ],
+)
+def test_low_confidence_or_missing_evidence_is_at_least_scaffolded(
+    catalog, profile_factory
+) -> None:
+    decision = _engine(catalog).evaluate(profile_factory(catalog), _node())
+
+    assert decision.support_need_score >= 0.60
+    assert decision.support_intensity.value == "scaffolded"
+
+
+def test_factor_contributions_reproduce_scores(catalog) -> None:
+    decision = _engine(catalog).evaluate(_profile(catalog, mastery=None), _node())
+
+    assert sum(item.contribution for item in decision.support_contributions) == pytest.approx(
+        decision.support_need_score
+    )
+    assert sum(item.contribution for item in decision.readiness_contributions) == pytest.approx(
+        decision.readiness_score
+    )
+
+
+def test_completed_and_unknown_completion_ids_are_rejected(catalog) -> None:
+    engine = _engine(catalog)
+    profile = _profile(catalog, mastery=0.4)
+
+    with pytest.raises(ValueError, match="completed node"):
+        engine.evaluate(profile, _node(), {"math.linear-algebra.scalar"})
+    with pytest.raises(ValueError, match="unknown completed concept"):
+        engine.evaluate(profile, _node(), {"unknown.concept"})
+
+
+def test_lower_mastery_cannot_reduce_support_need(catalog) -> None:
+    engine = _engine(catalog)
+    low = engine.evaluate(_profile(catalog, mastery=0.2), _node())
+    high = engine.evaluate(_profile(catalog, mastery=0.8), _node())
+
+    assert low.support_need_score >= high.support_need_score
