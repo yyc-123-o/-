@@ -1,0 +1,36 @@
+{
+  "schema_version": "personalized-flow-matrix.v1",
+  "graph_version": "ai-course-v1",
+  "profile_scenarios": 3,
+  "required_nodes_per_path": 140,
+  "path_invariance_checks": 2,
+  "eligible_nodes": {
+    "zero_foundation": 140,
+    "intermediate": 140,
+    "advanced": 130
+  },
+  "briefs_built": {
+    "zero_foundation": 140,
+    "intermediate": 140,
+    "advanced": 130
+  },
+  "validated_resource_packages": {
+    "zero_foundation": 140,
+    "intermediate": 140,
+    "advanced": 130
+  },
+  "generated_artifacts": {
+    "zero_foundation": 420,
+    "intermediate": 560,
+    "advanced": 520
+  },
+  "total_briefs_built": 410,
+  "fixture_evidence_records": 1260,
+  "fixture_evidence_binding_rate": 1.0,
+  "missing_evidence_failures": 3,
+  "production_published_evidence_records": 0,
+  "not_measured_without_real_generation": [
+    "hallucination_rate",
+    "difficulty_adaptation_rate"
+  ]
+}

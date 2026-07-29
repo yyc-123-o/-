@@ -3,10 +3,12 @@
 ## 1. 当前可信基线
 
 - 课程图谱 `ai-course-v1` 已有 11 章、27 小节、140 概念、420 个三级深度节点和 147 条关系；硬先修无环、可达且顺序已校验。
-- 图谱发布器可幂等发布课程结构到 Neo4j，但正式图谱尚未发布证据、来源或资源边。
+- 图谱发布器可幂等发布课程结构到 Neo4j；证据审核清单、发布状态与只读查询契约已实现，但生产清单仍为 0 条已发布证据，尚未发布证据、来源或资源边。
 - 知识库融合和来源治理已完成候选层处理；当前候选覆盖 12/140 个概念，仍有 128 个覆盖缺口和 15 个未知 ID。
-- `LearnerProfileSnapshot` 已定义掌握度、四维能力、错误模式和学习偏好，但 `ProfileAdapter` 当前只适配掌握度，且历史 ID 映射为空。
-- 确定性课程规划内核已实现稳定排序、跳过、阻塞、三级深度和章节后更新；路径集合与顺序不可变。
+- `ProfileAdapter` 已完整适配掌握度、四维能力、错误模式、学习偏好、测评批次和证据引用；生产历史 ID 映射仍为空，必须等待人工审核的一对一映射，不能伪造 reviewer。
+- 140 个概念的能力需求和 420 个三级资源蓝图已形成强类型、不可变目录；CNN、RAG 等核心章节具有区分性需求。
+- 确定性课程规划内核已实现稳定排序、跳过、阻塞、三级深度和章节后更新；`NodeWeightEngine` 已实现可复算贡献项、保守置信度下限和完成节点拒绝，路径集合与顺序不可变。
+- `ResourceBrief`、`EvidenceBundle`、四类资源输出和框架中立校验器已实现；真实 LangChain/LangGraph 包装和大模型生成尚未开始。
 
 ## 2. 关键架构原则
 
@@ -18,7 +20,7 @@
 
 ## 3. 动态节点权重原则
 
-定义独立的、冻结的 `NodeWeightPolicy`。每个未完成节点输出 `NodeAdaptation`，包含 `attention_weight`、`resource_mode`、`effort_multiplier`、`assessment_emphasis` 和稳定原因码。
+定义独立的、冻结的 `NodeWeightPolicy`。每个未完成节点输出 `NodeAdaptationDecision`，包含 `readiness_score`、`support_need_score`、`support_intensity`、`effort_multiplier`、`assessment_emphasis`、贡献项和稳定原因码。`resource_mode` 仅是 `support_intensity` 的只读兼容名称，不存在第二套可分叉状态。
 
 ### 3.1 输入
 
@@ -31,26 +33,13 @@
 所有子分数都限制在 `[0, 1]`：
 
 ```text
-knowledge_gap = 1 - effective_mastery
-uncertainty = 1 - evidence_confidence
-structural_need = 0.5 * normalized_difficulty + 0.5 * chapter_core
-error_risk = relevant_error_pattern_ratio
-ability_gap = concept_required_ability_gap
-goal_relevance = concept_goal_tag_match
-
-attention_weight = clip(
-    0.30 * knowledge_gap
-  + 0.15 * uncertainty
-  + 0.15 * structural_need
-  + 0.20 * error_risk
-  + 0.10 * ability_gap
-  + 0.10 * goal_relevance,
-  0,
-  1,
-)
+ability_fit = sum(learner_ability[d] * concept_ability_demand[d])
+readiness = 0.60 * effective_mastery + 0.40 * ability_fit
+ability_gap = max(0, concept_difficulty_prior - ability_fit)
+support_need = 0.55 * mastery_gap + 0.25 * error_risk + 0.20 * ability_gap
 ```
 
-- 未测数据使用保守值：`knowledge_gap=1`、`uncertainty=1`，但不虚构能力或目标相关度。
+- 未测或低置信度掌握度/能力不虚构高分，`support_need >= 0.60` 且支持强度至少为 `scaffolded`；完全未测掌握度使用保守上限。
 - 硬先修阻塞时，`delivery_depth` 保持 `intro`，`resource_mode=remediation`，可提高补救资源关注度，但绝不能请求进阶或专业资源。
 - 学习偏好仅影响资源形式和节奏，例如代码语言、图示、分步讲解、每周时长；不得提高掌握度、解除阻塞或提升深度。
 - 策略版本、输入快照版本和输出原因码必须进入审计记录；规则变化产生新策略摘要。
@@ -103,13 +92,38 @@ ResourceBrief
 
 P0 是当前实施门槛。没有审核证据、完整画像适配和资源蓝图时，资源生成 Agent 只能产生不可审计的演示文本，不能作为正式闭环。
 
+当前代码层 P0 契约已完成；实际业务闭环仍被“人工审核画像 ID 映射”和“生产已发布证据为 0”两项数据门禁阻塞。测试中的 1,260 条证据仅用于验证 140 × 3 合同覆盖，不能作为生产资料。
+
 ## 7. 仍待完成的项目部分
 
-1. 正式证据边和每概念、每深度的资源覆盖。
-2. 历史画像 ID 映射、能力/错误模式/偏好适配和置信度校准。
-3. 动态节点权重、资源强度和 `ResourceBrief` 的版本化契约。
-4. BM25、向量检索、图谱遍历融合为可审计 `EvidenceBundle`。
-5. 三类资源的结构化生成、证据引用、代码运行与试题质量校验。
-6. 课程规划、检索、生成、审核、裁判和导学的编排状态与持久化。
+1. 为历史画像 ID 提供经人工审核的一对一映射，并完成置信度校准数据集。
+2. 补齐 128 个候选覆盖缺口、处理 15 个未知 ID，并将合规资料人工审核为正式证据边；当前生产已发布证据为 0。
+3. 将 BM25、向量检索、图谱遍历接入现有 `EvidenceBundle` 门禁，开展真实召回率、排序和缺证据评测。
+4. 实现真实讲义/实操/测试题/项目生成器、代码沙箱、试题质量校验和资源版本存储；当前只有无模型合同夹具。
+5. 用真实学生或专家标注数据校准节点能力需求、权重阈值和预计学习时长，当前参数只能证明确定性和单调性。
+6. 以 LangChain Tool/LangGraph Node 包装现有纯函数合同，补充状态持久化、幂等重试和人工审核节点，不让框架进入规划内核。
 7. PostgreSQL 的画像、路径、资源和审计日志存储；FastAPI 接口和前端路径/资源展示。
-8. 3 类画像、60 组测试、幻觉率、难度适配率、覆盖率和用户演示的评测基线。
+8. 扩展到 60 组测试和真实生成实验，再计算幻觉率、难度适配率、召回率、覆盖率和用户演示指标。
+
+## 8. 课程规划协作同学的追加分工
+
+这位同学与我方共同负责“知识图谱事实 -> 路径策略 -> 资源生成输入”的交界面，但不重复知识库同学的资料清洗，也不接管资源生成 Agent 的提示词/模型实现。
+
+| 优先级 | 分配任务 | 主要交付物 | 客观验收 | 协作边界 |
+| --- | --- | --- | --- | --- |
+| P0 | 图谱关系语义补强 | soft prerequisite、confused/contrasts 关系审计表；每条关系的依据、阈值、review 状态 | 不引入硬先修环；跨章节关系可解释；未知 ID 为 0 | 知识库同学提供证据，该同学负责课程语义与顺序审核，我方维护验证器 |
+| P0 | 节点能力需求与资源蓝图校准 | 140 概念的 override 候选、三级预计时长、资源类型/评测类型审核表 | 同章节点不再全部同权；四维需求和为 1；每项有审核依据 | 资源生成同学确认可生产性，我方维护 schema 和不可变目录 |
+| P0 | 动态权重离线评测 | 三类画像外的反事实/单调性数据集、阈值敏感性与消融报告 | 降低掌握度/置信度不能降低支持；路径顺序始终不变；参数调整可复算 | 算法同学负责实验方法，该同学负责教育语义，我方维护引擎 |
+| P0 | 规划-资源接口联调 | 每个 depth/resource type 的黄金 `ResourceBrief + EvidenceBundle` fixture | 讲义/实操/测试题/项目均能消费；缺证据明确失败；资源侧不能改路径字段 | 与资源生成 Agent 同学共同签字，避免双方各自推断深度 |
+| P1 | 章节后更新约束 | 新画像快照到“仅未来节点重算”的状态转移测试 | 已完成/已跳过节点不重算；`path_id` 和顺序不变；新简报只覆盖未完成节点 | 与学情画像/交互导学同学联合 |
+| P1 | Agent 包装验收 | LangChain Tool/LangGraph Node 输入输出 schema、幂等键、失败状态测试 | 同输入重试结果 ID 一致；无证据不调用模型；状态可审计 | 智能体搭建同学实现包装，该同学提供课程规划合同测试 |
+| P2 | 展示与评测口径 | 路径图、深度、支持强度、证据覆盖的前端/API 字段字典 | 前端展示值均来自已冻结合同；不在前端重新计算权重 | 与前端、测试同学联合 |
+
+我方继续主责：`CoursePlanner`/`NodeWeightEngine`/`ResourceBriefBuilder` 的代码所有权，稳定摘要、路径不变量、合并门禁和端到端回归。协作同学主责数据校准、课程语义审核、跨 Agent 黄金样例和离线评测，不直接修改路径顺序规则。
+
+## 9. 当前验收结果
+
+- 3 类画像均生成 140 节点的同序路径；进阶画像有 10 个高掌握节点标记为 skipped，但节点集合与顺序不变。
+- 使用 1,260 条合成已发布证据覆盖 140 × 3 深度，成功构建并校验 410 份 `ResourceBrief`、410 个 `EvidenceBundle`/资源包和 1,500 个结构化资源产物。
+- 3 次缺证据场景均明确失败；测试夹具证据绑定率为 100%。
+- 以上不能替代生产指标：生产已发布证据仍为 0，尚未开展真实模型生成，因此不报告幻觉率和难度适配率。
