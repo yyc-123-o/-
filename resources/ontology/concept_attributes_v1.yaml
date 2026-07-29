@@ -1,0 +1,59 @@
+version: concept-attributes-v1
+graph_version: ai-course-v1
+chapter_defaults:
+  chapter.01.math-foundations:
+    theoretical_understanding: 0.25
+    coding_ability: 0.05
+    mathematical_foundation: 0.60
+    problem_solving: 0.10
+  chapter.02.classical-machine-learning:
+    theoretical_understanding: 0.30
+    coding_ability: 0.30
+    mathematical_foundation: 0.20
+    problem_solving: 0.20
+  chapter.03.neural-networks:
+    theoretical_understanding: 0.30
+    coding_ability: 0.30
+    mathematical_foundation: 0.25
+    problem_solving: 0.15
+  chapter.04.training-and-regularization:
+    theoretical_understanding: 0.25
+    coding_ability: 0.35
+    mathematical_foundation: 0.20
+    problem_solving: 0.20
+  chapter.05.cnn-representation:
+    theoretical_understanding: 0.25
+    coding_ability: 0.35
+    mathematical_foundation: 0.15
+    problem_solving: 0.25
+  chapter.06.embeddings-and-sequences:
+    theoretical_understanding: 0.30
+    coding_ability: 0.30
+    mathematical_foundation: 0.20
+    problem_solving: 0.20
+  chapter.07.transformer:
+    theoretical_understanding: 0.35
+    coding_ability: 0.25
+    mathematical_foundation: 0.25
+    problem_solving: 0.15
+  chapter.08.large-language-models:
+    theoretical_understanding: 0.35
+    coding_ability: 0.30
+    mathematical_foundation: 0.20
+    problem_solving: 0.15
+  chapter.09.alignment-and-peft:
+    theoretical_understanding: 0.25
+    coding_ability: 0.40
+    mathematical_foundation: 0.10
+    problem_solving: 0.25
+  chapter.10.rag:
+    theoretical_understanding: 0.25
+    coding_ability: 0.40
+    mathematical_foundation: 0.10
+    problem_solving: 0.25
+  chapter.11.rag-evaluation-and-practice:
+    theoretical_understanding: 0.25
+    coding_ability: 0.35
+    mathematical_foundation: 0.10
+    problem_solving: 0.30
+concept_overrides: {}

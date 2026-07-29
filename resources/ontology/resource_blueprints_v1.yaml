@@ -1,0 +1,29 @@
+version: resource-blueprints-v1
+graph_version: ai-course-v1
+defaults:
+  resource_types:
+    - lecture
+    - practical_guide
+    - assessment
+  estimated_minutes: 60
+  levels:
+    intro:
+      resource_types:
+        - lecture
+        - practical_guide
+        - assessment
+      estimated_minutes: 45
+    intermediate:
+      resource_types:
+        - lecture
+        - practical_guide
+        - assessment
+        - project
+      estimated_minutes: 60
+    advanced:
+      resource_types:
+        - lecture
+        - practical_guide
+        - assessment
+        - project
+      estimated_minutes: 75
