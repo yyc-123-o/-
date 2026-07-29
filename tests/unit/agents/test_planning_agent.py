@@ -79,6 +79,13 @@ def completion_event(
     )
 
 
+def reset_event(*, label: str = "reset") -> PlanningAgentEvent:
+    return PlanningAgentEvent(
+        event_id=event_id(label),
+        kind=PlanningEventKind.RESET,
+    )
+
+
 def enriched_profile(
     profile: LearnerProfileSnapshot,
     concept_id: str,
@@ -251,3 +258,99 @@ def test_completing_all_remaining_nodes_finishes_course(agent, profile) -> None:
         node.status in {PathStatus.COMPLETED, PathStatus.SKIPPED}
         for node in completed.path.nodes
     )
+
+
+def test_duplicate_event_is_a_no_op(agent, profile) -> None:
+    event = initialize_event(profile)
+    first = agent.invoke(event, thread_id="student-1")
+
+    duplicate = agent.invoke(event, thread_id="student-1")
+
+    assert duplicate.event_duplicate is True
+    assert duplicate.status is first.status
+    assert duplicate.path == first.path
+    assert duplicate.adaptations == first.adaptations
+    assert duplicate.current_node == first.current_node
+    assert duplicate.failure is None
+
+
+def test_event_id_conflict_preserves_last_valid_path(agent, profile) -> None:
+    original = initialize_event(profile, label="shared-event-id")
+    initial = agent.invoke(original, thread_id="student-1")
+    conflicting_profile = profile.model_copy(update={"profile_id": "profile-conflict"})
+    conflicting = initialize_event(conflicting_profile, label="shared-event-id")
+
+    result = agent.invoke(conflicting, thread_id="student-1")
+
+    assert result.status is PlanningAgentStatus.FAILED
+    assert result.path == initial.path
+    assert result.adaptations == initial.adaptations
+    assert result.failure is not None
+    assert result.failure.code is PlanningAgentFailureCode.EVENT_ID_CONFLICT
+
+
+def test_reset_clears_session_and_allows_reinitialize(agent, profile) -> None:
+    agent.invoke(initialize_event(profile), thread_id="student-1")
+
+    reset = agent.invoke(reset_event(), thread_id="student-1")
+
+    assert reset.status is PlanningAgentStatus.IDLE
+    assert reset.next_action is PlanningNextAction.WAIT_FOR_EVENT
+    assert reset.path is None
+    assert reset.adaptations == ()
+    assert reset.current_node is None
+    assert reset.failure is None
+    assert agent.get_state("student-1") == reset
+
+    reinitialized = agent.invoke(
+        initialize_event(profile, label="reinitialize"),
+        thread_id="student-1",
+    )
+    assert reinitialized.status is PlanningAgentStatus.READY
+    assert reinitialized.path is not None
+
+
+def test_thread_ids_isolate_course_planning_sessions(agent, profile) -> None:
+    another_profile = profile.model_copy(
+        update={
+            "profile_id": "profile-another-student",
+            "learner_ref": "d" * 64,
+        }
+    )
+
+    first = agent.invoke(initialize_event(profile), thread_id="student-1")
+    second = agent.invoke(initialize_event(another_profile), thread_id="student-2")
+
+    assert first.path is not None and second.path is not None
+    assert first.path.profile_id == profile.profile_id
+    assert second.path.profile_id == another_profile.profile_id
+    assert first.path.path_id != second.path.path_id
+    assert agent.get_state("student-1") == first
+    assert agent.get_state("student-2") == second
+
+
+@pytest.mark.asyncio
+async def test_async_invocation_matches_sync_semantics(agent, profile) -> None:
+    event = initialize_event(profile)
+
+    synchronous = agent.invoke(event, thread_id="student-sync")
+    asynchronous = await agent.ainvoke(event, thread_id="student-async")
+
+    assert asynchronous.status is synchronous.status
+    assert asynchronous.next_action is synchronous.next_action
+    assert asynchronous.path == synchronous.path
+    assert asynchronous.adaptations == synchronous.adaptations
+    assert asynchronous.current_node == synchronous.current_node
+
+
+def test_unknown_thread_has_no_state(agent) -> None:
+    assert agent.get_state("unknown-student") is None
+
+
+def test_agent_is_available_from_public_agents_api() -> None:
+    from skillforge_kb import agents
+
+    assert agents.CoursePlanningAgent is CoursePlanningAgent
+    assert agents.PlanningAgentEvent is PlanningAgentEvent
+    assert agents.PlanningAgentStatus is PlanningAgentStatus
+    assert agents.PlanningEventKind is PlanningEventKind

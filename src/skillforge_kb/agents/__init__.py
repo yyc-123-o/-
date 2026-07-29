@@ -1,3 +1,16 @@
+from .planning_agent import CoursePlanningAgent, build_course_planning_graph
+from .planning_agent_models import (
+    CoursePlanningAgentResult,
+    CoursePlanningAgentState,
+    PlanningAgentEvent,
+    PlanningAgentFailure,
+    PlanningAgentFailureCode,
+    PlanningAgentStatus,
+    PlanningEventKind,
+    PlanningNextAction,
+    ProcessedPlanningEvent,
+    build_event_digest,
+)
 from .planning_tools import (
     CoursePlanningState,
     CreateCoursePlanInput,
@@ -18,18 +31,30 @@ from .planning_tools import (
 from .resource_tools import FakeResourceGenerator, ResourceGenerationTool
 
 __all__ = [
+    "CoursePlanningAgent",
+    "CoursePlanningAgentResult",
+    "CoursePlanningAgentState",
     "CoursePlanningState",
     "CreateCoursePlanInput",
     "FakeResourceGenerator",
+    "PlanningAgentEvent",
+    "PlanningAgentFailure",
+    "PlanningAgentFailureCode",
+    "PlanningAgentStatus",
+    "PlanningEventKind",
     "PlanningFailureCode",
     "PlanningNodeFailure",
     "PlanningNodeStatus",
     "PlanningOperation",
+    "PlanningNextAction",
     "PlanningToolAudit",
     "PlanningToolResult",
     "ResourceGenerationTool",
+    "ProcessedPlanningEvent",
     "UpdateCoursePlanInput",
     "build_create_course_plan_node",
+    "build_course_planning_graph",
+    "build_event_digest",
     "build_request_digest",
     "build_result_digest",
     "build_update_course_plan_node",
