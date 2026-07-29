@@ -84,7 +84,7 @@ profile: LearnerProfileSnapshot
 completed_concept_ids: tuple[str, ...]
 ```
 
-更新输入至少包含一个本次完成节点。历史已完成节点继续由 `DepthUpdater` 从现有路径读取。
+更新输入允许本次完成节点为空，以支持仅根据新画像重算未完成节点；历史已完成节点继续由 `DepthUpdater` 从现有路径读取。
 
 ### 6.3 审计记录
 

@@ -84,7 +84,7 @@ class UpdateCoursePlanInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     existing: PathDecision
     profile: LearnerProfileSnapshot
-    completed_concept_ids: tuple[str, ...] = Field(min_length=1)
+    completed_concept_ids: tuple[str, ...]
 
 
 class PlanningToolAudit(BaseModel):

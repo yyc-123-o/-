@@ -56,7 +56,7 @@ class UpdateCoursePlanInput(BaseModel):
 
     existing: PathDecision
     profile: LearnerProfileSnapshot
-    completed_concept_ids: tuple[str, ...] = Field(min_length=1)
+    completed_concept_ids: tuple[str, ...]
 
     @field_validator("completed_concept_ids")
     @classmethod

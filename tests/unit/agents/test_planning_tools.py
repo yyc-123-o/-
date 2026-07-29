@@ -50,15 +50,16 @@ def test_request_contracts_reject_duplicate_completed_ids(catalog, profile) -> N
         )
 
 
-def test_update_request_requires_a_completed_concept(catalog, profile) -> None:
+def test_update_request_allows_profile_refresh_without_new_completion(catalog, profile) -> None:
     existing = CoursePlanner(catalog).plan(profile)
 
-    with pytest.raises(ValidationError):
-        UpdateCoursePlanInput(
-            existing=existing,
-            profile=profile,
-            completed_concept_ids=(),
-        )
+    request = UpdateCoursePlanInput(
+        existing=existing,
+        profile=profile,
+        completed_concept_ids=(),
+    )
+
+    assert request.completed_concept_ids == ()
 
 
 def test_request_digest_treats_completed_ids_as_an_unordered_set(catalog, profile) -> None:
@@ -202,6 +203,25 @@ def test_update_tool_matches_updater_and_preserves_path_identity(
     assert [node.concept_id for node in result.path.nodes] == [
         node.concept_id for node in existing.nodes
     ]
+
+
+def test_update_tool_allows_profile_refresh_without_new_completion(
+    catalog,
+    profile,
+) -> None:
+    existing = CoursePlanner(catalog).plan(profile)
+    payload = {
+        "existing": existing.model_dump(mode="json"),
+        "profile": profile.model_dump(mode="json"),
+        "completed_concept_ids": [],
+    }
+
+    result = PlanningToolResult.model_validate(
+        update_course_plan_tool(catalog).invoke(payload)
+    )
+
+    assert result.path == DepthUpdater(catalog).update(existing, profile, set())
+    assert result.path.path_id == existing.path_id
 
 
 def test_tool_rejects_unknown_completed_concept(catalog, profile) -> None:
