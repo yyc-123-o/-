@@ -1,4 +1,7 @@
+import re
+from collections.abc import Mapping
 from enum import StrEnum
+from hashlib import sha256
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
@@ -76,20 +79,28 @@ class CoursePlanningAgent:
 
     def invoke(
         self,
-        event: PlanningAgentEvent,
+        event: PlanningAgentEvent | Mapping[str, object],
         thread_id: str,
     ) -> CoursePlanningAgentResult:
         config = _thread_config(thread_id)
-        values = self._graph.invoke({"event": event}, config=config)
+        try:
+            validated_event = PlanningAgentEvent.model_validate(event)
+        except ValidationError as exc:
+            return self._invalid_event_result(event, thread_id, exc)
+        values = self._graph.invoke({"event": validated_event}, config=config)
         return _build_result(thread_id, values)
 
     async def ainvoke(
         self,
-        event: PlanningAgentEvent,
+        event: PlanningAgentEvent | Mapping[str, object],
         thread_id: str,
     ) -> CoursePlanningAgentResult:
         config = _thread_config(thread_id)
-        values = await self._graph.ainvoke({"event": event}, config=config)
+        try:
+            validated_event = PlanningAgentEvent.model_validate(event)
+        except ValidationError as exc:
+            return self._invalid_event_result(event, thread_id, exc)
+        values = await self._graph.ainvoke({"event": validated_event}, config=config)
         return _build_result(thread_id, values)
 
     def get_state(self, thread_id: str) -> CoursePlanningAgentResult | None:
@@ -97,6 +108,36 @@ class CoursePlanningAgent:
         if not snapshot.values:
             return None
         return _build_result(thread_id, snapshot.values)
+
+    def _invalid_event_result(
+        self,
+        event: PlanningAgentEvent | Mapping[str, object],
+        thread_id: str,
+        error: ValidationError,
+    ) -> CoursePlanningAgentResult:
+        previous = self.get_state(thread_id)
+        invalid_event_id = _invalid_event_id(event)
+        return CoursePlanningAgentResult(
+            thread_id=thread_id,
+            status=PlanningAgentStatus.FAILED,
+            next_action=PlanningNextAction.RESET_REQUIRED,
+            path=previous.path if previous is not None else None,
+            current_node=previous.current_node if previous is not None else None,
+            current_adaptation=(
+                previous.current_adaptation if previous is not None else None
+            ),
+            adaptations=previous.adaptations if previous is not None else (),
+            planning_audit=(
+                previous.planning_audit if previous is not None else None
+            ),
+            failure=PlanningAgentFailure(
+                code=PlanningAgentFailureCode.INVALID_EVENT,
+                message=str(error),
+                event_id=invalid_event_id,
+            ),
+            last_event_id=invalid_event_id,
+            event_duplicate=False,
+        )
 
 
 def build_course_planning_graph(
@@ -463,6 +504,17 @@ def _thread_config(thread_id: str) -> RunnableConfig:
     if not thread_id.strip():
         raise ValueError("thread ID must not be empty")
     return {"configurable": {"thread_id": thread_id}}
+
+
+def _invalid_event_id(
+    event: PlanningAgentEvent | Mapping[str, object],
+) -> str:
+    if isinstance(event, Mapping):
+        value = event.get("event_id")
+        if isinstance(value, str) and re.fullmatch(r"event_[0-9a-f]{64}", value):
+            return value
+    digest = sha256(repr(event).encode("utf-8")).hexdigest()
+    return f"event_{digest}"
 
 
 def _build_result(

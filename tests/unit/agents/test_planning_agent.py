@@ -347,6 +347,24 @@ def test_unknown_thread_has_no_state(agent) -> None:
     assert agent.get_state("unknown-student") is None
 
 
+def test_invalid_raw_event_preserves_checkpointed_state(agent, profile) -> None:
+    initial = agent.invoke(initialize_event(profile), thread_id="student-1")
+    invalid_event = {
+        "event_id": event_id("invalid-event"),
+        "kind": PlanningEventKind.CONCEPTS_COMPLETED,
+        "completed_concept_ids": [],
+    }
+
+    result = agent.invoke(invalid_event, thread_id="student-1")
+
+    assert result.status is PlanningAgentStatus.FAILED
+    assert result.path == initial.path
+    assert result.adaptations == initial.adaptations
+    assert result.failure is not None
+    assert result.failure.code is PlanningAgentFailureCode.INVALID_EVENT
+    assert agent.get_state("student-1") == initial
+
+
 def test_agent_is_available_from_public_agents_api() -> None:
     from skillforge_kb import agents
 
