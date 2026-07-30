@@ -5,6 +5,7 @@ from skillforge_kb.evaluation import (
     PathEvaluationReport,
     ScenarioCohort,
     build_synthetic_dataset_digest,
+    evaluate_course_path_cases,
     evaluate_course_paths,
     generate_synthetic_dataset,
 )
@@ -42,6 +43,30 @@ def test_evaluator_rejects_policy_mismatch(catalog) -> None:
 
     with pytest.raises(ValueError, match="policy"):
         evaluate_course_paths(catalog, dataset, changed)
+
+
+def test_candidate_case_evaluation_accepts_a_different_policy(catalog) -> None:
+    dataset = generate_synthetic_dataset(catalog, case_count=8)
+    candidate = PlannerPolicy(
+        version="planner-policy.candidate.v1",
+        intermediate_threshold=0.70,
+    )
+
+    results = evaluate_course_path_cases(catalog, dataset, candidate)
+
+    assert len(results) == 8
+    assert any(item.depth_mismatch_ids for item in results)
+
+
+def test_strict_report_still_rejects_a_different_policy(catalog) -> None:
+    dataset = generate_synthetic_dataset(catalog, case_count=8)
+
+    with pytest.raises(ValueError, match="policy"):
+        evaluate_course_paths(
+            catalog,
+            dataset,
+            PlannerPolicy(version="planner-policy.candidate.v1"),
+        )
 
 
 def test_evaluator_reports_oracle_depth_mismatches(catalog) -> None:

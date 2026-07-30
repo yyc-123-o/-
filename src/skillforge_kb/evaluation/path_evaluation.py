@@ -35,6 +35,46 @@ def evaluate_course_paths(
     ):
         raise ValueError("synthetic dataset policy does not match evaluator policy")
 
+    case_results = evaluate_course_path_cases(catalog, dataset, active_policy)
+    metrics = reconstruct_path_evaluation_metrics(case_results)
+    payload = {
+        "schema_version": "path-evaluation-report.v1",
+        "data_kind": "synthetic",
+        "disclaimer": SYNTHETIC_DISCLAIMER,
+        "data_version": dataset.data_version,
+        "dataset_digest": dataset.dataset_digest,
+        "graph_version": dataset.graph_version,
+        "policy_version": active_policy.version,
+        "policy_digest": policy_digest,
+        "seed": dataset.seed,
+        "generated_at": dataset.generated_at,
+        "case_results": case_results,
+        "metrics": metrics,
+    }
+    return PathEvaluationReport(
+        data_version=dataset.data_version,
+        dataset_digest=dataset.dataset_digest,
+        graph_version=dataset.graph_version,
+        policy_version=active_policy.version,
+        policy_digest=policy_digest,
+        seed=dataset.seed,
+        generated_at=dataset.generated_at,
+        case_results=case_results,
+        metrics=metrics,
+        report_digest=build_path_evaluation_report_digest(payload),
+    )
+
+
+def evaluate_course_path_cases(
+    catalog: OntologyCatalog,
+    dataset: SyntheticPlanningDataset,
+    policy: PlannerPolicy,
+) -> tuple[PathEvaluationCaseResult, ...]:
+    dataset = SyntheticPlanningDataset.model_validate(dataset.model_dump())
+    active_policy = PlannerPolicy.model_validate(policy.model_dump())
+    if dataset.graph_version != catalog.course_document.version:
+        raise ValueError("synthetic dataset graph version does not match catalog")
+
     required_ids = stable_required_concept_ids(catalog)
     required_set = set(required_ids)
     hard_pairs = tuple(
@@ -120,34 +160,7 @@ def evaluate_course_paths(
             )
         )
 
-    case_results = tuple(results)
-    metrics = reconstruct_path_evaluation_metrics(case_results)
-    payload = {
-        "schema_version": "path-evaluation-report.v1",
-        "data_kind": "synthetic",
-        "disclaimer": SYNTHETIC_DISCLAIMER,
-        "data_version": dataset.data_version,
-        "dataset_digest": dataset.dataset_digest,
-        "graph_version": dataset.graph_version,
-        "policy_version": active_policy.version,
-        "policy_digest": policy_digest,
-        "seed": dataset.seed,
-        "generated_at": dataset.generated_at,
-        "case_results": case_results,
-        "metrics": metrics,
-    }
-    return PathEvaluationReport(
-        data_version=dataset.data_version,
-        dataset_digest=dataset.dataset_digest,
-        graph_version=dataset.graph_version,
-        policy_version=active_policy.version,
-        policy_digest=policy_digest,
-        seed=dataset.seed,
-        generated_at=dataset.generated_at,
-        case_results=case_results,
-        metrics=metrics,
-        report_digest=build_path_evaluation_report_digest(payload),
-    )
+    return tuple(results)
 
 
 def write_path_evaluation_report(
