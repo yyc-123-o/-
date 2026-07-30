@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import DepthLevel, RelationKind
 from skillforge_kb.planning.models import PathStatus, PlannerPolicy
@@ -145,3 +148,24 @@ def evaluate_course_paths(
         metrics=metrics,
         report_digest=build_path_evaluation_report_digest(payload),
     )
+
+
+def write_path_evaluation_report(
+    report: PathEvaluationReport,
+    output_path: Path,
+) -> None:
+    validated = PathEvaluationReport.model_validate(report.model_dump())
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = output_path.with_name(f".{output_path.name}.tmp")
+    serialized = json.dumps(
+        validated.model_dump(mode="json"),
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    try:
+        temporary_path.write_text(serialized + "\n", encoding="utf-8")
+        temporary_path.replace(output_path)
+    except OSError:
+        temporary_path.unlink(missing_ok=True)
+        raise

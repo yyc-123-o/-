@@ -1,6 +1,8 @@
+import json
 from collections import defaultdict
 from datetime import UTC, datetime
 from hashlib import sha256
+from pathlib import Path
 from random import Random
 
 from skillforge_kb.ontology.catalog import OntologyCatalog
@@ -92,6 +94,18 @@ def generate_synthetic_dataset(
         cases=case_records,
         dataset_digest=build_synthetic_dataset_digest(payload),
     )
+
+
+def load_synthetic_dataset(path: Path) -> SyntheticPlanningDataset:
+    return SyntheticPlanningDataset.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def write_synthetic_dataset(
+    dataset: SyntheticPlanningDataset,
+    output_path: Path,
+) -> None:
+    validated = SyntheticPlanningDataset.model_validate(dataset.model_dump())
+    _write_json(validated.model_dump(mode="json"), output_path)
 
 
 def _build_profile(
@@ -352,3 +366,20 @@ def _expected_depth(
 
 def _clamp(value: float) -> float:
     return max(0.0, min(1.0, value))
+
+
+def _write_json(payload: object, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = output_path.with_name(f".{output_path.name}.tmp")
+    serialized = json.dumps(
+        payload,
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    try:
+        temporary_path.write_text(serialized + "\n", encoding="utf-8")
+        temporary_path.replace(output_path)
+    except OSError:
+        temporary_path.unlink(missing_ok=True)
+        raise

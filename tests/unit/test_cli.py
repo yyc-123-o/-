@@ -4,6 +4,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from skillforge_kb.cli import app
+from skillforge_kb.evaluation import PathEvaluationReport, SyntheticPlanningDataset
 from skillforge_kb.ingestion.normalize import sha256_text
 
 runner = CliRunner()
@@ -62,3 +63,107 @@ def test_fusion_dry_run_cli_writes_summary(tmp_path: Path) -> None:
     assert "Processed 1 rows" in result.stdout
     summary = json.loads((output / "fusion_summary.json").read_text(encoding="utf-8"))
     assert summary["input_rows"] == 1
+
+
+def test_planning_commands_generate_and_evaluate(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "synthetic.json"
+    report_path = tmp_path / "report.json"
+
+    generated = runner.invoke(
+        app,
+        [
+            "planning-generate-synthetic",
+            "--output-file",
+            str(dataset_path),
+            "--case-count",
+            "8",
+        ],
+    )
+    evaluated = runner.invoke(
+        app,
+        [
+            "planning-evaluate",
+            "--dataset-file",
+            str(dataset_path),
+            "--output-file",
+            str(report_path),
+        ],
+    )
+
+    assert generated.exit_code == 0
+    assert evaluated.exit_code == 0
+    dataset = SyntheticPlanningDataset.model_validate_json(
+        dataset_path.read_text(encoding="utf-8")
+    )
+    report = PathEvaluationReport.model_validate_json(
+        report_path.read_text(encoding="utf-8")
+    )
+    assert len(dataset.cases) == 8
+    assert report.metrics.hard_prerequisite_violation_rate == 0.0
+
+
+def test_planning_generation_defaults_to_sixty_cases(tmp_path: Path) -> None:
+    output = tmp_path / "synthetic.json"
+
+    result = runner.invoke(
+        app,
+        ["planning-generate-synthetic", "--output-file", str(output)],
+    )
+
+    assert result.exit_code == 0
+    dataset = SyntheticPlanningDataset.model_validate_json(
+        output.read_text(encoding="utf-8")
+    )
+    assert len(dataset.cases) == 60
+
+
+def test_planning_evaluation_rejects_output_overwriting_dataset(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "synthetic.json"
+    generated = runner.invoke(
+        app,
+        [
+            "planning-generate-synthetic",
+            "--output-file",
+            str(dataset_path),
+            "--case-count",
+            "8",
+        ],
+    )
+    assert generated.exit_code == 0
+
+    result = runner.invoke(
+        app,
+        [
+            "planning-evaluate",
+            "--dataset-file",
+            str(dataset_path),
+            "--output-file",
+            str(dataset_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "must not overwrite" in result.output
+
+
+def test_planning_evaluation_reports_invalid_dataset_without_traceback(
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "invalid.json"
+    report_path = tmp_path / "report.json"
+    dataset_path.write_text("{}", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "planning-evaluate",
+            "--dataset-file",
+            str(dataset_path),
+            "--output-file",
+            str(report_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "invalid synthetic dataset" in result.output
+    assert "Traceback" not in result.output

@@ -9,6 +9,15 @@ from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import ValidationError
 
 from skillforge_kb.config import Settings
+from skillforge_kb.evaluation import (
+    DEFAULT_SYNTHETIC_CASE_COUNT,
+    DEFAULT_SYNTHETIC_SEED,
+    evaluate_course_paths,
+    generate_synthetic_dataset,
+    load_synthetic_dataset,
+    write_path_evaluation_report,
+    write_synthetic_dataset,
+)
 from skillforge_kb.fusion.runner import run_dry_run
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.coverage import analyze_candidate_coverage, write_coverage_report
@@ -150,6 +159,67 @@ def graph_publish(
     except (DriverError, Neo4jError, OSError, ValidationError) as exc:
         raise typer.BadParameter(f"Neo4j publish failed: {exc}") from exc
     typer.echo(f"Published graph version {catalog.course_document.version}")
+
+
+@app.command("planning-generate-synthetic")
+def planning_generate_synthetic(
+    output_file: Annotated[Path, typer.Option()],
+    case_count: Annotated[int, typer.Option(min=8)] = DEFAULT_SYNTHETIC_CASE_COUNT,
+    seed: Annotated[int, typer.Option()] = DEFAULT_SYNTHETIC_SEED,
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+) -> None:
+    catalog = _load_validated_catalog(course_file, relations_file)
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+    )
+    try:
+        dataset = generate_synthetic_dataset(
+            catalog,
+            case_count=case_count,
+            seed=seed,
+        )
+        write_synthetic_dataset(dataset, output_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        raise typer.BadParameter(f"could not generate synthetic dataset: {exc}") from exc
+    typer.echo(
+        f"Wrote {len(dataset.cases)} synthetic planning cases to {output_path}"
+    )
+
+
+@app.command("planning-evaluate")
+def planning_evaluate(
+    dataset_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output_file: Annotated[Path, typer.Option()],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+) -> None:
+    catalog = _load_validated_catalog(course_file, relations_file)
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+        dataset_file,
+    )
+    try:
+        dataset = load_synthetic_dataset(dataset_file)
+        report = evaluate_course_paths(catalog, dataset)
+        write_path_evaluation_report(report, output_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        raise typer.BadParameter(f"invalid synthetic dataset: {exc}") from exc
+    typer.echo(
+        f"Evaluated {len(report.case_results)} synthetic planning cases into {output_path}"
+    )
 
 
 if __name__ == "__main__":
