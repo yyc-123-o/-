@@ -2,11 +2,15 @@ import pytest
 from pydantic import ValidationError
 
 from skillforge_kb.evaluation import (
+    PlannerPolicyCalibrationReport,
     PlannerPolicyCoordinate,
     PlannerPolicySearchSpace,
     build_planner_search_space_digest,
     default_planner_policy_search_space,
+    evaluate_course_paths,
+    evaluate_planner_policy,
     generate_planner_policy_candidates,
+    search_planner_policies,
 )
 from skillforge_kb.planning import AbilityWeights, PlannerPolicy
 
@@ -96,6 +100,85 @@ def test_search_space_digest_is_stable_and_content_sensitive() -> None:
 
     assert build_planner_search_space_digest(first) == build_planner_search_space_digest(same)
     assert build_planner_search_space_digest(first) != build_planner_search_space_digest(changed)
+
+
+def test_baseline_evaluation_matches_strict_report(catalog) -> None:
+    from skillforge_kb.evaluation import generate_synthetic_dataset
+
+    dataset = generate_synthetic_dataset(catalog, case_count=8)
+    strict = evaluate_course_paths(catalog, dataset)
+    baseline = evaluate_planner_policy(catalog, dataset, PlannerPolicy())
+
+    assert baseline.metrics == strict.metrics
+    assert baseline.changed_coordinate is None
+
+
+def test_search_is_deterministic_and_preserves_invariants(catalog) -> None:
+    from skillforge_kb.evaluation import generate_synthetic_dataset
+
+    dataset = generate_synthetic_dataset(catalog, case_count=8)
+    space = default_planner_policy_search_space(PlannerPolicy())
+
+    first = search_planner_policies(catalog, dataset, space)
+    second = search_planner_policies(catalog, dataset, space)
+
+    assert first == second
+    assert first.best_fitting_candidate == first.ranked_candidates[0]
+    assert all(not item.invariant_failure_case_ids for item in first.ranked_candidates)
+
+
+def test_calibration_report_round_trip_preserves_digest(catalog) -> None:
+    from skillforge_kb.evaluation import generate_synthetic_dataset
+
+    report = search_planner_policies(
+        catalog,
+        generate_synthetic_dataset(catalog, case_count=8),
+    )
+
+    assert PlannerPolicyCalibrationReport.model_validate_json(report.model_dump_json()) == report
+
+
+def test_calibration_report_rejects_reversed_candidate_ranking(catalog) -> None:
+    from skillforge_kb.evaluation import generate_synthetic_dataset
+
+    report = search_planner_policies(
+        catalog,
+        generate_synthetic_dataset(catalog, case_count=8),
+    )
+    payload = report.model_dump()
+    payload["ranked_candidates"] = list(reversed(payload["ranked_candidates"]))
+
+    with pytest.raises(ValidationError, match="ranking"):
+        PlannerPolicyCalibrationReport.model_validate(payload)
+
+
+def test_calibration_report_rejects_baseline_leakage(catalog) -> None:
+    from skillforge_kb.evaluation import generate_synthetic_dataset
+
+    report = search_planner_policies(
+        catalog,
+        generate_synthetic_dataset(catalog, case_count=8),
+    )
+    payload = report.model_dump()
+    payload["ranked_candidates"][0]["policy"] = payload["baseline"]["policy"]
+    payload["ranked_candidates"][0]["policy_digest"] = payload["baseline"]["policy_digest"]
+
+    with pytest.raises(ValidationError, match="baseline"):
+        PlannerPolicyCalibrationReport.model_validate(payload)
+
+
+def test_calibration_report_rejects_metric_mutation(catalog) -> None:
+    from skillforge_kb.evaluation import generate_synthetic_dataset
+
+    report = search_planner_policies(
+        catalog,
+        generate_synthetic_dataset(catalog, case_count=8),
+    )
+    payload = report.model_dump()
+    payload["baseline"]["metrics"]["skip_accuracy"] = 0.5
+
+    with pytest.raises(ValidationError, match="metrics"):
+        PlannerPolicyCalibrationReport.model_validate(payload)
 
 
 def _tunable_values(policy: PlannerPolicy) -> tuple[float, ...]:
