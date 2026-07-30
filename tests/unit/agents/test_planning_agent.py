@@ -366,6 +366,24 @@ def test_invalid_raw_event_preserves_checkpointed_state(agent, profile) -> None:
     assert agent.get_state("student-1") == initial
 
 
+def test_tampered_typed_event_is_revalidated_before_graph_execution(
+    agent,
+    profile,
+) -> None:
+    tampered = initialize_event(profile, label="tampered-reset").model_copy(
+        update={"kind": PlanningEventKind.RESET}
+    )
+
+    result = agent.invoke(tampered, thread_id="tampered-student")
+
+    assert result.status is PlanningAgentStatus.FAILED
+    assert result.next_action is PlanningNextAction.RETRY_EVENT
+    assert result.failure is not None
+    assert result.failure.code is PlanningAgentFailureCode.INVALID_EVENT
+    assert result.failure.event_id == tampered.event_id
+    assert agent.get_state("tampered-student") is None
+
+
 def test_agent_is_available_from_public_agents_api() -> None:
     from skillforge_kb import agents
 

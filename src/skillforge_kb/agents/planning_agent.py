@@ -509,10 +509,9 @@ def _thread_config(thread_id: str) -> RunnableConfig:
 def _invalid_event_id(
     event: PlanningAgentEvent | Mapping[str, object],
 ) -> str:
-    if isinstance(event, Mapping):
-        value = event.get("event_id")
-        if isinstance(value, str) and re.fullmatch(r"event_[0-9a-f]{64}", value):
-            return value
+    value = event.event_id if isinstance(event, PlanningAgentEvent) else event.get("event_id")
+    if isinstance(value, str) and re.fullmatch(r"event_[0-9a-f]{64}", value):
+        return value
     digest = sha256(repr(event).encode("utf-8")).hexdigest()
     return f"event_{digest}"
 
