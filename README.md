@@ -130,6 +130,10 @@ validated = ResourceGenerationTool().invoke(
 
 The fake generator is only a deterministic contract fixture. A later real resource Agent may implement the same protocol through LangChain or LangGraph, but every output must still pass the framework-neutral path, evidence, citation, and resource-type validator.
 
+New `resource-brief.v2` requests also contain a frozen `ResourceAllocation`. It scales the reviewed 45/60/75-minute blueprint duration with the node's existing effort multiplier, rounds upward to five minutes, and assigns worked-example, guided-exercise, assessment-item, and project-checkpoint quotas from delivery depth plus support intensity. Quotas for resource types not requested by the blueprint are forced to zero.
+
+These quota tables are versioned engineering defaults, not measured estimates of learning effectiveness. Resource-generation Agents and frontends must consume the allocation and its reason codes directly; they must not recalculate time or counts from the learner profile.
+
 ## Data Policy
 
 Raw PDFs, source repositories, teammate JSONL files, pickle indexes, FAISS indexes, and ad hoc generated reports are intentionally excluded from Git. The deterministic acceptance fixture at `reports/generated/personalized-flow-matrix.json` is tracked as a reproducible release artifact. External data may have separate licensing, size, or reproducibility constraints. See [`data/README.md`](data/README.md) and the source manifest kept with the local data copy.
