@@ -14,6 +14,7 @@ The repository currently contains:
 - Immutable concept ability-demand and resource-blueprint catalogs covering all 140 concepts at three delivery depths.
 - A deterministic node-adaptation engine with auditable support/readiness contributions that never changes path order.
 - A seeded synthetic-profile generator and offline course-path evaluator with validated, reproducible metrics.
+- A deterministic, idempotent answer-event baseline for updating mastery, confidence, and per-concept error patterns.
 - Frozen `ResourceBrief` and `EvidenceBundle` contracts connecting course planning to evidence-bound resource generation.
 - Framework-neutral lecture, practical-guide, assessment, and project output validation with a no-LLM deterministic generator for acceptance tests.
 - Candidate concept-coverage reporting that never promotes unreviewed evidence into the graph.
@@ -77,6 +78,20 @@ uv run skillforge-kb graph-publish
 The graph commands use the versioned ontology assets under `resources/ontology` by default. Pass `--course-file` and `--relations-file` to validate another explicitly versioned catalog. Neo4j integration tests and `graph-publish` require a reachable Neo4j 5 instance; Docker is not required for unit tests or static validation.
 
 Learner profiles must be converted through the versioned `ProfileAdapter` and one-to-one legacy-ID mapping before the course planner consumes them. The adapter preserves abilities, error patterns, preferences, assessment runs, and evidence references. The production legacy mapping is intentionally empty until the team supplies human-reviewed one-to-one IDs. Raw profile exports and teammate JSONL files stay outside Git; path decisions, resource-generation hints, and agent state are not part of the graph or profile snapshot.
+
+Structured answer events can update a copied profile through the replaceable rule baseline without an API key or external service:
+
+```python
+from skillforge_kb.assessment import AssessmentLedger, apply_assessment_event
+
+ledger = AssessmentLedger(profile=profile_snapshot)
+result = apply_assessment_event(catalog, ledger, assessment_event)
+updated_profile_snapshot = result.ledger.profile
+```
+
+Policy `rule-based-assessment.v1` raises or lowers mastery from the current score, applies bounded hint and retry penalties, and increases evidence confidence toward one. Incorrect answers are classified in this order: explicit error kind, two or more hints, response time of at least 120 seconds, two or more attempts, then missed condition. `event_id` replay returns the original ledger as an explicit no-op, and individual events are not mixed into `assessment_runs`.
+
+The updater changes only the returned learner-profile snapshot and assessment ledger. It does not call the course planner, alter the graph, reorder a path, select delivery depth, or create resource briefs. An orchestration layer may later pass the returned profile into a separate explicit replanning step. This engineering baseline is intended for offline integration and may be replaced by a reviewed BKT/IRT-style model; its outputs are not evidence of real teaching effectiveness.
 
 The deterministic planning core converts the reviewed catalog and a canonical learner profile into a complete required-course path:
 
