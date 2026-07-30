@@ -6,10 +6,13 @@ from pydantic import ValidationError
 
 from skillforge_kb.evaluation import (
     PathEvaluationReport,
+    PlannerPolicyCalibrationReport,
     evaluate_course_paths,
     generate_synthetic_dataset,
     load_synthetic_dataset,
+    search_planner_policies,
     write_path_evaluation_report,
+    write_planner_policy_calibration_report,
     write_synthetic_dataset,
 )
 
@@ -58,3 +61,19 @@ def test_report_write_is_valid_and_atomic(tmp_path: Path, catalog) -> None:
     loaded = PathEvaluationReport.model_validate_json(output.read_text(encoding="utf-8"))
     assert loaded == report
     assert not (tmp_path / ".report.json.tmp").exists()
+
+
+def test_calibration_report_write_is_valid_and_atomic(tmp_path: Path, catalog) -> None:
+    report = search_planner_policies(
+        catalog,
+        generate_synthetic_dataset(catalog, case_count=8),
+    )
+    output = tmp_path / "calibration.json"
+
+    write_planner_policy_calibration_report(report, output)
+
+    loaded = PlannerPolicyCalibrationReport.model_validate_json(
+        output.read_text(encoding="utf-8")
+    )
+    assert loaded == report
+    assert not (tmp_path / ".calibration.json.tmp").exists()

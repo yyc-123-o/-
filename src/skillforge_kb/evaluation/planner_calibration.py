@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from hashlib import sha256
 from itertools import pairwise
+from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -467,6 +468,27 @@ def build_planner_calibration_report_digest(payload: object) -> str:
         separators=(",", ":"),
     )
     return f"planner_calibration_{sha256(canonical.encode('utf-8')).hexdigest()}"
+
+
+def write_planner_policy_calibration_report(
+    report: PlannerPolicyCalibrationReport,
+    output_path: Path,
+) -> None:
+    validated = PlannerPolicyCalibrationReport.model_validate(report.model_dump())
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = output_path.with_name(f".{output_path.name}.tmp")
+    serialized = json.dumps(
+        validated.model_dump(mode="json"),
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    try:
+        temporary_path.write_text(serialized + "\n", encoding="utf-8")
+        temporary_path.replace(output_path)
+    except OSError:
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def _ranking_key(

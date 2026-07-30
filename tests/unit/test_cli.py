@@ -4,7 +4,11 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from skillforge_kb.cli import app
-from skillforge_kb.evaluation import PathEvaluationReport, SyntheticPlanningDataset
+from skillforge_kb.evaluation import (
+    PathEvaluationReport,
+    PlannerPolicyCalibrationReport,
+    SyntheticPlanningDataset,
+)
 from skillforge_kb.ingestion.normalize import sha256_text
 
 runner = CliRunner()
@@ -167,3 +171,69 @@ def test_planning_evaluation_reports_invalid_dataset_without_traceback(
     assert result.exit_code != 0
     assert "invalid synthetic dataset" in result.output
     assert "Traceback" not in result.output
+
+
+def test_planning_policy_calibration_writes_ranked_report(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "synthetic.json"
+    report_path = tmp_path / "calibration.json"
+    generated = runner.invoke(
+        app,
+        [
+            "planning-generate-synthetic",
+            "--output-file",
+            str(dataset_path),
+            "--case-count",
+            "8",
+        ],
+    )
+    assert generated.exit_code == 0
+
+    result = runner.invoke(
+        app,
+        [
+            "planning-calibrate-policy",
+            "--dataset-file",
+            str(dataset_path),
+            "--output-file",
+            str(report_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    report = PlannerPolicyCalibrationReport.model_validate_json(
+        report_path.read_text(encoding="utf-8")
+    )
+    assert report.ranked_candidates
+    assert report.data_kind == "synthetic"
+    assert all(not item.invariant_failure_case_ids for item in report.ranked_candidates)
+
+
+def test_planning_policy_calibration_rejects_output_overwriting_dataset(
+    tmp_path: Path,
+) -> None:
+    dataset_path = tmp_path / "synthetic.json"
+    generated = runner.invoke(
+        app,
+        [
+            "planning-generate-synthetic",
+            "--output-file",
+            str(dataset_path),
+            "--case-count",
+            "8",
+        ],
+    )
+    assert generated.exit_code == 0
+
+    result = runner.invoke(
+        app,
+        [
+            "planning-calibrate-policy",
+            "--dataset-file",
+            str(dataset_path),
+            "--output-file",
+            str(dataset_path),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "must not overwrite" in result.output

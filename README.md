@@ -102,9 +102,15 @@ uv run skillforge-kb planning-generate-synthetic `
 uv run skillforge-kb planning-evaluate `
   --dataset-file reports/generated/synthetic-planning-dataset.json `
   --output-file reports/generated/course-path-evaluation.json
+
+uv run skillforge-kb planning-calibrate-policy `
+  --dataset-file reports/generated/synthetic-planning-dataset.json `
+  --output-file reports/generated/planner-policy-calibration.json
 ```
 
 The dataset is stratified across beginner, intermediate, advanced, uneven, low-confidence, missing-evidence, conflicting-evidence, and boundary cohorts. The report measures prerequisite violations, required-concept coverage, skip and delivery-depth accuracy, path-order stability, conservative low-confidence handling, and mean learning/skipped node counts. These outputs are synthetic regression evidence only; they do not measure real student learning effectiveness.
+
+The calibration command performs a bounded one-coordinate sensitivity search over confidence, skip, readiness, depth, and four-dimensional ability weights. It ranks candidates against the stored synthetic oracle but never replaces the production policy. A candidate can only be considered for promotion after expert-labelled or observed data is available and reviewed.
 
 For each unfinished node, the planning/resource bridge computes a deterministic support decision and produces an evidence-gated generation request:
 

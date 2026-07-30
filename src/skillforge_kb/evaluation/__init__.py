@@ -25,6 +25,7 @@ from .planner_calibration import (
     evaluate_planner_policy,
     generate_planner_policy_candidates,
     search_planner_policies,
+    write_planner_policy_calibration_report,
 )
 from .synthetic import (
     DEFAULT_SYNTHETIC_CASE_COUNT,
@@ -60,6 +61,7 @@ __all__ = [
     "generate_planner_policy_candidates",
     "load_synthetic_dataset",
     "write_path_evaluation_report",
+    "write_planner_policy_calibration_report",
     "write_synthetic_dataset",
     "search_planner_policies",
 ]

@@ -15,7 +15,9 @@ from skillforge_kb.evaluation import (
     evaluate_course_paths,
     generate_synthetic_dataset,
     load_synthetic_dataset,
+    search_planner_policies,
     write_path_evaluation_report,
+    write_planner_policy_calibration_report,
     write_synthetic_dataset,
 )
 from skillforge_kb.fusion.runner import run_dry_run
@@ -219,6 +221,36 @@ def planning_evaluate(
         raise typer.BadParameter(f"invalid synthetic dataset: {exc}") from exc
     typer.echo(
         f"Evaluated {len(report.case_results)} synthetic planning cases into {output_path}"
+    )
+
+
+@app.command("planning-calibrate-policy")
+def planning_calibrate_policy(
+    dataset_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output_file: Annotated[Path, typer.Option()],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+) -> None:
+    catalog = _load_validated_catalog(course_file, relations_file)
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+        dataset_file,
+    )
+    try:
+        dataset = load_synthetic_dataset(dataset_file)
+        report = search_planner_policies(catalog, dataset)
+        write_planner_policy_calibration_report(report, output_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        raise typer.BadParameter(f"planner policy calibration failed: {exc}") from exc
+    typer.echo(
+        f"Evaluated {len(report.ranked_candidates)} planner policy candidates "
+        f"over {report.baseline.metrics.case_count} synthetic cases into {output_path}"
     )
 
 
