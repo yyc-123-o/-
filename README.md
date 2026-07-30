@@ -13,6 +13,7 @@ The repository currently contains:
 - A versioned bilingual AI course ontology with chapter/section structure, prerequisite DAG validation, three depth levels, and learner-profile adaptation contracts.
 - Immutable concept ability-demand and resource-blueprint catalogs covering all 140 concepts at three delivery depths.
 - A deterministic node-adaptation engine with auditable support/readiness contributions that never changes path order.
+- A seeded synthetic-profile generator and offline course-path evaluator with validated, reproducible metrics.
 - Frozen `ResourceBrief` and `EvidenceBundle` contracts connecting course planning to evidence-bound resource generation.
 - Framework-neutral lecture, practical-guide, assessment, and project output validation with a no-LLM deterministic generator for acceptance tests.
 - Candidate concept-coverage reporting that never promotes unreviewed evidence into the graph.
@@ -91,6 +92,19 @@ updated = DepthUpdater(catalog).update(
 ```
 
 The path is generated once, keeps mastered concepts as `skipped`, and preserves its concept set, order, positions, and `path_id` during updates. Only unfinished node readiness and delivery depth may change. LangChain and LangGraph integration remains a separate adapter phase; neither framework participates in the deterministic planning algorithm.
+
+Generate the default 60-case synthetic evaluation dataset and evaluate the course path without an API key or external service:
+
+```powershell
+uv run skillforge-kb planning-generate-synthetic `
+  --output-file reports/generated/synthetic-planning-dataset.json
+
+uv run skillforge-kb planning-evaluate `
+  --dataset-file reports/generated/synthetic-planning-dataset.json `
+  --output-file reports/generated/course-path-evaluation.json
+```
+
+The dataset is stratified across beginner, intermediate, advanced, uneven, low-confidence, missing-evidence, conflicting-evidence, and boundary cohorts. The report measures prerequisite violations, required-concept coverage, skip and delivery-depth accuracy, path-order stability, conservative low-confidence handling, and mean learning/skipped node counts. These outputs are synthetic regression evidence only; they do not measure real student learning effectiveness.
 
 For each unfinished node, the planning/resource bridge computes a deterministic support decision and produces an evidence-gated generation request:
 
