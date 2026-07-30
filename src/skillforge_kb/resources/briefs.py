@@ -21,6 +21,7 @@ from skillforge_kb.planning.adaptation import NodeAdaptationDecision
 from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus
 from skillforge_kb.planning.serialization import build_path_id
 
+from .allocation import allocate_resources
 from .models import (
     AcceptanceChecks,
     CitationRequirements,
@@ -115,6 +116,7 @@ class ResourceBriefBuilder(BaseModel):
             raise ValueError("adaptation profile does not match learner profile")
 
         blueprint = resource_blueprint(self.blueprints, concept_id, node.delivery_depth)
+        allocation = allocate_resources(blueprint, adaptation)
         content_kinds = _content_kinds(blueprint.resource_types)
         self._require_published_evidence(concept_id, node.delivery_depth, content_kinds)
         payload = ResourceBriefPayload(
@@ -139,6 +141,7 @@ class ResourceBriefBuilder(BaseModel):
             related_confusion_ids=self._related_confusion_ids(concept_id),
             required_resource_types=blueprint.resource_types,
             node_adaptation=adaptation,
+            resource_allocation=allocation,
             error_pattern_hints=_error_pattern_hints(profile, concept_id),
             presentation_preferences=_presentation_preferences(profile),
             evidence_filters=EvidenceFilters(
