@@ -1,3 +1,11 @@
+from .allocation import (
+    QuotaVector,
+    ResourceAllocation,
+    ResourceAllocationPolicy,
+    allocate_resources,
+    build_resource_allocation_digest,
+    build_resource_allocation_policy_digest,
+)
 from .briefs import ResourceBriefBuilder
 from .evidence_bundle import EvidenceBundle, build_evidence_bundle
 from .generator_contracts import (
@@ -31,8 +39,14 @@ __all__ = [
     "PracticalGuideResource",
     "PresentationPreferences",
     "ProjectResource",
+    "QuotaVector",
+    "ResourceAllocation",
+    "ResourceAllocationPolicy",
     "ResourceBrief",
     "ResourceBriefBuilder",
     "ValidatedResourcePackage",
+    "allocate_resources",
+    "build_resource_allocation_digest",
+    "build_resource_allocation_policy_digest",
     "build_evidence_bundle",
 ]
