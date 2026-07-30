@@ -132,6 +132,8 @@ def apply_assessment_event(
     event: AssessmentEvent,
     policy: AssessmentPolicy | None = None,
 ) -> AssessmentUpdateResult:
+    AssessmentLedger.model_validate(ledger.model_dump())
+    event = AssessmentEvent.model_validate(event.model_dump())
     active_policy = AssessmentPolicy.model_validate(
         (policy or AssessmentPolicy()).model_dump()
     )
@@ -300,25 +302,27 @@ def _updated_error_patterns(
         return [pattern.model_copy(deep=True) for pattern in patterns]
 
     affected = set(event.concept_ids)
-    counts: dict[str, dict[AssessmentErrorKind, int]] = {
+    counts: dict[str, dict[str, int]] = {
         concept_id: {} for concept_id in event.concept_ids
     }
-    references: dict[tuple[str, AssessmentErrorKind], list[str]] = {}
+    code_order: dict[str, list[str]] = {
+        concept_id: [] for concept_id in event.concept_ids
+    }
+    references: dict[tuple[str, str], list[str]] = {}
     preserved: list[ErrorPattern] = []
     for pattern in patterns:
-        try:
-            kind = AssessmentErrorKind(pattern.code)
-        except ValueError:
-            preserved.append(pattern.model_copy(deep=True))
-            continue
         matched = [concept_id for concept_id in pattern.concept_ids if concept_id in affected]
         if not matched:
             preserved.append(pattern.model_copy(deep=True))
             continue
         for concept_id in matched:
             concept_counts = counts[concept_id]
-            concept_counts[kind] = concept_counts.get(kind, 0) + pattern.count
-            key = (concept_id, kind)
+            if pattern.code not in code_order[concept_id]:
+                code_order[concept_id].append(pattern.code)
+            concept_counts[pattern.code] = (
+                concept_counts.get(pattern.code, 0) + pattern.count
+            )
+            key = (concept_id, pattern.code)
             references[key] = _unique_refs(references.get(key, ()), pattern.evidence_refs)
         remaining = [
             concept_id for concept_id in pattern.concept_ids if concept_id not in affected
@@ -328,10 +332,13 @@ def _updated_error_patterns(
 
     for concept_id in event.concept_ids:
         concept_counts = counts[concept_id]
-        concept_counts[classified_error_kind] = (
-            concept_counts.get(classified_error_kind, 0) + 1
+        new_code = classified_error_kind.value
+        if new_code not in code_order[concept_id]:
+            code_order[concept_id].append(new_code)
+        concept_counts[new_code] = (
+            concept_counts.get(new_code, 0) + 1
         )
-        key = (concept_id, classified_error_kind)
+        key = (concept_id, new_code)
         references[key] = _unique_refs(
             references.get(key, ()),
             (event.event_id,),
@@ -342,17 +349,15 @@ def _updated_error_patterns(
     for concept_id in event.concept_ids:
         concept_counts = counts[concept_id]
         total = sum(concept_counts.values())
-        for kind in AssessmentErrorKind:
-            count = concept_counts.get(kind, 0)
-            if not count:
-                continue
+        for code in code_order[concept_id]:
+            count = concept_counts[code]
             aggregated.append(
                 ErrorPattern(
-                    code=kind.value,
+                    code=code,
                     count=count,
                     ratio=count / total,
                     concept_ids=[concept_id],
-                    evidence_refs=references.get((concept_id, kind), []),
+                    evidence_refs=references.get((concept_id, code), []),
                 )
             )
     return [*preserved, *aggregated]

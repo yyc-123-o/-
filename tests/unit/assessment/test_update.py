@@ -318,6 +318,21 @@ def test_scope_failures_leave_original_ledger_unchanged(
     assert ledger.model_dump() == before
 
 
+def test_apply_revalidates_tampered_event_before_updating(
+    catalog: OntologyCatalog,
+    ledger: AssessmentLedger,
+) -> None:
+    tampered = _event().model_copy(
+        update={"error_kind": AssessmentErrorKind.LOGIC_GAP}
+    )
+
+    with pytest.raises(ValidationError, match="correct answers cannot include error_kind"):
+        apply_assessment_event(catalog, ledger, tampered)
+
+    assert ledger.processed_event_ids == ()
+    assert ledger.profile.knowledge_mastery == []
+
+
 def test_incorrect_events_aggregate_counts_ratios_and_evidence_per_concept(
     catalog: OntologyCatalog,
     ledger: AssessmentLedger,

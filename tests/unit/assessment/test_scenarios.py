@@ -123,6 +123,40 @@ def test_existing_error_counts_are_reaggregated_per_concept(
     assert patterns["logic_gap"].ratio == pytest.approx(1 / 3)
 
 
+def test_legacy_error_code_is_included_in_affected_concept_ratio(
+    catalog: OntologyCatalog,
+    profile: LearnerProfileSnapshot,
+) -> None:
+    source = profile.model_copy(
+        update={
+            "error_patterns": [
+                ErrorPattern(
+                    code="legacy_reasoning_error",
+                    count=4,
+                    ratio=1,
+                    concept_ids=[CONCEPT_ID],
+                    evidence_refs=["legacy-run"],
+                )
+            ]
+        },
+        deep=True,
+    )
+    incorrect = _event().model_copy(
+        update={"event_id": "new-error", "correct": False}
+    )
+
+    result = apply_assessment_event(
+        catalog,
+        AssessmentLedger(profile=source),
+        incorrect,
+    )
+    patterns = {item.code: item for item in result.ledger.profile.error_patterns}
+
+    assert patterns["legacy_reasoning_error"].ratio == pytest.approx(4 / 5)
+    assert patterns["missed_condition"].ratio == pytest.approx(1 / 5)
+    assert sum(item.ratio for item in patterns.values()) == pytest.approx(1)
+
+
 def test_assessment_update_does_not_mutate_or_invoke_course_planning(
     catalog: OntologyCatalog,
     profile: LearnerProfileSnapshot,
