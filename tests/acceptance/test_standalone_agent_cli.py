@@ -64,3 +64,52 @@ def test_agent_run_rejects_invalid_event_without_traceback(tmp_path: Path) -> No
     assert result.exit_code != 0
     assert "invalid planning event" in result.output
     assert "Traceback" not in result.output
+
+
+def test_agent_run_validates_assets_before_creating_state_db(tmp_path: Path) -> None:
+    invalid_course = tmp_path / "invalid-course.yaml"
+    invalid_course.write_text("not: a-course-graph\n", encoding="utf-8")
+    state_db = tmp_path / "state.sqlite3"
+
+    result = runner.invoke(
+        app,
+        [
+            "agent-run",
+            "--event-file",
+            "examples/agents/initialize_event.json",
+            "--thread-id",
+            "invalid-assets",
+            "--course-file",
+            str(invalid_course),
+            "--state-db",
+            str(state_db),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert not state_db.exists()
+
+
+def test_agent_run_prints_failed_result_and_exits_three(tmp_path: Path) -> None:
+    payload = json.loads(
+        Path("examples/agents/initialize_event.json").read_text(encoding="utf-8")
+    )
+    payload["profile"]["graph_version"] = "ai-course-v2"
+    event_file = tmp_path / "mismatched-graph.json"
+    event_file.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "agent-run",
+            "--event-file",
+            str(event_file),
+            "--thread-id",
+            "failed-result",
+        ],
+    )
+
+    assert result.exit_code == 3
+    output = json.loads(result.stdout)
+    assert output["status"] == "failed"
+    assert output["failure"]["code"] == "planning_error"

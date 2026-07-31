@@ -40,6 +40,7 @@ from .runtime import (
     build_standalone_course_planning_agent,
     load_planning_event,
     run_standalone_event,
+    validate_standalone_agent_paths,
 )
 
 __all__ = [
@@ -78,5 +79,6 @@ __all__ = [
     "create_course_plan_tool",
     "load_planning_event",
     "run_standalone_event",
+    "validate_standalone_agent_paths",
     "update_course_plan_tool",
 ]

@@ -16,6 +16,7 @@ from skillforge_kb.agents.runtime import (
     StandaloneAgentPaths,
     load_planning_event,
     run_standalone_event,
+    validate_standalone_agent_paths,
 )
 from skillforge_kb.config import Settings
 from skillforge_kb.evaluation import (
@@ -142,6 +143,7 @@ def agent_run(
     )
     try:
         event = load_planning_event(event_file)
+        validate_standalone_agent_paths(paths)
         if state_db is not None:
             state_db = _output_path_outside_inputs(state_db, *input_paths)
         if output_file is not None:

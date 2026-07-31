@@ -13,6 +13,7 @@ from skillforge_kb.agents.planning_agent_models import (
 )
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.concept_attributes import load_concept_attributes
+from skillforge_kb.ontology.validation import validate_catalog
 from skillforge_kb.retrieval.bm25 import Bm25KnowledgeRetriever
 from skillforge_kb.retrieval.corpus import KnowledgeCorpus
 from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
@@ -49,6 +50,7 @@ def build_standalone_course_planning_agent(
     checkpointer: BaseCheckpointSaver[Any] | None = None,
 ) -> CoursePlanningAgent:
     catalog = OntologyCatalog.load(paths.course_file, paths.relations_file)
+    validate_catalog(catalog)
     attributes = load_concept_attributes(catalog, paths.attributes_file)
     corpus = KnowledgeCorpus.load(paths.knowledge_file)
     retriever = Bm25KnowledgeRetriever(corpus)
@@ -58,6 +60,13 @@ def build_standalone_course_planning_agent(
         knowledge_tool=KnowledgeRetrievalTool(retriever),
         checkpointer=checkpointer,
     )
+
+
+def validate_standalone_agent_paths(paths: StandaloneAgentPaths) -> None:
+    catalog = OntologyCatalog.load(paths.course_file, paths.relations_file)
+    validate_catalog(catalog)
+    load_concept_attributes(catalog, paths.attributes_file)
+    KnowledgeCorpus.load(paths.knowledge_file)
 
 
 def run_standalone_event(
