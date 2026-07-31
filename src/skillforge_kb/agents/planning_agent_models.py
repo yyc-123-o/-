@@ -11,6 +11,7 @@ from skillforge_kb.ontology.models import (
 )
 from skillforge_kb.planning.adaptation import NodeAdaptationDecision
 from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus
+from skillforge_kb.retrieval.models import KnowledgeRetrievalResult
 
 from .planning_tools import PlanningToolAudit
 
@@ -108,6 +109,7 @@ class CoursePlanningAgentState(TypedDict, total=False):
     processed_events: tuple[ProcessedPlanningEvent, ...]
     last_event_id: str | None
     event_duplicate: bool
+    knowledge_context: KnowledgeRetrievalResult | None
     planning_audit: PlanningToolAudit | None
     failure: PlanningAgentFailure | None
     candidate_profile: LearnerProfileSnapshot | None
@@ -129,6 +131,7 @@ class CoursePlanningAgentResult(BaseModel):
     current_node: PathNode | None = None
     current_adaptation: NodeAdaptationDecision | None = None
     adaptations: tuple[NodeAdaptationDecision, ...] = ()
+    knowledge_context: KnowledgeRetrievalResult | None = None
     planning_audit: PlanningToolAudit | None = None
     failure: PlanningAgentFailure | None = None
     last_event_id: str | None = Field(
@@ -144,6 +147,8 @@ class CoursePlanningAgentResult(BaseModel):
                 raise ValueError("idle result cannot contain a path")
             if self.adaptations or self.current_node or self.current_adaptation:
                 raise ValueError("idle result cannot contain planning decisions")
+            if self.knowledge_context is not None:
+                raise ValueError("idle result cannot contain knowledge context")
             if self.next_action is not PlanningNextAction.WAIT_FOR_EVENT:
                 raise ValueError("idle result must wait for an event")
 
@@ -153,6 +158,8 @@ class CoursePlanningAgentResult(BaseModel):
         if self.path is None:
             if self.adaptations:
                 raise ValueError("adaptations require a path")
+            if self.knowledge_context is not None:
+                raise ValueError("knowledge context requires a path")
         else:
             expected_ids = tuple(
                 node.concept_id
@@ -206,6 +213,8 @@ class CoursePlanningAgentResult(BaseModel):
             raise ValueError("completed result requires a finished path")
         if self.current_node is not None or self.current_adaptation is not None:
             raise ValueError("completed result cannot contain a current node")
+        if self.knowledge_context is not None:
+            raise ValueError("completed result cannot contain knowledge context")
         if self.next_action is not PlanningNextAction.COURSE_COMPLETE:
             raise ValueError("completed result must mark the course complete")
 

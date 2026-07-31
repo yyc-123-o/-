@@ -1,3 +1,9 @@
+from skillforge_kb.retrieval import (
+    Bm25KnowledgeRetriever,
+    KnowledgeCorpus,
+    KnowledgeRetrievalTool,
+)
+
 from .planning_agent import CoursePlanningAgent, build_course_planning_graph
 from .planning_agent_models import (
     CoursePlanningAgentResult,
@@ -37,6 +43,9 @@ __all__ = [
     "CoursePlanningState",
     "CreateCoursePlanInput",
     "FakeResourceGenerator",
+    "Bm25KnowledgeRetriever",
+    "KnowledgeCorpus",
+    "KnowledgeRetrievalTool",
     "PlanningAgentEvent",
     "PlanningAgentFailure",
     "PlanningAgentFailureCode",

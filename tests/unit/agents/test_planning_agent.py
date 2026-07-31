@@ -20,6 +20,13 @@ from skillforge_kb.ontology.models import (
     LearnerProfileSnapshot,
 )
 from skillforge_kb.planning.models import PathStatus
+from skillforge_kb.retrieval.models import (
+    KnowledgeHit,
+    KnowledgeQuery,
+    KnowledgeRetrievalResult,
+    KnowledgeRetrievalStatus,
+)
+from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
 
 def event_id(label: str) -> str:
@@ -42,6 +49,47 @@ def agent(catalog) -> CoursePlanningAgent:
     root = Path(__file__).parents[3] / "resources" / "ontology"
     attributes = load_concept_attributes(catalog, root / "concept_attributes_v1.yaml")
     return CoursePlanningAgent.create(catalog, attributes)
+
+
+@pytest.fixture
+def agent_factory(catalog):
+    root = Path(__file__).parents[3] / "resources" / "ontology"
+    attributes = load_concept_attributes(catalog, root / "concept_attributes_v1.yaml")
+
+    def build(knowledge_tool: KnowledgeRetrievalTool | None = None) -> CoursePlanningAgent:
+        return CoursePlanningAgent.create(catalog, attributes, knowledge_tool=knowledge_tool)
+
+    return build
+
+
+class RecordingRetriever:
+    def __init__(self) -> None:
+        self.queries: list[KnowledgeQuery] = []
+
+    def retrieve(self, query: KnowledgeQuery) -> KnowledgeRetrievalResult:
+        self.queries.append(query)
+        return KnowledgeRetrievalResult(
+            status=KnowledgeRetrievalStatus.OK,
+            query=query,
+            concept_id=query.concept_id,
+            corpus_digest="1" * 64,
+            hits=(
+                KnowledgeHit(
+                    chunk_id="candidate-1",
+                    doc_id="doc-1",
+                    source_title="RAG",
+                    heading_path=("检索增强生成",),
+                    text="candidate context",
+                    difficulty="进阶",
+                    score=1.0,
+                ),
+            ),
+        )
+
+
+class BrokenRetriever:
+    def retrieve(self, query: KnowledgeQuery) -> KnowledgeRetrievalResult:
+        raise RuntimeError("index unavailable")
 
 
 def initialize_event(
@@ -139,6 +187,81 @@ def test_initialize_builds_a_ready_path(agent, profile) -> None:
         if node.status not in {PathStatus.COMPLETED, PathStatus.SKIPPED}
     )
     assert tuple(item.concept_id for item in result.adaptations) == unfinished
+
+
+def test_connected_agent_retrieves_without_changing_path(
+    agent_factory,
+    profile,
+) -> None:
+    plain = agent_factory()
+    expected = plain.invoke(initialize_event(profile), thread_id="plain")
+    backend = RecordingRetriever()
+    connected = agent_factory(KnowledgeRetrievalTool(backend))
+
+    actual = connected.invoke(initialize_event(profile), thread_id="connected")
+
+    assert len(backend.queries) == 1
+    assert actual.knowledge_context is not None
+    assert actual.knowledge_context.status is KnowledgeRetrievalStatus.OK
+    assert actual.path is not None and expected.path is not None
+    assert actual.path.path_id == expected.path.path_id
+    assert actual.path.nodes == expected.path.nodes
+    assert actual.adaptations == expected.adaptations
+
+
+def test_completion_retrieves_the_new_current_node(agent_factory, profile) -> None:
+    backend = RecordingRetriever()
+    connected = agent_factory(KnowledgeRetrievalTool(backend))
+
+    initial = connected.invoke(initialize_event(profile), thread_id="student")
+    assert initial.current_node is not None
+    updated = connected.invoke(
+        completion_event(initial.current_node.concept_id),
+        thread_id="student",
+    )
+
+    assert len(backend.queries) == 2
+    assert backend.queries[0].concept_id != backend.queries[1].concept_id
+    assert updated.current_node is not None
+    assert updated.current_node.concept_id == backend.queries[1].concept_id
+
+
+def test_duplicate_event_reuses_knowledge_context_without_retrieval(
+    agent_factory,
+    profile,
+) -> None:
+    backend = RecordingRetriever()
+    connected = agent_factory(KnowledgeRetrievalTool(backend))
+    event = initialize_event(profile)
+
+    first = connected.invoke(event, thread_id="student")
+    duplicate = connected.invoke(event, thread_id="student")
+
+    assert len(backend.queries) == 1
+    assert duplicate.event_duplicate is True
+    assert duplicate.knowledge_context == first.knowledge_context
+
+
+def test_retrieval_failure_keeps_agent_ready(agent_factory, profile) -> None:
+    result = agent_factory(KnowledgeRetrievalTool(BrokenRetriever())).invoke(
+        initialize_event(profile),
+        thread_id="broken",
+    )
+
+    assert result.status is PlanningAgentStatus.READY
+    assert result.knowledge_context is not None
+    assert result.knowledge_context.status is KnowledgeRetrievalStatus.UNAVAILABLE
+    assert result.failure is None
+
+
+def test_reset_clears_knowledge_context(agent_factory, profile) -> None:
+    backend = RecordingRetriever()
+    connected = agent_factory(KnowledgeRetrievalTool(backend))
+    connected.invoke(initialize_event(profile), thread_id="student")
+
+    result = connected.invoke(reset_event(), thread_id="student")
+
+    assert result.knowledge_context is None
 
 
 def test_update_before_initialize_returns_failure(agent, profile) -> None:
@@ -391,3 +514,4 @@ def test_agent_is_available_from_public_agents_api() -> None:
     assert agents.PlanningAgentEvent is PlanningAgentEvent
     assert agents.PlanningAgentStatus is PlanningAgentStatus
     assert agents.PlanningEventKind is PlanningEventKind
+    assert agents.KnowledgeRetrievalTool is KnowledgeRetrievalTool

@@ -12,8 +12,10 @@ from pydantic import TypeAdapter, ValidationError
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.concept_attributes import ConceptAttributeCatalog
 from skillforge_kb.planning.adaptation import NodeWeightEngine, NodeWeightPolicy
-from skillforge_kb.planning.models import PathDecision, PathStatus, PlannerPolicy
+from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus, PlannerPolicy
 from skillforge_kb.planning.ordering import PlanningError
+from skillforge_kb.retrieval.models import KnowledgeQuery
+from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
 from .planning_agent_models import (
     CoursePlanningAgentResult,
@@ -43,6 +45,34 @@ PlanningGraph = CompiledStateGraph[
 _STATE_ADAPTER = TypeAdapter(CoursePlanningAgentState)
 
 
+def build_knowledge_query(
+    catalog: OntologyCatalog,
+    node: PathNode,
+) -> KnowledgeQuery:
+    concept = catalog.get_concept(node.concept_id)
+    section = catalog.section_for(node.concept_id)
+    chapter = next(item for item in catalog.chapters() if item.id == section.chapter_id)
+    parts = [
+        concept.names.zh,
+        concept.names.en,
+        *concept.aliases,
+        concept.summary,
+        section.title.zh,
+        section.title.en,
+        chapter.title.zh,
+        chapter.title.en,
+        *concept.levels[0].learning_outcomes,
+    ]
+    if node.delivery_depth is not None:
+        level = next(
+            item for item in concept.levels if item.level is node.delivery_depth
+        )
+        parts.extend(level.learning_outcomes)
+        parts.append(node.delivery_depth.value)
+    query = " ".join(part for part in parts if part.strip())
+    return KnowledgeQuery(query=query, concept_id=node.concept_id)
+
+
 class _Route(StrEnum):
     CREATE = "create"
     UPDATE = "update"
@@ -56,6 +86,11 @@ class _AfterPath(StrEnum):
     FAILURE = "failure"
 
 
+class _AfterSelection(StrEnum):
+    RETRIEVE = "retrieve"
+    DONE = "done"
+
+
 class CoursePlanningAgent:
     def __init__(self, graph: PlanningGraph) -> None:
         self._graph = graph
@@ -67,6 +102,8 @@ class CoursePlanningAgent:
         attributes: ConceptAttributeCatalog,
         planner_policy: PlannerPolicy | None = None,
         node_weight_policy: NodeWeightPolicy | None = None,
+        *,
+        knowledge_tool: KnowledgeRetrievalTool | None = None,
     ) -> "CoursePlanningAgent":
         return cls(
             build_course_planning_graph(
@@ -74,6 +111,7 @@ class CoursePlanningAgent:
                 attributes,
                 planner_policy,
                 node_weight_policy,
+                knowledge_tool=knowledge_tool,
             )
         )
 
@@ -127,6 +165,9 @@ class CoursePlanningAgent:
                 previous.current_adaptation if previous is not None else None
             ),
             adaptations=previous.adaptations if previous is not None else (),
+            knowledge_context=(
+                previous.knowledge_context if previous is not None else None
+            ),
             planning_audit=(
                 previous.planning_audit if previous is not None else None
             ),
@@ -146,6 +187,7 @@ def build_course_planning_graph(
     planner_policy: PlannerPolicy | None = None,
     node_weight_policy: NodeWeightPolicy | None = None,
     *,
+    knowledge_tool: KnowledgeRetrievalTool | None = None,
     checkpointer: InMemorySaver | None = None,
 ) -> PlanningGraph:
     create_tool = create_course_plan_tool(catalog, planner_policy)
@@ -348,6 +390,24 @@ def build_course_planning_graph(
             current_node_id=current.concept_id,
         )
 
+    def retrieve_current_node_knowledge(
+        state: CoursePlanningAgentState,
+    ) -> CoursePlanningAgentState:
+        if knowledge_tool is None:
+            return {"knowledge_context": None}
+        path = state.get("path")
+        current_node_id = state.get("current_node_id")
+        if path is None or current_node_id is None:
+            return {"knowledge_context": None}
+        current_node = next(
+            (node for node in path.nodes if node.concept_id == current_node_id),
+            None,
+        )
+        if current_node is None:
+            return {"knowledge_context": None}
+        query = build_knowledge_query(catalog, current_node)
+        return {"knowledge_context": knowledge_tool.invoke(query)}
+
     def reset_state(state: CoursePlanningAgentState) -> CoursePlanningAgentState:
         event = state["event"]
         processed = _append_processed_event(state, event)
@@ -359,6 +419,7 @@ def build_course_planning_graph(
             "current_node_id": None,
             "status": PlanningAgentStatus.IDLE,
             "next_action": PlanningNextAction.WAIT_FOR_EVENT,
+            "knowledge_context": None,
             "processed_events": processed,
             "last_event_id": event.event_id,
             "event_duplicate": False,
@@ -369,6 +430,9 @@ def build_course_planning_graph(
             "candidate_adaptations": (),
             "candidate_audit": None,
         }
+
+    def after_selection(state: CoursePlanningAgentState) -> str:
+        return _after_selection(state, knowledge_tool)
 
     builder: StateGraph[
         CoursePlanningAgentState,
@@ -381,6 +445,7 @@ def build_course_planning_graph(
     builder.add_node("update_path", update_path)
     builder.add_node("recompute_adaptations", recompute_adaptations)
     builder.add_node("select_current_node", select_current_node)
+    builder.add_node("retrieve_current_node_knowledge", retrieve_current_node_knowledge)
     builder.add_node("reset_state", reset_state)
     builder.add_edge(START, "route_event")
     builder.add_conditional_edges(
@@ -418,7 +483,15 @@ def build_course_planning_graph(
             _AfterPath.FAILURE.value: END,
         },
     )
-    builder.add_edge("select_current_node", END)
+    builder.add_conditional_edges(
+        "select_current_node",
+        after_selection,
+        {
+            _AfterSelection.RETRIEVE.value: "retrieve_current_node_knowledge",
+            _AfterSelection.DONE.value: END,
+        },
+    )
+    builder.add_edge("retrieve_current_node_knowledge", END)
     builder.add_edge("reset_state", END)
     return builder.compile(checkpointer=checkpointer or InMemorySaver())
 
@@ -431,6 +504,15 @@ def _after_path(state: CoursePlanningAgentState) -> str:
     if state.get("failure") is not None:
         return _AfterPath.FAILURE.value
     return _AfterPath.ADAPT.value
+
+
+def _after_selection(
+    state: CoursePlanningAgentState,
+    knowledge_tool: KnowledgeRetrievalTool | None,
+) -> str:
+    if knowledge_tool is not None and state.get("status") is PlanningAgentStatus.READY:
+        return _AfterSelection.RETRIEVE.value
+    return _AfterSelection.DONE.value
 
 
 def _failure_update(
@@ -488,6 +570,7 @@ def _commit_candidate(
         "current_node_id": current_node_id,
         "status": status,
         "next_action": next_action,
+        "knowledge_context": None,
         "processed_events": _append_processed_event(state, event),
         "last_event_id": event.event_id,
         "event_duplicate": False,
@@ -547,6 +630,7 @@ def _build_result(
         current_node=current_node,
         current_adaptation=current_adaptation,
         adaptations=adaptations,
+        knowledge_context=values.get("knowledge_context"),
         planning_audit=values.get("planning_audit"),
         failure=values.get("failure"),
         last_event_id=values.get("last_event_id"),
