@@ -21,6 +21,7 @@ dependencies = [
   "tenacity>=9.1,<10",
   "structlog>=25.4,<26",
   "langgraph>=0.6,<1",
+  "langgraph-checkpoint-sqlite>=3,<4",
 ]
 
 [project.scripts]

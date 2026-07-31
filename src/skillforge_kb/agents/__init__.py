@@ -35,12 +35,19 @@ from .planning_tools import (
     update_course_plan_tool,
 )
 from .resource_tools import FakeResourceGenerator, ResourceGenerationTool
+from .runtime import (
+    StandaloneAgentPaths,
+    build_standalone_course_planning_agent,
+    load_planning_event,
+    run_standalone_event,
+)
 
 __all__ = [
     "CoursePlanningAgent",
     "CoursePlanningAgentResult",
     "CoursePlanningAgentState",
     "CoursePlanningState",
+    "StandaloneAgentPaths",
     "CreateCoursePlanInput",
     "FakeResourceGenerator",
     "Bm25KnowledgeRetriever",
@@ -63,10 +70,13 @@ __all__ = [
     "UpdateCoursePlanInput",
     "build_create_course_plan_node",
     "build_course_planning_graph",
+    "build_standalone_course_planning_agent",
     "build_event_digest",
     "build_request_digest",
     "build_result_digest",
     "build_update_course_plan_node",
     "create_course_plan_tool",
+    "load_planning_event",
+    "run_standalone_event",
     "update_course_plan_tool",
 ]

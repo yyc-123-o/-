@@ -2,8 +2,10 @@ import re
 from collections.abc import Mapping
 from enum import StrEnum
 from hashlib import sha256
+from typing import Any
 
 from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
@@ -108,6 +110,7 @@ class CoursePlanningAgent:
         node_weight_policy: NodeWeightPolicy | None = None,
         *,
         knowledge_tool: KnowledgeRetrievalTool | None = None,
+        checkpointer: BaseCheckpointSaver[Any] | None = None,
     ) -> "CoursePlanningAgent":
         return cls(
             build_course_planning_graph(
@@ -116,6 +119,7 @@ class CoursePlanningAgent:
                 planner_policy,
                 node_weight_policy,
                 knowledge_tool=knowledge_tool,
+                checkpointer=checkpointer,
             )
         )
 
@@ -192,7 +196,7 @@ def build_course_planning_graph(
     node_weight_policy: NodeWeightPolicy | None = None,
     *,
     knowledge_tool: KnowledgeRetrievalTool | None = None,
-    checkpointer: InMemorySaver | None = None,
+    checkpointer: BaseCheckpointSaver[Any] | None = None,
 ) -> PlanningGraph:
     create_tool = create_course_plan_tool(catalog, planner_policy)
     update_tool = update_course_plan_tool(catalog, planner_policy)
@@ -497,7 +501,9 @@ def build_course_planning_graph(
     )
     builder.add_edge("retrieve_current_node_knowledge", END)
     builder.add_edge("reset_state", END)
-    return builder.compile(checkpointer=checkpointer or InMemorySaver())
+    return builder.compile(
+        checkpointer=checkpointer if checkpointer is not None else InMemorySaver()
+    )
 
 
 def _route_from_state(state: CoursePlanningAgentState) -> str:
