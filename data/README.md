@@ -25,3 +25,6 @@ source is published, record its canonical URL, version, license status, locator,
 hash, language, concept labels, and human review state in the governed storage layer.
 
 The `learning_evidence`, `agent_engineering`, and `project_material` domains remain separate during retrieval. Project and agent-engineering materials are not part of the default teaching evidence query.
+
+See the [standalone course-planning Agent runbook](../docs/runbooks/standalone-course-planning-agent.md)
+for the candidate snapshot's local runtime usage and governance boundary.
