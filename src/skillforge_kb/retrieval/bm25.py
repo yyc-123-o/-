@@ -31,8 +31,11 @@ class Bm25KnowledgeRetriever:
         self._term_frequencies = tuple(
             Counter(_tokenize(_search_text(chunk))) for chunk in corpus.chunks
         )
-        self._document_tokens = tuple(
-            _tokenize(_search_text(chunk)) for chunk in corpus.chunks
+        self._label_tokens = tuple(
+            _tokenize(_label_text(chunk)) for chunk in corpus.chunks
+        )
+        self._body_tokens = tuple(
+            _tokenize(chunk.text) for chunk in corpus.chunks
         )
         self._document_lengths = tuple(
             sum(frequencies.values()) for frequencies in self._term_frequencies
@@ -71,15 +74,17 @@ class Bm25KnowledgeRetriever:
         anchor_sequences = tuple(
             tokens for anchor in query.anchors if (tokens := _tokenize(anchor))
         )
-        for chunk, frequencies, document_length, document_tokens in zip(
+        for chunk, frequencies, document_length, label_tokens, body_tokens in zip(
             self._corpus.chunks,
             self._term_frequencies,
             self._document_lengths,
-            self._document_tokens,
+            self._label_tokens,
+            self._body_tokens,
             strict=True,
         ):
             if anchor_sequences and not any(
-                _contains_sequence(document_tokens, anchor_tokens)
+                _contains_sequence(label_tokens, anchor_tokens)
+                or _count_sequence(body_tokens, anchor_tokens) >= 2
                 for anchor_tokens in anchor_sequences
             ):
                 continue
@@ -131,13 +136,23 @@ def _search_text(chunk: KnowledgeChunk) -> str:
     return " ".join((chunk.source_title, *chunk.heading_path, chunk.text))
 
 
+def _label_text(chunk: KnowledgeChunk) -> str:
+    return " ".join((chunk.source_title, *chunk.heading_path))
+
+
 def _tokenize(text: str) -> tuple[str, ...]:
     return tuple(match.casefold() for match in _TOKEN_PATTERN.findall(text))
 
 
 def _contains_sequence(tokens: tuple[str, ...], sequence: tuple[str, ...]) -> bool:
+    return _count_sequence(tokens, sequence) > 0
+
+
+def _count_sequence(tokens: tuple[str, ...], sequence: tuple[str, ...]) -> int:
     width = len(sequence)
-    return width > 0 and any(
+    if width == 0:
+        return 0
+    return sum(
         tokens[index : index + width] == sequence
         for index in range(len(tokens) - width + 1)
     )

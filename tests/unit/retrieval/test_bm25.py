@@ -42,6 +42,28 @@ def corpus(tmp_path: Path) -> KnowledgeCorpus:
             "difficulty": "进阶",
             "token_count": 20,
         },
+        {
+            "chunk_id": "scalar-mention",
+            "doc_id": "d4",
+            "source_title": "Attention",
+            "heading_path": ["Scoring"],
+            "text": "Attention produces a scalar score for each token.",
+            "page_no": None,
+            "domain_tag": "ai-knowledge",
+            "difficulty": "进阶",
+            "token_count": 20,
+        },
+        {
+            "chunk_id": "scalar-guide",
+            "doc_id": "d5",
+            "source_title": "Linear Algebra",
+            "heading_path": ["Number systems"],
+            "text": "A scalar is a single value. Scalar values scale vectors.",
+            "page_no": None,
+            "domain_tag": "ai-knowledge",
+            "difficulty": "入门",
+            "token_count": 20,
+        },
     ]
     path.write_text(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
@@ -94,3 +116,12 @@ def test_bm25_without_anchors_preserves_generic_behavior(tmp_path: Path) -> None
 
     assert result.status is KnowledgeRetrievalStatus.OK
     assert result.hits[0].chunk_id == "lora"
+
+
+def test_body_anchor_must_be_repeated_to_show_concept_focus(tmp_path: Path) -> None:
+    result = Bm25KnowledgeRetriever(corpus(tmp_path)).retrieve(
+        KnowledgeQuery(query="scalar score value", anchors=("scalar",), top_k=5)
+    )
+
+    assert result.status is KnowledgeRetrievalStatus.OK
+    assert [hit.chunk_id for hit in result.hits] == ["scalar-guide"]
