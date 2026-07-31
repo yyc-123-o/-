@@ -31,6 +31,9 @@ class Bm25KnowledgeRetriever:
         self._term_frequencies = tuple(
             Counter(_tokenize(_search_text(chunk))) for chunk in corpus.chunks
         )
+        self._document_tokens = tuple(
+            _tokenize(_search_text(chunk)) for chunk in corpus.chunks
+        )
         self._document_lengths = tuple(
             sum(frequencies.values()) for frequencies in self._term_frequencies
         )
@@ -65,12 +68,21 @@ class Bm25KnowledgeRetriever:
             )
 
         scored: list[tuple[float, str, KnowledgeChunk]] = []
-        for chunk, frequencies, document_length in zip(
+        anchor_sequences = tuple(
+            tokens for anchor in query.anchors if (tokens := _tokenize(anchor))
+        )
+        for chunk, frequencies, document_length, document_tokens in zip(
             self._corpus.chunks,
             self._term_frequencies,
             self._document_lengths,
+            self._document_tokens,
             strict=True,
         ):
+            if anchor_sequences and not any(
+                _contains_sequence(document_tokens, anchor_tokens)
+                for anchor_tokens in anchor_sequences
+            ):
+                continue
             score = self._score(query_terms, frequencies, document_length)
             if score > 0:
                 scored.append((score, chunk.chunk_id, chunk))
@@ -121,6 +133,14 @@ def _search_text(chunk: KnowledgeChunk) -> str:
 
 def _tokenize(text: str) -> tuple[str, ...]:
     return tuple(match.casefold() for match in _TOKEN_PATTERN.findall(text))
+
+
+def _contains_sequence(tokens: tuple[str, ...], sequence: tuple[str, ...]) -> bool:
+    width = len(sequence)
+    return width > 0 and any(
+        tokens[index : index + width] == sequence
+        for index in range(len(tokens) - width + 1)
+    )
 
 
 def _to_hit(score: float, chunk: KnowledgeChunk) -> KnowledgeHit:

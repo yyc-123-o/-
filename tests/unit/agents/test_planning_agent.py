@@ -192,6 +192,7 @@ def test_initialize_builds_a_ready_path(agent, profile) -> None:
 def test_connected_agent_retrieves_without_changing_path(
     agent_factory,
     profile,
+    catalog,
 ) -> None:
     plain = agent_factory()
     expected = plain.invoke(initialize_event(profile), thread_id="plain")
@@ -201,6 +202,10 @@ def test_connected_agent_retrieves_without_changing_path(
     actual = connected.invoke(initialize_event(profile), thread_id="connected")
 
     assert len(backend.queries) == 1
+    assert actual.current_node is not None
+    concept = catalog.get_concept(actual.current_node.concept_id)
+    assert backend.queries[0].anchors == (concept.names.zh, concept.names.en)
+    assert not set(concept.aliases).intersection(backend.queries[0].anchors)
     assert actual.knowledge_context is not None
     assert actual.knowledge_context.status is KnowledgeRetrievalStatus.OK
     assert actual.path is not None and expected.path is not None

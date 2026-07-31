@@ -31,6 +31,17 @@ def corpus(tmp_path: Path) -> KnowledgeCorpus:
             "difficulty": "进阶",
             "token_count": 20,
         },
+        {
+            "chunk_id": "storage",
+            "doc_id": "d3",
+            "source_title": "Storage",
+            "heading_path": [],
+            "text": "Storage systems persist data for later retrieval.",
+            "page_no": None,
+            "domain_tag": "systems",
+            "difficulty": "进阶",
+            "token_count": 20,
+        },
     ]
     path.write_text(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
@@ -57,3 +68,29 @@ def test_bm25_returns_no_results_for_unknown_terms(tmp_path: Path) -> None:
 
     assert result.status is KnowledgeRetrievalStatus.NO_RESULTS
     assert result.hits == ()
+
+
+def test_bm25_anchor_does_not_match_substrings(tmp_path: Path) -> None:
+    result = Bm25KnowledgeRetriever(corpus(tmp_path)).retrieve(
+        KnowledgeQuery(query="RAG", anchors=("RAG",), top_k=5)
+    )
+
+    assert result.status is KnowledgeRetrievalStatus.OK
+    assert [hit.chunk_id for hit in result.hits] == ["rag"]
+
+
+def test_bm25_anchor_miss_returns_no_results(tmp_path: Path) -> None:
+    result = Bm25KnowledgeRetriever(corpus(tmp_path)).retrieve(
+        KnowledgeQuery(query="数学标量", anchors=("不存在的正式概念",))
+    )
+
+    assert result.status is KnowledgeRetrievalStatus.NO_RESULTS
+
+
+def test_bm25_without_anchors_preserves_generic_behavior(tmp_path: Path) -> None:
+    result = Bm25KnowledgeRetriever(corpus(tmp_path)).retrieve(
+        KnowledgeQuery(query="LoRA")
+    )
+
+    assert result.status is KnowledgeRetrievalStatus.OK
+    assert result.hits[0].chunk_id == "lora"

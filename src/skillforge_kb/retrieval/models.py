@@ -46,6 +46,7 @@ class KnowledgeQuery(BaseModel):
     query: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1, le=20)
     concept_id: str | None = Field(default=None, min_length=1)
+    anchors: tuple[str, ...] = ()
 
     @field_validator("query")
     @classmethod
@@ -53,6 +54,23 @@ class KnowledgeQuery(BaseModel):
         if not value.strip():
             raise ValueError("query must not be blank")
         return value
+
+    @field_validator("anchors", mode="before")
+    @classmethod
+    def normalize_anchors(cls, value: object) -> tuple[str, ...]:
+        if not isinstance(value, (list, tuple)):
+            raise ValueError("anchors must be a list of strings")
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            if not isinstance(item, str) or not item.strip():
+                raise ValueError("anchors must contain non-empty strings")
+            anchor = item.strip()
+            key = anchor.casefold()
+            if key not in seen:
+                normalized.append(anchor)
+                seen.add(key)
+        return tuple(normalized)
 
 
 class KnowledgeHit(BaseModel):

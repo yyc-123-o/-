@@ -70,7 +70,11 @@ def build_knowledge_query(
         parts.extend(level.learning_outcomes)
         parts.append(node.delivery_depth.value)
     query = " ".join(part for part in parts if part.strip())
-    return KnowledgeQuery(query=query, concept_id=node.concept_id)
+    return KnowledgeQuery(
+        query=query,
+        concept_id=node.concept_id,
+        anchors=(concept.names.zh, concept.names.en),
+    )
 
 
 class _Route(StrEnum):
