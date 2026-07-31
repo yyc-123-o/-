@@ -14,6 +14,44 @@ from skillforge_kb.ingestion.normalize import sha256_text
 runner = CliRunner()
 
 
+def test_agent_run_prints_json() -> None:
+    result = runner.invoke(
+        app,
+        [
+            "agent-run",
+            "--event-file",
+            "examples/agents/initialize_event.json",
+            "--thread-id",
+            "cli-demo",
+        ],
+    )
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "ready"
+    assert payload["current_node"] is not None
+
+
+def test_agent_run_persists_duplicate_event(tmp_path: Path) -> None:
+    state_db = tmp_path / "agent.sqlite3"
+    args = [
+        "agent-run",
+        "--event-file",
+        "examples/agents/initialize_event.json",
+        "--thread-id",
+        "sqlite-demo",
+        "--state-db",
+        str(state_db),
+    ]
+
+    first = runner.invoke(app, args)
+    second = runner.invoke(app, args)
+
+    assert first.exit_code == 0
+    assert second.exit_code == 0
+    assert json.loads(second.stdout)["event_duplicate"] is True
+
+
 def test_fusion_dry_run_cli_writes_summary(tmp_path: Path) -> None:
     knowledge = tmp_path / "knowledge"
     processed = tmp_path / "processed"

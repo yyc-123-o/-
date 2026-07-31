@@ -1,13 +1,22 @@
 import json
+import os
+import sqlite3
+import tempfile
 from pathlib import Path
 from typing import Annotated
 
 import typer
 import yaml
+from langgraph.checkpoint.sqlite import SqliteSaver
 from neo4j import GraphDatabase
 from neo4j.exceptions import DriverError, Neo4jError
 from pydantic import ValidationError
 
+from skillforge_kb.agents.runtime import (
+    StandaloneAgentPaths,
+    load_planning_event,
+    run_standalone_event,
+)
 from skillforge_kb.config import Settings
 from skillforge_kb.evaluation import (
     DEFAULT_SYNTHETIC_CASE_COUNT,
@@ -30,6 +39,8 @@ app = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_COURSE_FILE = PROJECT_ROOT / "resources" / "ontology" / "ai_course_v1.yaml"
 DEFAULT_RELATIONS_FILE = PROJECT_ROOT / "resources" / "ontology" / "ai_relations_v1.yaml"
+DEFAULT_ATTRIBUTES_FILE = PROJECT_ROOT / "resources" / "ontology" / "concept_attributes_v1.yaml"
+DEFAULT_KNOWLEDGE_FILE = PROJECT_ROOT / "data" / "index_chunks.jsonl"
 
 
 @app.callback()
@@ -71,6 +82,101 @@ def _output_path_outside_inputs(output_path: Path, *input_paths: Path) -> Path:
     if any(resolved_output == input_path.resolve() for input_path in input_paths):
         raise typer.BadParameter("output must not overwrite a graph input")
     return resolved_output
+
+
+def _write_json_atomically(path: Path, payload: str) -> None:
+    resolved = path.resolve()
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=resolved.parent,
+            prefix=f".{resolved.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, resolved)
+    except OSError:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise
+
+
+@app.command("agent-run")
+def agent_run(
+    event_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    thread_id: Annotated[str, typer.Option()],
+    state_db: Annotated[Path | None, typer.Option()] = None,
+    output_file: Annotated[Path | None, typer.Option()] = None,
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+    attributes_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_ATTRIBUTES_FILE,
+    knowledge_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_KNOWLEDGE_FILE,
+) -> None:
+    paths = StandaloneAgentPaths(
+        course_file=course_file,
+        relations_file=relations_file,
+        attributes_file=attributes_file,
+        knowledge_file=knowledge_file,
+    )
+    input_paths = (
+        event_file,
+        paths.course_file,
+        paths.relations_file,
+        paths.attributes_file,
+        paths.knowledge_file,
+    )
+    try:
+        event = load_planning_event(event_file)
+        if state_db is not None:
+            state_db = _output_path_outside_inputs(state_db, *input_paths)
+        if output_file is not None:
+            output_file = _output_path_outside_inputs(output_file, *input_paths)
+            if state_db is not None and output_file == state_db:
+                raise typer.BadParameter("output_file must not overwrite state_db")
+        if state_db is None:
+            result = run_standalone_event(paths, event, thread_id)
+        else:
+            state_db.parent.mkdir(parents=True, exist_ok=True)
+            with SqliteSaver.from_conn_string(str(state_db)) as checkpointer:
+                result = run_standalone_event(
+                    paths,
+                    event,
+                    thread_id,
+                    checkpointer=checkpointer,
+                )
+    except typer.BadParameter:
+        raise
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        raise typer.BadParameter(f"agent-run configuration failed: {exc}") from exc
+
+    payload = json.dumps(
+        result.model_dump(mode="json"),
+        ensure_ascii=False,
+        sort_keys=True,
+    ) + "\n"
+    typer.echo(payload, nl=False)
+    if output_file is not None:
+        try:
+            _write_json_atomically(output_file, payload)
+        except OSError as exc:
+            raise typer.BadParameter(f"could not write output file: {exc}") from exc
+    if result.status.value == "failed":
+        raise typer.Exit(code=3)
 
 
 @app.command("graph-validate")
