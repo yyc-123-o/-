@@ -1,0 +1,182 @@
+{
+  "schema_version": "planning-agent-event.v1",
+  "event_id": "event_87dadca218d5a40d620c4707ac0a42684cb757a54ad84072d3cee0c300c21057",
+  "kind": "initialize",
+  "profile": {
+    "schema_version": "learner-profile.v1",
+    "profile_id": "PROFILE-2026-0001-DEMO",
+    "learner_ref": "55b246fc71fa05f2d826495e671442167e13151a77c7859c4bc6230a796d7a94",
+    "graph_version": "ai-course-v1",
+    "observed_at": "2026-08-01T10:00:00Z",
+    "generated_at": "2026-08-01T10:00:00Z",
+    "assessment_runs": [
+      "profile-2026-0001-demo:irt-2pl-mle"
+    ],
+    "knowledge_mastery": [
+      {
+        "concept_id": "math.linear-algebra.matrix-operations",
+        "mastery_score": 0.55,
+        "assessment_status": "assessed",
+        "confidence": 0.8,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_004"
+        ]
+      },
+      {
+        "concept_id": "math.calculus.derivative-gradient",
+        "mastery_score": 0.8,
+        "assessment_status": "assessed",
+        "confidence": 0.7,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_005"
+        ]
+      },
+      {
+        "concept_id": "ml.supervised.learning",
+        "mastery_score": 0.78,
+        "assessment_status": "assessed",
+        "confidence": 0.8,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_006"
+        ]
+      },
+      {
+        "concept_id": "ml.model-selection.cross-validation",
+        "mastery_score": 0.35,
+        "assessment_status": "assessed",
+        "confidence": 0.8,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_009"
+        ]
+      },
+      {
+        "concept_id": "ml.optimization.gradient-descent",
+        "mastery_score": 0.7,
+        "assessment_status": "assessed",
+        "confidence": 0.9,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_016"
+        ]
+      },
+      {
+        "concept_id": "dl.backpropagation",
+        "mastery_score": 0.35,
+        "assessment_status": "assessed",
+        "confidence": 0.7,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_017"
+        ]
+      },
+      {
+        "concept_id": "dl.optimization.adam",
+        "mastery_score": 0.55,
+        "assessment_status": "assessed",
+        "confidence": 0.9,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_018"
+        ]
+      },
+      {
+        "concept_id": "ml.objective.loss-function",
+        "mastery_score": 0.52,
+        "assessment_status": "assessed",
+        "confidence": 0.7,
+        "observed_at": "2026-08-01T10:00:00Z",
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_1_knowledge_mastery/kp_029"
+        ]
+      }
+    ],
+    "abilities": {
+      "theoretical_understanding": {
+        "score": 0.55,
+        "confidence": 0.9,
+        "assessment_run_id": "profile-2026-0001-demo:irt-2pl-mle"
+      },
+      "coding_ability": {
+        "score": 0.7,
+        "confidence": 0.9,
+        "assessment_run_id": "profile-2026-0001-demo:irt-2pl-mle"
+      },
+      "mathematical_foundation": {
+        "score": 0.62,
+        "confidence": 0.9,
+        "assessment_run_id": "profile-2026-0001-demo:irt-2pl-mle"
+      },
+      "problem_solving": {
+        "score": 0.55,
+        "confidence": 0.9,
+        "assessment_run_id": "profile-2026-0001-demo:irt-2pl-mle"
+      }
+    },
+    "error_patterns": [
+      {
+        "code": "concept_confusion",
+        "count": 8,
+        "ratio": 0.42,
+        "concept_ids": [
+          "ml.optimization.gradient-descent",
+          "dl.optimization.adam",
+          "dl.optimization.batch-normalization"
+        ],
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_3_error_patterns/concept_confusion"
+        ]
+      },
+      {
+        "code": "calculation_error",
+        "count": 5,
+        "ratio": 0.26,
+        "concept_ids": [
+          "dl.backpropagation"
+        ],
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_3_error_patterns/calculation_error"
+        ]
+      },
+      {
+        "code": "logic_jump",
+        "count": 4,
+        "ratio": 0.21,
+        "concept_ids": [],
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_3_error_patterns/logic_jump"
+        ]
+      },
+      {
+        "code": "ignored_condition",
+        "count": 2,
+        "ratio": 0.11,
+        "concept_ids": [],
+        "evidence_refs": [
+          "profile://PROFILE-2026-0001-DEMO/dimension_3_error_patterns/ignored_condition"
+        ]
+      }
+    ],
+    "preferences": {
+      "content_order": [
+        "概念直觉理解 → 数学推导 → 代码实战 → 面试考点"
+      ],
+      "code_language": "Python",
+      "framework": "PyTorch",
+      "presentation": [
+        "jupyter_notebook",
+        "visual",
+        "diagrams",
+        "math_formulas",
+        "step_by_step",
+        "comparison_tables"
+      ],
+      "pace_hours_per_week": 10,
+      "project_orientation": "project_driven"
+    }
+  },
+  "completed_concept_ids": []
+}
