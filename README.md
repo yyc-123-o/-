@@ -10,6 +10,7 @@ The repository currently contains:
 - Governed source acquisition and PDF/HTML loaders.
 - Deterministic normalization and pedagogical chunking.
 - A read-only fusion intake pipeline for the two teammate-built knowledge bases.
+- Deterministic candidate bindings from teammate knowledge chunks to reviewed course concepts.
 - A versioned bilingual AI course ontology with chapter/section structure, prerequisite DAG validation, three depth levels, and learner-profile adaptation contracts.
 - Immutable concept ability-demand and resource-blueprint catalogs covering all 140 concepts at three delivery depths.
 - A deterministic node-adaptation engine with auditable support/readiness contributions that never changes path order.
@@ -76,6 +77,14 @@ uv run skillforge-kb graph-publish
 `graph-coverage` is read-only over candidate JSONL, requires its report outside the input directory, and never publishes evidence edges. `graph-publish` validates the complete graph before opening the Neo4j connection.
 
 The graph commands use the versioned ontology assets under `resources/ontology` by default. Pass `--course-file` and `--relations-file` to validate another explicitly versioned catalog. Neo4j integration tests and `graph-publish` require a reachable Neo4j 5 instance; Docker is not required for unit tests or static validation.
+
+Build the candidate teaching-resource layer from the tracked teammate snapshot:
+
+```powershell
+uv run python scripts/build_concept_resource_bindings.py
+```
+
+This writes deterministic candidate edges and a coverage report under `reports/generated/concept-resource-bindings`. It does not change the curriculum ontology or publish evidence. See [`docs/runbooks/concept-resource-binding.md`](docs/runbooks/concept-resource-binding.md) for the matching and review policy.
 
 Learner profiles must be converted through the versioned `ProfileAdapter` and one-to-one legacy-ID mapping before the course planner consumes them. The adapter preserves abilities, error patterns, preferences, assessment runs, and evidence references. The production legacy mapping is intentionally empty until the team supplies human-reviewed one-to-one IDs. Raw profile exports and teammate JSONL files stay outside Git; path decisions, resource-generation hints, and agent state are not part of the graph or profile snapshot.
 
