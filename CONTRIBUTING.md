@@ -97,4 +97,3 @@ Every algorithm PR must include:
 
 Use the repository Issue and Pull Request templates. A paper link or notebook without a
 tested package integration is reference material, not a completed algorithm task.
-

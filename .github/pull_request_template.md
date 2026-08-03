@@ -42,4 +42,3 @@ uv run mypy src/skillforge_kb
 ## Review Notes
 
 <!-- Call out contract changes, limitations, follow-up work, and rollback path. -->
-

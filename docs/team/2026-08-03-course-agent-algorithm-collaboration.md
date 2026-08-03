@@ -139,4 +139,3 @@ uv run mypy src/skillforge_kb
 ```
 
 详细分支、数据与 Pull Request 规则见仓库根目录 `CONTRIBUTING.md`。
-
