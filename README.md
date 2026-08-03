@@ -164,6 +164,17 @@ Raw PDFs, source repositories, teammate JSONL files, pickle indexes, FAISS index
 
 No candidate is considered publishable until its source, license, locator, normalized hash, concept labels, and human review state satisfy the governance policy.
 
+## Course-Agent Collaboration
+
+Course-planning Agent development is maintained on
+`feature/course-agent-kb-retrieval` until the integration pull request lands. Algorithm
+contributors should create one branch and pull request per task and keep the existing
+deterministic baseline as the fallback and comparison target.
+
+- See [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch, test, data, and review rules.
+- See [`docs/team/2026-08-03-course-agent-algorithm-collaboration.md`](docs/team/2026-08-03-course-agent-algorithm-collaboration.md) for open algorithm tasks, stable interfaces, metrics, and suggested ownership.
+- Use the repository Algorithm Task issue template and Pull Request template for new work.
+
 ## License
 
 The project code is released under the repository's chosen license. External papers, teaching materials, and teammate-provided documents retain their original rights and must be checked independently before redistribution.
