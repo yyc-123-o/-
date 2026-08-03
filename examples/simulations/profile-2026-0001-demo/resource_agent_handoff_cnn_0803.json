@@ -3,6 +3,7 @@
   "generated_at": "2026-08-03T22:42:26+08:00",
   "handoff_status": "blocked",
   "profile_id": "PROFILE-2026-0001-DEMO",
+  "learner_id": "LRN-2026-AI02",
   "path_id": "path_6d09613775f5b15f501f0f4433d3e4003e6a04144b41e1e2053c6dc5162d9af9",
   "graph_version": "ai-course-v1",
   "concept_id": "dl.cnn.convolution",
@@ -63,6 +64,10 @@
       "ready_for_intro",
       "hard_prerequisite_unassessed"
     ]
+  },
+  "node_order": {
+    "sequence": 58,
+    "order_basis": "path.nodes.sequence"
   },
   "learning_requirements": {
     "delivery_difficulty": "intro",
@@ -250,6 +255,14 @@
   "retrieval_context": {
     "request": {
       "query": "卷积运算 CNN Conv2d padding stride 图像张量",
+      "rewritten_query": "卷积运算 CNN Conv2d padding stride 图像张量；goals:系统掌握深度学习，能独立完成CV方向项目；weak_concepts:卷积神经网络CNN,图像张量",
+      "learner_id": "LRN-2026-AI02",
+      "learner_profile": {
+        "level": "intermediate",
+        "weak_concepts": "卷积神经网络CNN 图像张量",
+        "goals": "系统掌握深度学习，能独立完成CV方向项目"
+      },
+      "difficulty_filter": "intro",
       "profile_id": "PROFILE-2026-0001-DEMO",
       "concept_id": "dl.cnn.convolution",
       "depth": "intro",
@@ -370,6 +383,20 @@
         "fit_note": "只适合后续对比，不适合作为本节点的主证据。"
       }
     ],
+    "concept_evidence": {
+      "dl.cnn.convolution": {
+        "depth": "intro",
+        "published": [],
+        "candidates": [
+          "20f6821d0faa-c14",
+          "20f6821d0faa-c13",
+          "20f6821d0faa-c11",
+          "b0910db08b80-c3",
+          "7a829df627ba-c15"
+        ],
+        "evidence_status": "candidate_only"
+      }
+    },
     "evidence_summary": {
       "published_count": 0,
       "candidate_count": 5,

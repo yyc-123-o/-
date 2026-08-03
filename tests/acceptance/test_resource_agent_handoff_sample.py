@@ -33,6 +33,7 @@ def test_cnn_resource_handoff_is_identity_consistent_and_blocked() -> None:
     }
 
     assert handoff["profile_id"] == path["profile_id"]
+    assert handoff["learner_id"] == "LRN-2026-AI02"
     assert handoff["path_id"] == path["path_id"]
     assert handoff["graph_version"] == path["graph_version"]
     assert handoff["concept_id"] == node["concept_id"] == adaptation["concept_id"]
@@ -44,6 +45,10 @@ def test_cnn_resource_handoff_is_identity_consistent_and_blocked() -> None:
     assert current_node["chapter_id"] == node["chapter_id"]
     assert current_node["section_id"] == node["section_id"]
     assert current_node["sequence"] == node["sequence"] == 58
+    assert handoff["node_order"] == {
+        "sequence": 58,
+        "order_basis": "path.nodes.sequence",
+    }
     assert current_node["delivery_depth"] == handoff["depth"]
     assert current_node["status"] == node["status"] == "blocked"
     assert current_node["blocking_prerequisite_ids"] == [
@@ -56,6 +61,13 @@ def test_cnn_resource_handoff_is_identity_consistent_and_blocked() -> None:
     assert handoff["resource_generation_gate"]["allowed"] is False
     assert handoff["resource_generation_gate"]["draft_generation_allowed"] is False
     assert handoff["retrieval_context"]["evidence"] == []
+    retrieval_request = handoff["retrieval_context"]["request"]
+    assert retrieval_request["learner_id"] == handoff["learner_id"]
+    assert retrieval_request["difficulty_filter"] == handoff["depth"]
+    assert retrieval_request["learner_profile"]["level"] == "intermediate"
+    assert handoff["retrieval_context"]["concept_evidence"][handoff["concept_id"]][
+        "evidence_status"
+    ] == "candidate_only"
     assert all(
         item["evidence_status"] == "candidate_only"
         for item in handoff["retrieval_context"]["candidate_evidence"]
