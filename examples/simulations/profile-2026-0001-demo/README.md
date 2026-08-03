@@ -72,6 +72,11 @@ uv run skillforge-kb agent-run `
 
 - `planning_result.json` is the complete validated Agent state after both events.
 - `resource_agent_handoff.json` is the reduced next-step input for the resource Agent.
+- `resource_agent_handoff_cnn_0803.json` resolves the 2026-08-03 request to target
+  `dl.cnn.convolution` explicitly. It records the source profile's requested advanced
+  CNN scope, the planner's effective intro depth, the image-tensor blocker, candidate
+  retrieval results, and the resource plan that remains deferred until both planning
+  and published-evidence gates pass.
 
 The handoff reuses the project's existing blueprint and allocation contracts. It is not
 a formal `ResourceBrief`: the governed evidence manifest currently contains zero

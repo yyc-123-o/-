@@ -1,0 +1,416 @@
+{
+  "schema_version": "resource-agent-handoff-simulation.v2",
+  "generated_at": "2026-08-03T22:42:26+08:00",
+  "handoff_status": "blocked",
+  "profile_id": "PROFILE-2026-0001-DEMO",
+  "path_id": "path_6d09613775f5b15f501f0f4433d3e4003e6a04144b41e1e2053c6dc5162d9af9",
+  "graph_version": "ai-course-v1",
+  "concept_id": "dl.cnn.convolution",
+  "depth": "intro",
+  "decision": {
+    "requested_profile_scope": {
+      "source_kp_id": "kp_012",
+      "source_kp_name": "卷积神经网络CNN",
+      "requested_depth": "advanced",
+      "source_chapter_id": "ch03_cnn"
+    },
+    "resolved_generation_scope": {
+      "concept_id": "dl.cnn.convolution",
+      "concept_name": "卷积运算",
+      "depth": "intro",
+      "resolution": "use_first_canonical_cnn_concept_for_handoff",
+      "mapping_note": "kp_012 是章节级复合标签。本次仅将其用于资源交接范围选择，不将其伪造成一对一掌握度映射。"
+    },
+    "conflict_resolution": {
+      "previous_planner_current_node": "dl.vision.image-tensor",
+      "selected_handoff_node": "dl.cnn.convolution",
+      "why_not_advanced": "dl.cnn.convolution 的硬先修 dl.vision.image-tensor 尚未完成，且该概念没有经审核的掌握度，因此规划器只能给出 intro。",
+      "why_generation_is_blocked": "目标节点仍处于 blocked 状态，并且当前正式发布证据数量为 0。"
+    }
+  },
+  "identity_consistency": {
+    "profile_id_matches_path": true,
+    "path_id_matches_path": true,
+    "graph_version_matches_path": true,
+    "concept_id_matches_current_node": true,
+    "concept_id_matches_allocation": true,
+    "depth_matches_current_node": true,
+    "depth_matches_adaptation": true,
+    "depth_matches_allocation": true,
+    "passed": true
+  },
+  "current_node": {
+    "concept_id": "dl.cnn.convolution",
+    "names": {
+      "zh": "卷积运算",
+      "en": "Convolution"
+    },
+    "chapter_id": "chapter.05.cnn-representation",
+    "chapter_name": "CNN 与表示学习概览",
+    "section_id": "section.05.convolution-basics",
+    "section_name": "卷积基础",
+    "sequence": 58,
+    "status": "blocked",
+    "delivery_depth": "intro",
+    "hard_prerequisite_ids": [
+      "dl.vision.image-tensor"
+    ],
+    "blocking_prerequisite_ids": [
+      "dl.vision.image-tensor"
+    ],
+    "reason_codes": [
+      "mastery_missing",
+      "ready_for_intro",
+      "hard_prerequisite_unassessed"
+    ]
+  },
+  "learning_requirements": {
+    "delivery_difficulty": "intro",
+    "requested_profile_difficulty": "advanced",
+    "learning_outcomes": [
+      "解释卷积运算的核心含义并识别其基本场景。",
+      "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+      "在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。"
+    ],
+    "assessment_kinds": [
+      "concept",
+      "basic_shape_calculation",
+      "code_reading"
+    ],
+    "scope_limits": [
+      "本次不生成 ResNet、VGG、迁移学习等 CNN 架构级进阶内容。",
+      "本次不把转置卷积、DCGAN 或 U-Net 当作卷积运算的主教学目标。",
+      "达到中级或进阶深度前必须先完成图像张量节点并获得新的规划结果。"
+    ]
+  },
+  "prerequisites": {
+    "canonical_hard_prerequisites": [
+      {
+        "concept_id": "dl.vision.image-tensor",
+        "name": "图像张量",
+        "required_state": "completed_or_mastery_at_least_0.4",
+        "current_state": "available_not_completed",
+        "blocking": true
+      }
+    ],
+    "profile_advisory_prerequisites": [
+      {
+        "source_kp_id": "kp_011",
+        "name": "神经网络基础",
+        "mastery": 0.5,
+        "note": "需要在讲义中快速复习前向传播与局部连接。"
+      },
+      {
+        "source_kp_id": "kp_004",
+        "name": "矩阵运算",
+        "mastery": 0.55,
+        "note": "足以支持 intro，但卷积窗口计算需要分步展示。"
+      },
+      {
+        "source_kp_id": "kp_017",
+        "name": "反向传播",
+        "mastery": 0.35,
+        "note": "本节点只做概念提醒，不进入 CNN 反向传播推导。"
+      }
+    ],
+    "blocking_conditions": [
+      "dl.vision.image-tensor 未完成",
+      "dl.cnn.convolution 没有经审核的概念掌握度",
+      "dl.cnn.convolution:intro 没有正式发布证据"
+    ]
+  },
+  "learner_adaptation": {
+    "source_mastery": {
+      "kp_id": "kp_012",
+      "mastery": 0.18,
+      "confidence": 0.7,
+      "status": "not_learned"
+    },
+    "ability_summary": {
+      "overall": "intermediate",
+      "theoretical_understanding": 0.55,
+      "coding_ability": 0.7,
+      "mathematical_foundation": 0.62,
+      "problem_solving": 0.55
+    },
+    "adaptation_decision": {
+      "concept_id": "dl.cnn.convolution",
+      "delivery_depth": "intro",
+      "readiness_score": 0.0,
+      "support_need_score": 1.0,
+      "support_intensity": "remediation",
+      "effort_multiplier": 2.0,
+      "reason_codes": [
+        "hard_prerequisite_blocked",
+        "evidence_uncertain"
+      ],
+      "policy_digest": "policy_c74f35203f2c15d45fca8ea50e9a640bed61547bdac52a725fe7744ceb10080d",
+      "node_weight_policy_digest": "node_policy_bcb3e692096e95e75914835e958057d2981d5c10728cd5451c5919ce5f7af637",
+      "adaptation_digest": "adaptation_069ad76f5e468f663ccb820cd6ab6b6e277d30133b50a01d46c86a23bea8a239"
+    },
+    "error_pattern_hints": [
+      {
+        "code": "calculation_error",
+        "ratio": 0.26,
+        "instruction": "输出尺寸公式必须配至少两个逐步计算示例，突出 padding 和 stride。"
+      },
+      {
+        "code": "logic_jump",
+        "ratio": 0.21,
+        "instruction": "先解释为什么图像适合局部连接，再引出卷积，禁止直接跳到 ResNet。"
+      },
+      {
+        "code": "concept_confusion",
+        "ratio": 0.42,
+        "instruction": "用对比表区分卷积、互相关、转置卷积和池化。"
+      }
+    ],
+    "presentation_preferences": {
+      "content_order": [
+        "概念直觉理解",
+        "数学推导",
+        "代码实战",
+        "面试考点"
+      ],
+      "code_language": "Python",
+      "framework": "PyTorch",
+      "presentation": [
+        "visual",
+        "diagrams",
+        "step_by_step",
+        "comparison_tables",
+        "math_formulas",
+        "jupyter_notebook"
+      ],
+      "pace_hours_per_week": 10,
+      "session_attention_minutes": 50,
+      "project_orientation": "图像分类实战"
+    }
+  },
+  "resource_requirements": {
+    "generation_state": "planned_not_executable",
+    "required_resource_types": [
+      "lecture",
+      "practical_guide",
+      "assessment"
+    ],
+    "allocation": {
+      "policy_version": "resource-allocation-policy.v1",
+      "policy_digest": "allocation_policy_155b0c0a732044328ac5a1f72348073f100b2447481997511e32bd70b7cbd6e0",
+      "concept_id": "dl.cnn.convolution",
+      "delivery_depth": "intro",
+      "support_intensity": "remediation",
+      "blueprint_estimated_minutes": 45,
+      "effort_multiplier": 2.0,
+      "estimated_minutes": 90,
+      "worked_example_count": 4,
+      "guided_exercise_count": 8,
+      "assessment_item_count": 8,
+      "project_checkpoint_count": 0,
+      "allocation_digest": "resource_allocation_04e1d3719a92babc259b1f9a32d9e29162354a6fe1fd41a3554a88dfd12093ab"
+    },
+    "resources": [
+      {
+        "type": "lecture",
+        "suggested_minutes": 30,
+        "status": "deferred_until_unblocked",
+        "content_requirements": [
+          "用滑动窗口和局部感受的图示解释卷积直觉。",
+          "说明输入张量 NCHW、卷积核、输入/输出通道的关系。",
+          "分步讲解 H_out=floor((H+2P-K)/S)+1，并给出两道完整计算示例。",
+          "用对比表区分卷积、互相关、转置卷积和池化。",
+          "只做基础 Conv2d 讲解，不扩展到完整 CNN 架构。"
+        ]
+      },
+      {
+        "type": "practical_guide",
+        "suggested_minutes": 45,
+        "status": "deferred_until_unblocked",
+        "content_requirements": [
+          "使用 Python、PyTorch 和 Jupyter Notebook。",
+          "从形状为 [B,C,H,W] 的小型图像张量开始，不假定学生会完整训练模型。",
+          "提供 4 个 worked examples，覆盖 Conv2d、kernel_size、stride、padding 和通道变化。",
+          "提供 8 个 guided exercises，包含输出尺寸计算、参数修改和错误代码诊断。",
+          "每段代码必须显示输入/输出 shape，并包含可直接运行的最小示例。"
+        ]
+      },
+      {
+        "type": "assessment",
+        "suggested_minutes": 15,
+        "status": "deferred_until_unblocked",
+        "content_requirements": [
+          "生成 8 道题：3 道概念题、3 道输出尺寸计算题、2 道 PyTorch 代码阅读/纠错题。",
+          "每道题必须给出答案、逐步解析、关联学习目标和错误类型。",
+          "至少一道题专门检查 padding 翻倍项，至少一道题检查 stride 对尺寸的影响。",
+          "不得使用 ResNet、迁移学习或高级 CNN 架构作为必答前置。"
+        ]
+      }
+    ]
+  },
+  "retrieval_context": {
+    "request": {
+      "query": "卷积运算 CNN Conv2d padding stride 图像张量",
+      "profile_id": "PROFILE-2026-0001-DEMO",
+      "concept_id": "dl.cnn.convolution",
+      "depth": "intro",
+      "top_k": 5,
+      "anchors": [
+        "卷积运算",
+        "卷积"
+      ]
+    },
+    "capability_check": {
+      "bm25_candidate_retrieval_available": true,
+      "concept_anchor_gate_available": true,
+      "published_evidence_available": false,
+      "review_status_metadata_complete": false,
+      "license_status_metadata_complete": false,
+      "candidate_results_may_be_used_as_formal_citations": false
+    },
+    "evidence": [],
+    "candidate_evidence": [
+      {
+        "chunk_id": "20f6821d0faa-c14",
+        "doc_id": "20f6821d0faa",
+        "source_title": "表情包生成项目_渐进式开发指南",
+        "heading_path": [
+          "四、V2 - 简易 CNN-GAN：从 1D 到 2D 图像",
+          "4.4 核心代码解读"
+        ],
+        "excerpt": "步幅卷积把大特征图逐步缩小，并给出 nn.Conv2d 的 stride、padding 和输入输出 shape 示例。",
+        "score": 42.359403,
+        "retrieval_method": "bm25_with_concept_anchor",
+        "concept_id": "dl.cnn.convolution",
+        "depth": "intro",
+        "source_difficulty": "advanced",
+        "content_kind": "code",
+        "review_status": "unreviewed",
+        "license_status": "unregistered",
+        "evidence_status": "candidate_only",
+        "fit_note": "可作为 Conv2d 代码候选，但上下文属于 CNN-GAN，必须重写为基础卷积示例。"
+      },
+      {
+        "chunk_id": "20f6821d0faa-c13",
+        "doc_id": "20f6821d0faa",
+        "source_title": "表情包生成项目_渐进式开发指南",
+        "heading_path": [
+          "四、V2 - 简易 CNN-GAN：从 1D 到 2D 图像",
+          "4.4 核心代码解读"
+        ],
+        "excerpt": "使用 ConvTranspose2d 展示从小特征图到大图像的上采样过程。",
+        "score": 33.650797,
+        "retrieval_method": "bm25_with_concept_anchor",
+        "concept_id": "dl.cnn.convolution",
+        "depth": "intro",
+        "source_difficulty": "advanced",
+        "content_kind": "code",
+        "review_status": "unreviewed",
+        "license_status": "unregistered",
+        "evidence_status": "candidate_only",
+        "fit_note": "主题是转置卷积，不可替代标准卷积定义，只能用于概念对比候选。"
+      },
+      {
+        "chunk_id": "20f6821d0faa-c11",
+        "doc_id": "20f6821d0faa",
+        "source_title": "表情包生成项目_渐进式开发指南",
+        "heading_path": [
+          "四、V2 - 简易 CNN-GAN：从 1D 到 2D 图像",
+          "4.1 学习目标"
+        ],
+        "excerpt": "包含 Conv2d、步幅卷积、NCHW 图像形状和从 1D 到 2D 图像的学习目标。",
+        "score": 26.62358,
+        "retrieval_method": "bm25_with_concept_anchor",
+        "concept_id": "dl.cnn.convolution",
+        "depth": "intro",
+        "source_difficulty": "advanced",
+        "content_kind": "definition",
+        "review_status": "unreviewed",
+        "license_status": "unregistered",
+        "evidence_status": "candidate_only",
+        "fit_note": "可用于规划实践目标，但缺少完整基础定义和练习答案。"
+      },
+      {
+        "chunk_id": "b0910db08b80-c3",
+        "doc_id": "b0910db08b80",
+        "source_title": "GAN生成对抗网络_知识点手册",
+        "heading_path": [
+          "二、DCGAN架构详解",
+          "2.1 生成器架构（转置卷积上采样）"
+        ],
+        "excerpt": "生成器通过转置卷积逐步放大噪声向量为图像。",
+        "score": 17.599978,
+        "retrieval_method": "bm25_with_concept_anchor",
+        "concept_id": "dl.cnn.convolution",
+        "depth": "intro",
+        "source_difficulty": "advanced",
+        "content_kind": "definition",
+        "review_status": "unreviewed",
+        "license_status": "unregistered",
+        "evidence_status": "candidate_only",
+        "fit_note": "内容过短且属于转置卷积，相关性有限。"
+      },
+      {
+        "chunk_id": "7a829df627ba-c15",
+        "doc_id": "7a829df627ba",
+        "source_title": "GAN头像生成项目_实训手册",
+        "heading_path": [
+          "第四章 课时2：DCGAN 架构详解",
+          "4.2 生成器网络结构（转置卷积上采样）"
+        ],
+        "excerpt": "介绍 ConvTranspose2d 参数以及生成器的逐级上采样流程。",
+        "score": 16.549131,
+        "retrieval_method": "bm25_with_concept_anchor",
+        "concept_id": "dl.cnn.convolution",
+        "depth": "intro",
+        "source_difficulty": "advanced",
+        "content_kind": "code",
+        "review_status": "unreviewed",
+        "license_status": "unregistered",
+        "evidence_status": "candidate_only",
+        "fit_note": "只适合后续对比，不适合作为本节点的主证据。"
+      }
+    ],
+    "evidence_summary": {
+      "published_count": 0,
+      "candidate_count": 5,
+      "content_kinds_found_in_candidates": [
+        "definition",
+        "code"
+      ],
+      "required_content_kinds": [
+        "definition",
+        "code",
+        "exercise"
+      ],
+      "missing_required_content_kinds": [
+        "exercise"
+      ],
+      "formal_evidence_is_empty": true,
+      "topic_quality_note": "多数候选来自 GAN/DCGAN 的转置卷积场景，缺少经审核的标准卷积基础资料。"
+    },
+    "evidence_gap": {
+      "formal_evidence": "dl.cnn.convolution:intro 没有已审核、许可证允许且可定位的发布证据。",
+      "definition": "缺少直接解释标准卷积/互相关边界的权威基础材料。",
+      "exercise": "没有带答案和解析的卷积输出尺寸练习证据。",
+      "candidate_policy": "候选片段只能供知识库同学审核，资源生成 Agent 不能将其作为正式引用。"
+    }
+  },
+  "resource_generation_gate": {
+    "allowed": false,
+    "status": "blocked_prerequisite_and_evidence",
+    "blocking_codes": [
+      "blocked_hard_prerequisite",
+      "blocked_missing_published_evidence"
+    ],
+    "blocking_details": [
+      "必须先完成 dl.vision.image-tensor，再由课程规划 Agent 重新计算当前节点状态。",
+      "必须为 dl.cnn.convolution:intro 发布至少 definition、code、exercise 三类合规证据。"
+    ],
+    "draft_generation_allowed": false,
+    "next_action": {
+      "course_planning_agent": "接收 dl.vision.image-tensor 完成事件并重新输出同一路径上的节点状态。",
+      "domain_retrieval_agent": "审核候选来源、许可证和概念绑定，补齐标准卷积定义与练习证据。",
+      "resource_generation_agent": "等待 allowed=true 的新交接文件；不得使用本文件中的 candidate_evidence 生成正式资源。"
+    }
+  }
+}
