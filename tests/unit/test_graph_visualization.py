@@ -14,6 +14,7 @@ assert _SPEC is not None and _SPEC.loader is not None
 _MODULE = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_MODULE)
 graph_payload = _MODULE.graph_payload
+render_html = _MODULE.render_html
 
 
 def test_graph_payload_contains_candidate_resource_layer() -> None:
@@ -38,3 +39,38 @@ def test_graph_payload_contains_candidate_resource_layer() -> None:
         if concept["id"] == "math.linear-algebra.vector"
     )
     assert vector["resourceCount"] == 86
+
+
+def test_render_html_escapes_candidate_source_titles() -> None:
+    payload = {
+        "version": "ai-course-v1",
+        "chapters": [],
+        "sections": [],
+        "concepts": [],
+        "edges": [],
+        "resourceBindings": [
+            {
+                "concept_id": "safe.concept",
+                "source_title": "</script><img src=x onerror=alert(1)>",
+                "match_type": "body_exact_name",
+            }
+        ],
+        "logic": {
+            "conceptCount": 0,
+            "hardPrerequisiteCount": 0,
+            "crossChapterPrerequisites": [],
+            "cycles": [],
+            "reverseOrderEdges": [],
+            "roots": [],
+            "leaves": [],
+            "isolatedConcepts": [],
+            "candidateBindingCount": 1,
+            "boundConceptCount": 1,
+        },
+    }
+
+    html = render_html(payload)
+
+    assert "</script><img" not in html
+    assert "\\u003c/script\\u003e" in html
+    assert "escapeHtml(resource.source_title)" in html
