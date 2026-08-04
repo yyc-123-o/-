@@ -77,15 +77,21 @@ uv run skillforge-kb agent-run `
   CNN scope, the learner and retrieval context, the planner's effective intro depth,
   the image-tensor blocker, candidate retrieval results, and the resource plan that
   remains deferred until both planning and published-evidence gates pass.
+- `domain_retrieval_agent_output_cnn_0804.json` is the actual domain-retrieval Agent
+  output for the same `profile_id`, `concept_id`, and `depth`. It keeps formal evidence
+  empty because the standard CNN source chunks are not reviewed, while returning
+  definition, code, and derived exercise candidates for knowledge-base review.
 
 The handoff reuses the project's existing blueprint and allocation contracts. It is not
 a formal `ResourceBrief`: the governed evidence manifest currently contains zero
 published records for `dl.vision.image-tensor:intro`, so the handoff explicitly reports
 `blocked_missing_published_evidence`. Candidate retrieval is not promoted to evidence.
 
-The expected current concept is `dl.vision.image-tensor`, the first node in the current
-ontology's CNN chapter. Its delivery depth and support decision come from the new Agent
-run rather than the old profile's embedded path.
+The legacy `resource_agent_handoff.json` still represents the first ontology node
+`dl.vision.image-tensor`. The dated `resource_agent_handoff_cnn_0803.json` and
+`domain_retrieval_agent_output_cnn_0804.json` are the explicit CNN handoff pair requested
+for this delivery: both target `dl.cnn.convolution` at `intro`, and the planner keeps the
+node blocked until the image-tensor prerequisite and published-evidence gates pass.
 
 ## Input Summary
 
