@@ -1,0 +1,127 @@
+{
+  "query": "如何搭建RAG系统并补足向量检索和重排序知识",
+  "rewritten_query": "如何搭建RAG系统并补足向量检索和重排序知识 ; goals:完成课程项目, 理解RAG基本架构 ; weak_concepts:向量检索, Reranker, Embedding",
+  "intent": "task_guidance",
+  "learner_id": "student_001",
+  "profile_id": "profile_student_001",
+  "difficulty_filter": "beginner",
+  "concept_id": "concept:rag",
+  "depth": 1,
+  "evidence": [],
+  "candidate_evidence": [
+    {
+      "chunk_id": "candidate:official_docs/bge_embedding.md:s0002",
+      "source_id": "raw:official_docs/bge_embedding.md",
+      "text": "BGE（BAAI General Embedding）是由智源研究院推出的一系列通用向量表示模型，用于将文本映射到向量空间，以支持语义检索、相似度计算、聚类、分类、排序等任务。BGE 系列在中文与多语言场景中具有较强表现，因此常被用于中文知识库、RAG 系统和问答系统的向量检索模块。",
+      "source_title": "bge_embedding",
+      "heading_path": [
+        "BGE 向量模型与重排模型说明",
+        "1. BGE 模型概述"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 0.686957,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "official_docs/bge_embedding.md:section:2",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "candidate:textbooks/ch13.md:s0002",
+      "source_id": "raw:textbooks/ch13.md",
+      "text": "若 LLM 缺乏即时数据，可以借助一个 RAG（检索增强生成）系统，其中 LLM 可以访问最新的汽车销售数据或市场报告。仅依赖 LLM 来解答复杂问题是不够的，虽然结合 LLM 与外部知识库的 RAG 系统能提供某种帮助，但还需要更进一步的操作。",
+      "source_title": "ch13",
+      "heading_path": [
+        "简介"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 0.686957,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "code",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "textbooks/ch13.md:section:2",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "candidate:team_projects/rag_pipeline_notes.md:s0312",
+      "source_id": "raw:team_projects/rag_pipeline_notes.md",
+      "text": "本项目的 RAG Pipeline 不仅用于“找文本”，更用于为多智能体系统提供可溯源知识证据。通过文档解析、结构化切片、混合检索、重排和个性化加权，系统能够较稳定地支撑人工智能领域学习与辅助决策任务。",
+      "source_title": "rag_pipeline_notes",
+      "heading_path": [
+        "RAG Pipeline 搭建记录",
+        "13. 结论"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 0.652174,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "code",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "team_projects/rag_pipeline_notes.md:section:312",
+      "evidence_status": "candidate_only"
+    }
+  ],
+  "evidence_summary": {
+    "published_count": 0,
+    "candidate_count": 3,
+    "content_kinds_found_in_candidates": [
+      "code",
+      "definition"
+    ],
+    "required_content_kinds": [
+      "definition",
+      "code",
+      "exercise"
+    ],
+    "missing_required_content_kinds": [
+      "exercise"
+    ],
+    "formal_evidence_is_empty": true,
+    "note": "candidate_evidence is not published knowledge and must not be used as formal evidence before review and license confirmation."
+  },
+  "concept_evidence": {
+    "concept:rag": {
+      "depth": 1,
+      "published": [],
+      "candidates": [
+        "candidate:official_docs/bge_embedding.md:s0002",
+        "candidate:textbooks/ch13.md:s0002",
+        "candidate:team_projects/rag_pipeline_notes.md:s0312"
+      ],
+      "graph_evidence": [],
+      "evidence_status": "candidate_only"
+    }
+  },
+  "learning_path": [],
+  "answer_outline": [
+    "Explain the concept first, then give practical steps and caveats.",
+    "Use evidence from bge_embedding.",
+    "Use evidence from ch13.",
+    "Use evidence from rag_pipeline_notes."
+  ],
+  "agent_notes": [
+    "Applied learner level filter: beginner",
+    "Published evidence count: 0",
+    "Candidate evidence count: 3",
+    "Applied concept filter: concept:rag",
+    "Applied depth filter: 1",
+    "Applied weak concept boost: 向量检索, Reranker, Embedding",
+    "Candidate concepts: 向量检索, Reranker, Embedding, 如何搭建RAG系统并补足向量检索和重排序知识",
+    "No published evidence found. Returning candidate evidence and evidence_gap only."
+  ],
+  "evidence_gap": {
+    "exercise": "No exercise candidate was found for this query/concept/depth.",
+    "formal_evidence": "No evidence was promoted from candidate_only to published evidence. Candidate fragments must be reviewed and licensed before publication."
+  }
+}

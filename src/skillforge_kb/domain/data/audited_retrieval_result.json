@@ -1,0 +1,178 @@
+{
+  "request": {
+    "query": "如何搭建RAG系统并补足向量检索和重排序知识",
+    "rewritten_query": "如何搭建RAG系统并补足向量检索和重排序知识 ; goals:完成课程项目, 理解RAG基本架构 ; weak_concepts:向量检索, Reranker, Embedding",
+    "learner_id": "student_001",
+    "profile_id": "profile_student_001",
+    "learner_profile": {
+      "learner_id": "student_001",
+      "level": "beginner",
+      "weak_concepts": [
+        "向量检索",
+        "Reranker",
+        "Embedding"
+      ],
+      "goals": [
+        "完成课程项目",
+        "理解RAG基本架构"
+      ]
+    },
+    "difficulty_filter": "beginner",
+    "concept_id": "concept:rag",
+    "depth": 1,
+    "top_k": 5
+  },
+  "capability_check": {
+    "hybrid_retrieval_in_source": true,
+    "concept_id_filter_in_current_agent": false,
+    "depth_filter_in_current_agent": false,
+    "content_kind_metadata_in_current_agent": false,
+    "review_status_metadata_in_current_agent": false,
+    "license_status_metadata_in_current_agent": false,
+    "published_evidence_available": false
+  },
+  "evidence": [],
+  "candidate_evidence": [
+    {
+      "chunk_id": "candidate:official_docs/bge_embedding.md:s0002",
+      "source_id": "raw:official_docs/bge_embedding.md",
+      "source_title": "bge_embedding",
+      "heading_path": [
+        "BGE 向量模型与重排模型说明",
+        "1. BGE 模型概述"
+      ],
+      "text": "## 1. BGE 模型概述\n\nBGE（BAAI General Embedding）是由智源研究院推出的一系列通用向量表示模型，用于将文本映射到向量空间，以支持语义检索、相似度计算、聚类、分类、排序等任务。BGE 系列在中文与多语言场景中具有较强表现，因此常被用于中文知识库、RAG 系统和问答系统的向量检索模块。\n\n在实际工程中，BGE 的常见用途包括：\n\n- 文本向量化\n- 语义检索\n- 相似文本匹配\n- RAG 候选召回\n- Cross-Encoder 重排\n\n---",
+      "excerpt": "## 1. BGE 模型概述 BGE（BAAI General Embedding）是由智源研究院推出的一系列通用向量表示模型，用于将文本映射到向量空间，以支持语义检索、相似度计算、聚类、分类、排序等任务。BGE 系列在中文与多语言场景中具有较强表现，因此常被用于中文知识库、RAG 系统和问答系统的向量检索模块。 在实际工程中，BGE 的常见用途包括： - 文本向量化 - 语义检索 - 相似文本匹配 - RAG 候选召回 - Cross-Encoder 重排 ---",
+      "page_no": null,
+      "code_location": "official_docs/bge_embedding.md:section:2",
+      "score": 0.686957,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "candidate:textbooks/ch13.md:s0002",
+      "source_id": "raw:textbooks/ch13.md",
+      "source_title": "ch13",
+      "heading_path": [
+        "简介"
+      ],
+      "text": "# 简介\n\n在科技发展的历史中，人类一直期望追求智能化的实现，由此的幻想早已先行，有《机器人总动员》中的瓦力，有《终结者》中的T-800，也有《最后的问题》中的「模」，人们试图打造一种可以自主完成预设目标的代理或实体，即智能体 (AI Agents 或 Agents)，以协助人类完成各种各样繁琐的任务。多年来，智能体作为人工智能一个活跃的应用领域吸引人们不断地研究探索。如今，大语言模型正蓬勃发展，日新月异。在智能体技术的实现上，尤其是在基于大型语言模型（LLM）的智能体构建中，LLM在智能体的智能化中扮演着至关重要的角色。这些智能体能够通过整合LLM与规划、记忆以及其他关键技术模块，执行复杂的任务。在此框架中，LLM充当核心处理单元或“大脑”，负责管理和执行为特定任务或响应用户查询所需的一系列操作。\n以一个新的例子来展示LLM智能体的潜力，设想我们需要设计一个系统来应对以下询问：\n当前欧洲最受欢迎的电动汽车品牌是什么？\n这个问题可直接由一个更新至最新数据的LLM给出答案。若LLM缺乏即时数据，可以借助一个RAG（检索增强生成）系统，其中LLM可以访问最新的汽车销售数据或市场报告。\n现在，让我们考虑一个更为复杂的查询：\n> 过去十年里，欧洲电动汽车市场的增长趋势如何，这对环境政策有何影响？能否提供这一时期内市场增长的图表？\n> \n仅依赖LLM来解答此类复杂问题是不够的。虽然结合LLM与外部知识库的RAG系统能提供某种帮助，但要全面回答这个问题，还需要更进一步的操作。这是由于要解答这个问题，首先需要将其拆解成多个子问题，其次需要并通过特定的工具和流程进行解决，最终获得所需答案。一个可能的方案是开发一个能够访问最新的环境政策文献、市场报告以及公开数据库的LLM智能体，以获取关于电动汽车市场增长及其环境影响的信息。\n此外，LLM智能体还需配备“数据分析”工具，这可以帮助智能体利用收集到的数据制作出直观的图表，从而清晰地展示过去十年欧洲电动汽车市场的增长趋势。虽然这种智能体的高级功能目前还属于理想化设想，但它涉及多项重要的技术考量，如制定解决方案的规划和可能的记忆模块，这有助于智能体追踪操作流程、监控和评估整体进展状态。",
+      "excerpt": "# 简介 在科技发展的历史中，人类一直期望追求智能化的实现，由此的幻想早已先行，有《机器人总动员》中的瓦力，有《终结者》中的T-800，也有《最后的问题》中的「模」，人们试图打造一种可以自主完成预设目标的代理或实体，即智能体 (AI Agents 或 Agents)，以协助人类完成各种各样繁琐的任务。多年来，智能体作为人工智能一个活跃的应用领域吸引人们不断地研究探索。如今，大语言模型正蓬勃发展，日新月异。在智能体技术的实现上，尤其是在基于大型语言模型（LLM）的智能体构建中，LLM在智能体的智能化中扮演着至关重要的角色。这些智能体能够通过整合LLM与规划、记忆以及其他关键技术模块，执行复杂的任务。在此框架中，LLM充当核心处理单元或“大脑”，负责管理和执行为特定任务或响应用户查询所需的一系列操作。 以一个新的例子来展示LLM智能体的潜力，设想我们需要设计一个系统来应对以下询问： 当前欧洲最受欢迎的电动汽车品牌是什么？ 这个问题可直接由一个更新至最新数据的LLM给出答案。若LLM缺乏即时数据，可以借助一个RAG（检索增强生成）系统，其中LLM可以访问最新的汽车销售数据或市场报告。 现在，...",
+      "page_no": null,
+      "code_location": "textbooks/ch13.md:section:2",
+      "score": 0.686957,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "code",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "candidate:official_docs/bge_embedding.md:s0249",
+      "source_id": "raw:official_docs/bge_embedding.md",
+      "source_title": "bge_embedding",
+      "heading_path": [
+        "BGE 向量模型与重排模型说明",
+        "13. 结论"
+      ],
+      "text": "## 13. 结论\n\nBGE embedding 模型和 reranker 模型共同构成了一套高质量的中文语义检索能力基础设施。\n\n其中：\n\n- Embedding 模型负责高效召回\n- Reranker 模型负责精细排序\n\n在 RAG 系统中，它们最适合与 BM25、FAISS 和结构化知识图谱结合使用。对于人工智能垂直领域知识库来说，这种多阶段检索方案能够较好平衡检索速度、召回质量和最终答案的证据可靠性。",
+      "excerpt": "## 13. 结论 BGE embedding 模型和 reranker 模型共同构成了一套高质量的中文语义检索能力基础设施。 其中： - Embedding 模型负责高效召回 - Reranker 模型负责精细排序 在 RAG 系统中，它们最适合与 BM25、FAISS 和结构化知识图谱结合使用。对于人工智能垂直领域知识库来说，这种多阶段检索方案能够较好平衡检索速度、召回质量和最终答案的证据可靠性。",
+      "page_no": null,
+      "code_location": "official_docs/bge_embedding.md:section:249",
+      "score": 0.652174,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "candidate:team_projects/rag_pipeline_notes.md:s0312",
+      "source_id": "raw:team_projects/rag_pipeline_notes.md",
+      "source_title": "rag_pipeline_notes",
+      "heading_path": [
+        "RAG Pipeline 搭建记录",
+        "13. 结论"
+      ],
+      "text": "## 13. 结论\n\n本项目的 RAG Pipeline 不仅用于“找文本”，更用于为多智能体系统提供可溯源知识证据。通过文档解析、结构化切片、混合检索、重排和个性化加权，系统能够较稳定地支撑人工智能领域学习与辅助决策任务。\n\n从工程视角看，这是一个面向知识底座建设的 RAG 系统；从比赛视角看，它体现的是“可解释的知识增强生成能力”，而不是简单接一个向量库。",
+      "excerpt": "## 13. 结论 本项目的 RAG Pipeline 不仅用于“找文本”，更用于为多智能体系统提供可溯源知识证据。通过文档解析、结构化切片、混合检索、重排和个性化加权，系统能够较稳定地支撑人工智能领域学习与辅助决策任务。 从工程视角看，这是一个面向知识底座建设的 RAG 系统；从比赛视角看，它体现的是“可解释的知识增强生成能力”，而不是简单接一个向量库。",
+      "page_no": null,
+      "code_location": "team_projects/rag_pipeline_notes.md:section:312",
+      "score": 0.652174,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "code",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "candidate:official_docs/faiss_intro.md:s0264",
+      "source_id": "raw:official_docs/faiss_intro.md",
+      "source_title": "faiss_intro",
+      "heading_path": [
+        "FAISS 向量索引原理与检索实现说明",
+        "13. 结论"
+      ],
+      "text": "## 13. 结论\n\nFAISS 是 RAG 系统中非常关键的向量召回组件。它并不直接负责“理解知识”，而是负责让系统能在大量文本片段中高效找到语义相关的候选内容。\n\n在实际应用中，FAISS 的效果高度依赖于：\n\n- 文档切片质量\n- embedding 模型质量\n- 相似度度量方式\n- 与 BM25、reranker 的协同设计\n\n因此，FAISS 最适合作为一个高效、稳定的语义召回基础设施，与其他检索组件共同构成完整的 RAG 检索链路。",
+      "excerpt": "## 13. 结论 FAISS 是 RAG 系统中非常关键的向量召回组件。它并不直接负责“理解知识”，而是负责让系统能在大量文本片段中高效找到语义相关的候选内容。 在实际应用中，FAISS 的效果高度依赖于： - 文档切片质量 - embedding 模型质量 - 相似度度量方式 - 与 BM25、reranker 的协同设计 因此，FAISS 最适合作为一个高效、稳定的语义召回基础设施，与其他检索组件共同构成完整的 RAG 检索链路。",
+      "page_no": null,
+      "code_location": "official_docs/faiss_intro.md:section:264",
+      "score": 0.617391,
+      "retrieval_method": "audited_keyword_scan",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only"
+    }
+  ],
+  "concept_evidence": {
+    "concept:rag": {
+      "depth": 1,
+      "published": [],
+      "candidates": [
+        "candidate:official_docs/bge_embedding.md:s0002",
+        "candidate:textbooks/ch13.md:s0002",
+        "candidate:official_docs/bge_embedding.md:s0249",
+        "candidate:team_projects/rag_pipeline_notes.md:s0312",
+        "candidate:official_docs/faiss_intro.md:s0264"
+      ],
+      "evidence_status": "candidate_only"
+    }
+  },
+  "evidence_summary": {
+    "published_count": 0,
+    "candidate_count": 5,
+    "content_kinds_found_in_candidates": [
+      "code",
+      "definition"
+    ],
+    "required_content_kinds": [
+      "definition",
+      "code",
+      "exercise"
+    ],
+    "missing_required_content_kinds": [
+      "exercise"
+    ],
+    "formal_evidence_is_empty": true,
+    "note": "candidate_evidence is not published knowledge and must not be used as formal evidence before review and license confirmation."
+  },
+  "evidence_gap": {
+    "code": "Formal published evidence is unavailable because source review_status/license_status metadata is not present in the current corpus.",
+    "exercise": "No exercise candidate was found for this query/concept/depth.",
+    "formal_evidence": "No evidence was promoted from candidate_only to published evidence. Candidate fragments must be reviewed and licensed before publication."
+  }
+}
