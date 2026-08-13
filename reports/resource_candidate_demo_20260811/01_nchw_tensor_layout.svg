@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="280" viewBox="0 0 900 280">
+<rect width="900" height="280" fill="#f8fafc"/><text x="40" y="48" font-size="28" fill="#0f172a">PyTorch 图像张量：NCHW</text>
+<g font-family="Microsoft YaHei, sans-serif" text-anchor="middle"><rect x="45" y="95" width="180" height="110" rx="14" fill="#dbeafe"/><text x="135" y="140" font-size="24">N</text><text x="135" y="174" font-size="17">batch：2 张图片</text>
+<rect x="255" y="95" width="180" height="110" rx="14" fill="#dcfce7"/><text x="345" y="140" font-size="24">C</text><text x="345" y="174" font-size="17">channel：RGB = 3</text>
+<rect x="465" y="95" width="180" height="110" rx="14" fill="#fef3c7"/><text x="555" y="140" font-size="24">H</text><text x="555" y="174" font-size="17">height：32</text>
+<rect x="675" y="95" width="180" height="110" rx="14" fill="#fce7f3"/><text x="765" y="140" font-size="24">W</text><text x="765" y="174" font-size="17">width：32</text></g>
+<text x="450" y="250" text-anchor="middle" font-size="20" fill="#334155">输入 x.shape = (2, 3, 32, 32)，Conv2d 的 in_channels 必须等于第二维 3</text></svg>

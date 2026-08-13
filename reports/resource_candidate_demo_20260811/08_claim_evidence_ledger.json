@@ -1,0 +1,78 @@
+[
+  {
+    "claim_id": "lecture.local_connection",
+    "resource_type": "lecture_notes",
+    "section": "第 3 节：为什么图像适合卷积",
+    "claim": "局部连接与参数共享解释 CNN 相对全连接层的参数优势。",
+    "required_evidence_kind": "definition",
+    "evidence_ids": [
+      "dl_ch09_cnn_a3dde521400f",
+      "dl_ch09_cnn_5e2a9735ace2"
+    ],
+    "citation_status": "candidate_only",
+    "publishable": false
+  },
+  {
+    "claim_id": "lecture.correlation_boundary",
+    "resource_type": "lecture_notes",
+    "section": "第 4 节：卷积、互相关与特征图",
+    "claim": "数学卷积与深度学习常用互相关需在卷积核翻转上明确区分。",
+    "required_evidence_kind": "definition",
+    "evidence_ids": [
+      "dl_ch09_cnn_a3dde521400f",
+      "dl_ch09_cnn_5e2a9735ace2"
+    ],
+    "citation_status": "candidate_only",
+    "publishable": false
+  },
+  {
+    "claim_id": "lecture.shape_formula",
+    "resource_type": "lecture_notes",
+    "section": "第 5 节：输出尺寸",
+    "claim": "输出尺寸计算使用 kernel、padding 和 stride 的标准公式。",
+    "required_evidence_kind": "definition",
+    "evidence_ids": [
+      "dl_ch09_cnn_a3dde521400f",
+      "dl_ch09_cnn_5e2a9735ace2"
+    ],
+    "citation_status": "candidate_only",
+    "publishable": false
+  },
+  {
+    "claim_id": "practical.conv2d_mapping",
+    "resource_type": "pytorch_practical_guide",
+    "section": "第 2–5 节：Conv2d 工作示例",
+    "claim": "PyTorch Conv2d 参数与输入输出 shape 的映射。",
+    "required_evidence_kind": "code",
+    "evidence_ids": [
+      "dl_ch09_cnn_51551ccb3ced",
+      "derived_dl_ch09_cnn_pytorch_conv2d_0804"
+    ],
+    "citation_status": "candidate_only",
+    "publishable": false
+  },
+  {
+    "claim_id": "assessment.shape_items",
+    "resource_type": "layered_assessment",
+    "section": "Q4–Q6：尺寸与参数量",
+    "claim": "输出尺寸和参数量题目及逐步解析。",
+    "required_evidence_kind": "exercise",
+    "evidence_ids": [
+      "derived_dl_ch09_cnn_exercise_0804"
+    ],
+    "citation_status": "candidate_only",
+    "publishable": false
+  },
+  {
+    "claim_id": "assessment.code_items",
+    "resource_type": "layered_assessment",
+    "section": "Q7–Q8：代码阅读",
+    "claim": "NCHW 与 Conv2d 参数纠错题。",
+    "required_evidence_kind": "exercise",
+    "evidence_ids": [
+      "derived_dl_ch09_cnn_exercise_0804"
+    ],
+    "citation_status": "candidate_only",
+    "publishable": false
+  }
+]

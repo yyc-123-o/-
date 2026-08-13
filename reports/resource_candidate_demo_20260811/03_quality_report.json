@@ -1,0 +1,75 @@
+{
+  "release_status": "candidate_draft",
+  "planning_gate_allowed": false,
+  "candidate_evidence_count": 5,
+  "published_evidence_count": 0,
+  "candidate_evidence_kinds": [
+    "code",
+    "definition",
+    "exercise"
+  ],
+  "missing_candidate_evidence_kinds": [],
+  "missing_published_evidence_kinds": [
+    "code",
+    "definition",
+    "exercise"
+  ],
+  "resource_types_generated": [
+    "lecture_notes",
+    "pytorch_practical_guide",
+    "layered_assessment",
+    "assessment_answer_key"
+  ],
+  "coverage_report": {
+    "learning_outcomes_total": 3,
+    "learning_outcomes_missing_from_package": [],
+    "error_focus_total": 1,
+    "error_focus_missing_from_package": [],
+    "resources_without_evidence_binding": [],
+    "passed": true
+  },
+  "assessment_blueprint_item_count": 8,
+  "personalization_checks": {
+    "mastery_used": true,
+    "ability_dimensions_used": true,
+    "pace_used": true,
+    "visual_preference_honored": true,
+    "project_goal_used": true,
+    "prior_chapter_used": true
+  },
+  "personalization_trace_coverage": {
+    "trace_count": 8,
+    "unlinked_input_fields": [],
+    "all_input_fields_have_output_effect": true
+  },
+  "claim_evidence_coverage": {
+    "claim_count": 6,
+    "unbound_claim_ids": [],
+    "candidate_only_claim_ids": [
+      "lecture.local_connection",
+      "lecture.correlation_boundary",
+      "lecture.shape_formula",
+      "practical.conv2d_mapping",
+      "assessment.shape_items",
+      "assessment.code_items"
+    ],
+    "all_claims_have_evidence": true,
+    "all_claims_publishable": false
+  },
+  "notebook_validation": {
+    "status": "passed",
+    "executed_code_cells": 7,
+    "runtime": "local_python_with_torch"
+  },
+  "checks": {
+    "scope_consistent": true,
+    "formal_evidence_complete": false,
+    "formal_publish_allowed": false,
+    "candidate_draft_requires_opt_in": true
+  },
+  "next_actions": [
+    "领域检索/知识库侧需审核发布证据类型：code、definition、exercise。",
+    "课程规划侧需在先修完成后重新下发资源交接，并更新发布门禁。",
+    "资源生成侧仅可保留 candidate_draft，不得标为正式课程资源。"
+  ]
+}

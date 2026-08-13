@@ -1,0 +1,101 @@
+[
+  {
+    "input_field": "knowledge_mastery.target_cnn",
+    "observed_value": 0.18,
+    "decision": "掌握度较低：采用补救型入门路径，先给完整示例，再给带提示练习。",
+    "output_locations": [
+      "讲义第 0、2 节",
+      "测验 Q1–Q8",
+      "session_plan"
+    ]
+  },
+  {
+    "input_field": "ability_level.coding_ability",
+    "observed_value": 0.7,
+    "decision": "代码能力可用但框架经验有限：提供可运行最小示例，要求一次只修改一个参数并用断言验证。",
+    "output_locations": [
+      "实操指南第 1–7 节",
+      "Notebook 代码单元",
+      "测验 Q7–Q8"
+    ]
+  },
+  {
+    "input_field": "ability_level.mathematical_foundation",
+    "observed_value": 0.62,
+    "decision": "数学基础可支持推导：保留两道完整尺寸例题与参数量核对，要求写出中间步骤。",
+    "output_locations": [
+      "讲义第 5、6 节",
+      "Notebook 公式单元",
+      "测验 Q4–Q6"
+    ]
+  },
+  {
+    "input_field": "learning_preferences.pace",
+    "observed_value": {
+      "weekly_hours": 10,
+      "session_attention_minutes": 50
+    },
+    "decision": "按注意力时长拆为两次学习，并保留每周剩余时间用于先修与错题复盘。",
+    "output_locations": [
+      "个性化学习计划.session_plan",
+      "讲义第 0 节"
+    ]
+  },
+  {
+    "input_field": "learning_preferences.style",
+    "observed_value": {
+      "visual_learner": true,
+      "prefers_step_by_step": true,
+      "prefers_comparison_tables": true,
+      "prefers_diagrams": true,
+      "prefers_math_formulas": true
+    },
+    "decision": "生成 NCHW、卷积滑窗和 shape 推理图，并以表格和逐步验证组织内容。",
+    "output_locations": [
+      "01_nchw_tensor_layout.svg",
+      "02_convolution_window.svg",
+      "03_shape_reasoning_flow.svg",
+      "讲义第 3、5、7 节",
+      "实操指南第 4.5 节"
+    ]
+  },
+  {
+    "input_field": "prior_chapters",
+    "observed_value": {
+      "chapter_name": "机器学习核心回顾+神经网络入门",
+      "accuracy": 0.71,
+      "observed_errors": [
+        "概念混淆",
+        "逻辑跳跃"
+      ],
+      "adaptation": "保留神经网络概念对比与分步论证，避免从前一章直接跳到复杂 CNN。"
+    },
+    "decision": "保留神经网络概念对比与分步论证，不从前章直接跳到完整 CNN。",
+    "output_locations": [
+      "讲义第 0、4、9 节",
+      "测验 Q1–Q3"
+    ]
+  },
+  {
+    "input_field": "learning_preferences.motivation.target_project",
+    "observed_value": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务",
+    "decision": "用 CIFAR-10 图像张量建立当前项目连接，并将后续图像分类/检测设为解锁后任务。",
+    "output_locations": [
+      "讲义第 10 节",
+      "实操指南第 8 节"
+    ]
+  },
+  {
+    "input_field": "planning_handoff",
+    "observed_value": {
+      "depth": "intro",
+      "gate": "blocked_prerequisite_and_evidence"
+    },
+    "decision": "规划交接优先，禁止画像中的进阶需求越过先修和证据门禁。",
+    "output_locations": [
+      "决策卡",
+      "讲义第 0、10 节",
+      "质量报告"
+    ]
+  }
+]

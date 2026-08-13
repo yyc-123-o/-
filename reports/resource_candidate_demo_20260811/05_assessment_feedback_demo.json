@@ -1,0 +1,19 @@
+{
+  "status": "remediate",
+  "score": 0.25,
+  "correct_count": 1,
+  "total_count": 4,
+  "error_distribution": {
+    "concept_confusion": 1,
+    "calculation_error": 1,
+    "code_shape_error": 1
+  },
+  "next_resource_focus": [
+    "concept_confusion",
+    "calculation_error",
+    "code_shape_error"
+  ],
+  "recommended_depth": "intro",
+  "requires_planning_recheck": false,
+  "path_mutation_requested": false
+}

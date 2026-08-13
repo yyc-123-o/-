@@ -1,0 +1,89 @@
+{
+  "release_status": "candidate_draft",
+  "target": {
+    "concept_id": "dl.cnn.convolution",
+    "delivery_depth": "intro",
+    "chapter_id": "ch03_cnn",
+    "chapter_name": "卷积神经网络（CNN）"
+  },
+  "authority_rule": "课程规划交接决定概念、深度、先修与发布门禁；画像只决定呈现和支持方式。",
+  "learner_adaptation": {
+    "global_theta": 0.32,
+    "error_focus": [
+      "特别注意区分'卷积'与'互相关'操作、区分BatchNorm的training/eval模式，这两个是高频概念混淆点"
+    ],
+    "preferences": {
+      "format": {
+        "content_order": [
+          "概念直觉理解",
+          "数学推导",
+          "代码实战",
+          "面试考点"
+        ],
+        "code_language": "Python",
+        "framework": "PyTorch",
+        "framework_level": "入门（仅写过tensor基本操作）",
+        "framework_confidence": 0.75,
+        "confidence_note": "自填问卷Q8-Q10：只写过tensor基本操作和数据加载，未完整训练过模型"
+      },
+      "style": {
+        "visual_learner": true,
+        "prefers_step_by_step": true,
+        "prefers_comparison_tables": true,
+        "prefers_diagrams": true,
+        "prefers_math_formulas": true
+      },
+      "pace": {
+        "weekly_hours": 10,
+        "session_attention_minutes": 50,
+        "avg_test_time_seconds": 45,
+        "learning_pace_inferred": "medium"
+      },
+      "interaction": {
+        "level": "medium",
+        "hint_dependency": 0.25,
+        "view_practice_ratio": "1.5:1",
+        "prefers_discussion": false
+      },
+      "motivation": {
+        "primary": "就业准备（目标：AI工程师/NLP方向）",
+        "secondary": "科研兴趣（对Transformer/Attention机制有好奇心）",
+        "project_driven": true,
+        "target_project": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务"
+      }
+    }
+  },
+  "planning_gate": {
+    "allowed": false,
+    "status": "blocked_prerequisite_and_evidence",
+    "blocking_codes": [
+      "blocked_hard_prerequisite",
+      "blocked_missing_published_evidence"
+    ],
+    "blocking_details": [
+      "必须先完成 dl.vision.image-tensor，再由课程规划 Agent 重新计算当前节点状态。",
+      "必须为 dl.cnn.convolution:intro 发布至少 definition、code、exercise 三类合规证据。"
+    ],
+    "draft_generation_allowed": false,
+    "next_action": {
+      "course_planning_agent": "接收 dl.vision.image-tensor 完成事件并重新输出同一路径上的节点状态。",
+      "domain_retrieval_agent": "审核候选来源、许可证和概念绑定，补齐标准卷积定义与练习证据。",
+      "resource_generation_agent": "等待 allowed=true 的新交接文件；不得使用本文件中的 candidate_evidence 生成正式资源。"
+    }
+  },
+  "blockers": [
+    "必须先完成 dl.vision.image-tensor，再由课程规划 Agent 重新计算当前节点状态。",
+    "必须为 dl.cnn.convolution:intro 发布至少 definition、code、exercise 三类合规证据。"
+  ],
+  "warnings": [
+    "画像建议深度为“进阶”，本次以课程规划交接的“intro”为准。",
+    "本次为候选草稿演示，未通过审核前不得作为正式资源发布。"
+  ],
+  "input_provenance": {
+    "input_dir": "D:\\揭榜挂帅张维\\完整输入",
+    "profile": "学情画像输出-最终版 0803修改.json",
+    "planning_handoff": "resource_agent_handoff_cnn_0803.json",
+    "retrieval_output": "domain_retrieval_agent_output_cnn_0804.json",
+    "publication_manifest": null
+  }
+}
