@@ -1,5 +1,127 @@
 # 知识追踪与知识图谱学习路径推荐功能总结
 
+## 0. 项目现有基础与我们的工作起点
+
+### 0.1 项目目前已经写出来的东西
+
+当前 SkillForge 项目已经不是空项目，它已经有一套确定性的课程规划和学习者画像基础。我们这次的知识追踪和路径推荐实现，是在这些已有能力上继续往下做的。
+
+项目已有基础包括：
+
+```text
+1. 课程知识图谱
+   - 使用 OntologyCatalog 读取课程概念和关系。
+   - 已有 AI 课程图谱资源文件。
+   - 已有 hard_prerequisite 等先修关系校验。
+
+2. 学习者画像
+   - 使用 LearnerProfileSnapshot 表示学生状态。
+   - 已有 knowledge_mastery、abilities、error_patterns、preferences 等字段。
+   - 规划器已经会读取学生画像来判断跳过、补救、学习深度。
+
+3. 规则式测评更新
+   - 已有 AssessmentEvent、AssessmentLedger、AssessmentUpdateResult。
+   - 已有 apply_assessment_event 规则基线。
+   - 规则基线可以根据答对/答错、提示、重试、作答时间更新 mastery、confidence 和 error_patterns。
+
+4. 确定性课程规划器
+   - 已有 CoursePlanner。
+   - 能根据课程图谱和学生画像生成完整课程路径。
+   - 会保留硬先修顺序，不随意改变 path order。
+
+5. 节点适配和权重评估
+   - 已有 NodeWeightEngine。
+   - 能为路径节点计算 readiness、support、delivery depth 等规划信号。
+
+6. 资源生成桥接
+   - 已有 ResourceBrief、EvidenceBundle 等资源生成契约。
+   - 当前规划结果可以继续传给后续资源生成 Agent。
+```
+
+### 0.2 我们是基于什么继续做的
+
+我们的实现不是另写一套孤立系统，而是基于项目已有的这些接口继续增强：
+
+```text
+AssessmentEvent
+AssessmentLedger
+AssessmentUpdateResult
+LearnerProfileSnapshot
+OntologyCatalog
+CoursePlanner
+NodeWeightEngine
+```
+
+也就是说，原项目已有的链路是：
+
+```text
+学生答题事件
+  -> 规则式 assessment 更新
+  -> 更新 LearnerProfileSnapshot
+  -> CoursePlanner 重新规划或更新路径
+```
+
+我们在这个基础上增强成：
+
+```text
+学生答题事件
+  -> BKT 知识追踪
+  -> 时间遗忘修正
+  -> 错误风险和置信度更新
+  -> 写回 LearnerProfileSnapshot
+  -> CoursePlanner 读取新画像
+  -> 结合知识图谱关系做学习路径推荐
+```
+
+### 0.3 我们替换和增强的部分
+
+原来的规则式更新逻辑适合作为工程基线，但它的问题是：
+
+```text
+1. 掌握度变化主要是规则加减分，不是真正的概率追踪。
+2. 没有明确区分“原始掌握度”和“长期未练后的有效掌握度”。
+3. 对题目难度、题目区分度、作答时间的利用还比较弱。
+4. 对知识图谱中的 confused_with、contrasts_with 等关系利用不足。
+5. 推荐更偏路径规划结果，缺少基于 KT 状态的图谱解释型推荐。
+```
+
+所以我们当前新增的核心能力是：
+
+```text
+1. 用 BKT 替代单纯规则加减分，估计每个知识点的 mastery_score。
+2. 用 forgetting-aware effective_mastery 表示学生当前真正可用的掌握度。
+3. 用 hint、retry、response_time、item difficulty、discrimination 修正观测可信度。
+4. 用 error_risk 和 error_patterns 表示学生在每个概念上的错误风险。
+5. 用知识图谱中的 hard_prerequisite、soft_prerequisite、confused_with、contrasts_with 做推荐。
+6. 输出 reason_codes、relation_kinds、explanation_paths，让推荐结果可解释。
+```
+
+### 0.4 当前边界
+
+由于当前开发要求是：
+
+```text
+只在新创建的单文件里实现，不改项目其他文件。
+```
+
+所以目前的实现状态是：
+
+```text
+已经能调用项目已有模型和规划器；
+已经能作为单文件增强模块运行；
+还没有正式替换 assessment 包默认导出；
+还没有接入 PlanningAgent、CLI 或 API 默认流程。
+```
+
+如果后续允许修改主流程，可以把当前入口接入到：
+
+```text
+assessment 包导出
+PlanningAgent 测评后重规划流程
+CLI / API 的 assessment update 命令
+前端学习路径推荐接口
+```
+
 ## 1. 功能定位
 
 当前实现位于：
