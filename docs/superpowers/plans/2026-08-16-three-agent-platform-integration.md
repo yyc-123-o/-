@@ -119,16 +119,21 @@ Expected: the staged-name list contains exactly the listed files and the commit 
 - Consumes: resource-team implementation at `origin/agent/cnn-resource-candidate-demo`.
 - Produces: `GenerationPolicy`, `ResourceGenerationBrief`, `StructuredResourceDraft`, `CandidateLearningPackage`, `FakeLLMAdapter`, `ConservativeSpanVerifier`, and `ControlledResourceGenerationService.generate(...)`.
 
-- [ ] **Step 1: Import only the controlled-generation module and its focused tests**
+- [ ] **Step 1: Import only the controlled-generation module and define local focused tests**
 
 Run:
 
 ```powershell
-git restore --source=origin/agent/cnn-resource-candidate-demo -- src/skillforge_kb/resources/controlled_generation.py tests/unit/resources/test_controlled_generation.py
+git restore --source=origin/agent/cnn-resource-candidate-demo -- src/skillforge_kb/resources/controlled_generation.py
 git status --short
 ```
 
-Expected: only the two requested paths are added; generated reports, raw documents, binary indexes, and other resource-branch files do not appear.
+Expected: only `controlled_generation.py` is added; generated reports, raw
+documents, binary indexes, `controlled_input.py`, `controlled_evaluation.py`,
+and other resource-branch files do not appear. Create a local test that uses
+only `GenerationPolicy`, `FakeLLMAdapter`, `ResourceAuditor`, and
+`ControlledResourceGenerationService`; do not copy the resource branch's tests
+that import its legacy handoff pipeline.
 
 - [ ] **Step 2: Run the imported tests before integration edits**
 
@@ -138,7 +143,7 @@ Run:
 uv run pytest tests/unit/resources/test_controlled_generation.py -q
 ```
 
-Expected: controlled generation, repair, audit, candidate publication state, and no-network fake-adapter tests pass. If an imported assertion fails because it depends on an omitted branch-only module, replace that fixture dependency with an equivalent local Pydantic fixture rather than importing the unrelated module.
+Expected: controlled generation, repair, audit, candidate publication state, and no-network fake-adapter tests pass.
 
 - [ ] **Step 3: Export only the platform-used controlled contracts**
 
