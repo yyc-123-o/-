@@ -35,6 +35,11 @@ from .planning_tools import (
     create_course_plan_tool,
     update_course_plan_tool,
 )
+from .resource_agent import (
+    ResourceAgentResult,
+    ResourceGenerationAgent,
+    ResourceGenerationMode,
+)
 from .resource_tools import FakeResourceGenerator, ResourceGenerationTool
 from .retrieval_agent import DomainRetrievalAgent
 from .retrieval_agent_models import (
@@ -84,6 +89,9 @@ __all__ = [
     "PlanningToolAudit",
     "PlanningToolResult",
     "ResourceGenerationTool",
+    "ResourceAgentResult",
+    "ResourceGenerationAgent",
+    "ResourceGenerationMode",
     "RetrievedEvidence",
     "RetrievalMethod",
     "ProcessedPlanningEvent",
