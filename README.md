@@ -115,7 +115,7 @@ updated = DepthUpdater(catalog).update(
 )
 ```
 
-The path is generated once, keeps mastered concepts as `skipped`, and preserves its concept set, order, positions, and `path_id` during updates. Only unfinished node readiness and delivery depth may change. LangChain and LangGraph integration remains a separate adapter phase; neither framework participates in the deterministic planning algorithm.
+The path is generated once, keeps mastered concepts as `skipped`, and preserves its concept set, order, positions, and `path_id` during updates. Only unfinished node readiness and delivery depth may change. The pure planning core remains framework-independent; `CoursePlanningAgent` wraps it with LangGraph state transitions and LangChain-compatible tools without moving path decisions into the framework.
 
 Generate the default 60-case synthetic evaluation dataset and evaluate the course path without an API key or external service:
 
@@ -135,6 +135,50 @@ uv run skillforge-kb planning-calibrate-policy `
 The dataset is stratified across beginner, intermediate, advanced, uneven, low-confidence, missing-evidence, conflicting-evidence, and boundary cohorts. The report measures prerequisite violations, required-concept coverage, skip and delivery-depth accuracy, path-order stability, conservative low-confidence handling, and mean learning/skipped node counts. These outputs are synthetic regression evidence only; they do not measure real student learning effectiveness.
 
 The calibration command performs a bounded one-coordinate sensitivity search over confidence, skip, readiness, depth, and four-dimensional ability weights. It ranks candidates against the stored synthetic oracle but never replaces the production policy. A candidate can only be considered for promotion after expert-labelled or observed data is available and reviewed.
+
+## Course Planning Agent Architecture
+
+The four-agent flow has one authoritative decision point:
+
+```text
+learner profile
+      |
+      v
+Course Planning Agent (LangGraph orchestration)
+      |
+      +-- CoursePlanner / DepthUpdater
+      |     hard prerequisites, order, status, depth, path_id
+      |
+      +-- NodeWeightEngine
+      |     support intensity, readiness, effort, resource quotas
+      |
+      v
+ResourceBriefBuilder -> ResourceHandoffContract
+      |                         |
+      v                         +-- generation gate
+Domain Retrieval Agent         +-- immutable node/path scope
+      |                         +-- evidence filters
+      v
+EvidenceBundle -> Resource Generation Agent -> validated resources
+```
+
+The course graph is the structural source of truth, the learner profile is the
+diagnostic source of truth, and the versioned planning policy is the strategy
+source of truth. The planner owns `path_id`, node order, chapter/section,
+status, delivery depth, prerequisites, learning outcomes, resource types, and
+allocation. Retrieval and resource agents cannot change these fields.
+
+LangGraph supplies state transitions, checkpointing, event de-duplication, and
+failure routing. The path decision itself is deterministic and does not need an
+LLM or an API key. The current answer-event updater is a replaceable rule
+baseline; BKT, forgetting models, IRT, and adaptive testing can later replace
+that profile-update component without changing the planner contract.
+
+For a blocked node, use `build_handoff(...)` rather than `build(...)`. It returns
+the complete path/node contract with `generation_gate.allowed=false`, so the
+retrieval agent can report the evidence gap while the formal resource tool
+rejects generation. `build(...)` remains the strict formal-resource path and
+requires published, allowed evidence.
 
 For each unfinished node, the planning/resource bridge computes a deterministic support decision and produces an evidence-gated generation request:
 

@@ -273,6 +273,35 @@ def test_missing_published_evidence_is_structured_failure(catalog) -> None:
         builder.build(decision, profile, node.concept_id)
 
 
+def test_build_handoff_preserves_scope_when_evidence_is_missing(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    builder = builder.model_copy(
+        update={
+            "evidence_index": EvidenceIndex(
+                version="evidence-manifest-v1",
+                graph_version=catalog.course_document.version,
+                records=(),
+            )
+        }
+    )
+
+    handoff = builder.build_handoff(decision, profile, node.concept_id)
+
+    assert handoff.profile_id == decision.profile_id
+    assert handoff.path_id == decision.path_id
+    assert handoff.graph_version == decision.graph_version
+    assert handoff.concept_id == node.concept_id
+    assert handoff.chapter_id == node.chapter_id
+    assert handoff.section_id == node.section_id
+    assert handoff.sequence == node.sequence
+    assert handoff.generation_gate.allowed is False
+    assert handoff.generation_gate.status == "blocked_missing_published_evidence"
+    assert handoff.generation_gate.blocking_codes == (
+        "blocked_missing_published_evidence",
+    )
+
+
 def test_mismatched_profile_or_adaptation_is_rejected(catalog) -> None:
     profile = _profile(catalog)
     builder, decision, node = _builder(catalog, profile)

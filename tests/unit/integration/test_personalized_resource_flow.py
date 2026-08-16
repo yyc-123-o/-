@@ -242,6 +242,10 @@ def _run_matrix() -> dict[str, object]:
         )
         packages = []
         for brief in briefs:
+            if not brief.generation_gate.allowed:
+                with pytest.raises(ValueError, match="generation gate"):
+                    tool.invoke(brief, build_evidence_bundle(brief, evidence_index), generator)
+                continue
             bundle = build_evidence_bundle(brief, evidence_index)
             packages.append(tool.invoke(brief, bundle, generator))
         empty_index = evidence_index.model_copy(update={"records": ()})

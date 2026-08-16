@@ -4,6 +4,7 @@ from skillforge_kb.retrieval import (
     KnowledgeRetrievalTool,
 )
 
+from .feedback import PlanningFeedbackCoordinator, PlanningFeedbackResult
 from .planning_agent import CoursePlanningAgent, build_course_planning_graph
 from .planning_agent_models import (
     CoursePlanningAgentResult,
@@ -45,6 +46,8 @@ from .runtime import (
 
 __all__ = [
     "CoursePlanningAgent",
+    "PlanningFeedbackCoordinator",
+    "PlanningFeedbackResult",
     "CoursePlanningAgentResult",
     "CoursePlanningAgentState",
     "CoursePlanningState",

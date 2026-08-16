@@ -21,6 +21,45 @@ NonEmptyString = Annotated[
     StringConstraints(strip_whitespace=True, min_length=1),
 ]
 
+GenerationGateStatus = Literal[
+    "allowed",
+    "blocked_hard_prerequisite",
+    "blocked_missing_published_evidence",
+    "blocked_prerequisite_and_evidence",
+]
+
+
+class GenerationGate(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    allowed: bool = True
+    status: GenerationGateStatus = "allowed"
+    blocking_codes: tuple[NonEmptyString, ...] = ()
+    next_action: NonEmptyString = "generate formal resources"
+
+    @model_validator(mode="after")
+    def validate_gate(self) -> "GenerationGate":
+        expected_codes = {
+            "allowed": (),
+            "blocked_hard_prerequisite": ("blocked_hard_prerequisite",),
+            "blocked_missing_published_evidence": (
+                "blocked_missing_published_evidence",
+            ),
+            "blocked_prerequisite_and_evidence": (
+                "blocked_hard_prerequisite",
+                "blocked_missing_published_evidence",
+            ),
+        }[self.status]
+        if self.allowed:
+            if self.status != "allowed" or self.blocking_codes:
+                raise ValueError("allowed generation gate cannot contain blockers")
+        elif self.status == "allowed" or not self.blocking_codes:
+            raise ValueError("blocked generation gate requires blocker details")
+        if len(self.blocking_codes) != len(set(self.blocking_codes)):
+            raise ValueError("generation gate blocker codes must be unique")
+        if set(self.blocking_codes) != set(expected_codes):
+            raise ValueError("generation gate status does not match blocker codes")
+        return self
 
 class EvidenceFilters(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -103,6 +142,7 @@ class ResourceBriefPayload(BaseModel):
     required_resource_types: tuple[ResourceType, ...] = Field(min_length=1)
     node_adaptation: NodeAdaptationDecision
     resource_allocation: ResourceAllocation
+    generation_gate: GenerationGate = Field(default_factory=GenerationGate)
     error_pattern_hints: tuple[ErrorPatternHint, ...] = ()
     presentation_preferences: PresentationPreferences
     evidence_filters: EvidenceFilters
@@ -113,6 +153,8 @@ class ResourceBriefPayload(BaseModel):
     def validate_path_contract(self) -> "ResourceBriefPayload":
         if self.status in {PathStatus.SKIPPED, PathStatus.COMPLETED}:
             raise ValueError("resource briefs require unfinished learning nodes")
+        if self.status is PathStatus.BLOCKED and self.generation_gate.allowed:
+            raise ValueError("blocked resource briefs require a blocked generation gate")
         if self.node_adaptation.concept_id != self.concept_id:
             raise ValueError("adaptation concept does not match brief concept")
         if self.node_adaptation.delivery_depth is not self.delivery_depth:

@@ -17,11 +17,13 @@ from .generator_contracts import (
     ProjectResource,
     ValidatedResourcePackage,
 )
+from .handoff import ResourceHandoffContract
 from .models import (
     AcceptanceChecks,
     CitationRequirements,
     ErrorPatternHint,
     EvidenceFilters,
+    GenerationGate,
     PresentationPreferences,
     ResourceBrief,
 )
@@ -35,6 +37,7 @@ __all__ = [
     "EvidenceBundle",
     "ErrorPatternHint",
     "EvidenceFilters",
+    "GenerationGate",
     "LectureResource",
     "PracticalGuideResource",
     "PresentationPreferences",
@@ -44,6 +47,7 @@ __all__ = [
     "ResourceAllocationPolicy",
     "ResourceBrief",
     "ResourceBriefBuilder",
+    "ResourceHandoffContract",
     "ValidatedResourcePackage",
     "allocate_resources",
     "build_resource_allocation_digest",
