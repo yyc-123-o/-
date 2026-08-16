@@ -48,6 +48,14 @@ class ResourceAgentPort(Protocol):
     ) -> ResourceAgentResult: ...
 
 
+class HandoffFactoryPort(Protocol):
+    def build(
+        self,
+        planning: CoursePlanningAgentResult,
+        profile: LearnerProfileSnapshot,
+    ) -> ResourceHandoffContract: ...
+
+
 class PlatformRunRepository(Protocol):
     def reserve(self, request: PlatformRunRequest) -> PlatformRunResult | None: ...
 
