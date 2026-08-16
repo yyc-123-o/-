@@ -2,7 +2,7 @@
   "profile_id": "PROFILE-LEARNER_TEST_001",
   "profile_version": "2.1",
   "generated_by": "学情诊断Agent v2.1",
-  "generated_at": "2026-08-12T22:45:53Z",
+  "generated_at": "2026-08-17T01:23:29Z",
   "learner_id": "learner_test_001",
   "update_cycle": "per-chapter",
   "learner": {
@@ -15,12 +15,21 @@
       "gpa": null,
       "relevant_courses": []
     },
+    "position": "",
+    "projects": [],
+    "courses": [],
     "self_assessment": {
       "ml_level": "刚接触，跟着B站教程跑过demo",
       "dl_level": "完全不了解",
       "math_level": "高数学过但忘了很多",
+      "programming_level": "",
       "learning_goal": "入门AI，能看懂简单的ML代码",
-      "weekly_hours": 5
+      "weekly_hours": 5,
+      "position": "",
+      "strengths": "",
+      "weaknesses": "",
+      "courses": [],
+      "projects": []
     }
   },
   "learning_scope": {
@@ -71,17 +80,17 @@
     "path_note": "学习路径一次性生成，学习过程中路径不变，只更新画像。若ch03正确率<60%，ch04自动降为入门层。"
   },
   "knowledge_mastery": {
-    "global_theta": -1.15,
+    "global_theta": -0.89,
     "ability_level": "beginner",
-    "overall_accuracy": 0.2,
-    "confidence_note": "全局θ基于5题MLE估计，学历先验已纳入，L2正则λ=0.5",
+    "overall_accuracy": 0.333,
+    "confidence_note": "全局θ基于9题MLE估计，学历先验已纳入，L2正则λ=0.5",
     "domain_summary": {
       "数学基础": {
-        "mean_mastery": 0.373,
+        "mean_mastery": 0.301,
         "kps_covered": 6
       },
       "机器学习基础": {
-        "mean_mastery": 0.279,
+        "mean_mastery": 0.315,
         "kps_covered": 6
       },
       "深度学习": {
@@ -89,7 +98,7 @@
         "kps_covered": 6
       },
       "优化算法": {
-        "mean_mastery": 0.226,
+        "mean_mastery": 0.217,
         "kps_covered": 6
       },
       "实践应用": {
@@ -110,11 +119,11 @@
       "kp_002": {
         "name": "线性代数",
         "domain": "数学基础",
-        "mastery": 0.4256,
-        "status": "partial",
-        "theta_kp": -0.8,
-        "test_count": 1,
-        "confidence": 0.72
+        "mastery": 0.0474,
+        "status": "unexplored",
+        "theta_kp": -3.5,
+        "test_count": 2,
+        "confidence": 0.84
       },
       "kp_003": {
         "name": "概率论",
@@ -146,18 +155,18 @@
       "kp_026": {
         "name": "信息论基础",
         "domain": "数学基础",
-        "mastery": 0.2689,
-        "status": "weak",
-        "theta_kp": -0.5,
-        "test_count": 0,
-        "confidence": 0.2
+        "mastery": 0.2142,
+        "status": "not_learned",
+        "theta_kp": -0.8,
+        "test_count": 1,
+        "confidence": 0.72
       },
       "kp_006": {
         "name": "监督学习",
         "domain": "机器学习基础",
-        "mastery": 0.31,
-        "status": "weak",
-        "theta_kp": -0.8,
+        "mastery": 0.4502,
+        "status": "partial",
+        "theta_kp": -0.2,
         "test_count": 1,
         "confidence": 0.72
       },
@@ -191,11 +200,11 @@
       "kp_010": {
         "name": "评估指标",
         "domain": "机器学习基础",
-        "mastery": 0.3775,
-        "status": "weak",
-        "theta_kp": -0.5,
-        "test_count": 0,
-        "confidence": 0.2
+        "mastery": 0.4502,
+        "status": "partial",
+        "theta_kp": -0.2,
+        "test_count": 1,
+        "confidence": 0.72
       },
       "kp_027": {
         "name": "集成学习",
@@ -308,11 +317,11 @@
       "kp_029": {
         "name": "损失函数",
         "domain": "优化算法",
-        "mastery": 0.2689,
-        "status": "weak",
-        "theta_kp": -0.5,
-        "test_count": 0,
-        "confidence": 0.2
+        "mastery": 0.2142,
+        "status": "not_learned",
+        "theta_kp": -0.8,
+        "test_count": 1,
+        "confidence": 0.72
       },
       "kp_021": {
         "name": "数据预处理",
@@ -380,26 +389,26 @@
       },
       "partial": {
         "range": "0.40-0.60",
-        "count": 2
+        "count": 3
       },
       "weak": {
         "range": "0.25-0.40",
-        "count": 17
+        "count": 13
       },
       "not_learned": {
         "range": "0.10-0.25",
-        "count": 10
+        "count": 12
       },
       "unexplored": {
         "range": "<0.10",
-        "count": 1
+        "count": 2
       }
     }
   },
   "ability_level": {
     "overall": "beginner",
-    "global_theta": -1.15,
-    "rationale": "ML基础薄弱（数学+ML均值0.33），但深度学习刚入门（DL均值0.18），整体介于初级与中级之间",
+    "global_theta": -0.89,
+    "rationale": "ML基础薄弱（数学+ML均值0.31），但深度学习刚入门（DL均值0.18），整体介于初级与中级之间",
     "sub_dimensions": {
       "theoretical_understanding": {
         "score": 0.27,
@@ -412,7 +421,7 @@
         "confidence": 0.72
       },
       "mathematical_foundation": {
-        "score": 0.42,
+        "score": 0.33,
         "level": "intermediate",
         "confidence": 0.85
       },
@@ -424,29 +433,30 @@
     }
   },
   "error_patterns": {
-    "total_questions": 5,
-    "total_correct": 1,
-    "total_wrong": 4,
-    "overall_accuracy": 0.2,
+    "total_questions": 9,
+    "total_correct": 3,
+    "total_wrong": 6,
+    "overall_accuracy": 0.333,
     "primary_weakness": "概念混淆",
     "primary_weakness_ratio": 1.0,
     "classification_confidence": 0.85,
-    "confidence_note": "4道错题由自动分类完成，建议后续引入人工标注交叉验证",
+    "confidence_note": "6道错题由自动分类完成，建议后续引入人工标注交叉验证",
     "items": [
       {
         "category": "概念混淆",
-        "count": 4,
+        "count": 6,
         "ratio": 1.0,
-        "confidence": 0.86,
+        "confidence": 0.9,
         "description": "将相似概念混为一谈，尤其在跨领域对比时出错",
         "typical_examples": [
-          "涉及知识点 kp_006, kp_001, kp_005 的典型概念混淆问题"
+          "涉及知识点 kp_026, kp_005, kp_002 的典型概念混淆问题"
         ],
         "involved_kp_ids": [
-          "kp_006",
-          "kp_001",
+          "kp_026",
           "kp_005",
-          "kp_002"
+          "kp_002",
+          "kp_001",
+          "kp_029"
         ]
       },
       {
@@ -494,9 +504,9 @@
       ],
       "code_language": "Python",
       "framework": "PyTorch",
-      "framework_level": "入门（仅写过tensor基本操作）",
+      "framework_level": "入门",
       "framework_confidence": 0.75,
-      "confidence_note": "自填问卷：只写过tensor基本操作和数据加载，未完整训练过模型"
+      "confidence_note": "自填问卷未填写优势描述"
     },
     "style": {
       "visual_learner": true,
@@ -508,7 +518,7 @@
     "pace": {
       "weekly_hours": 10,
       "session_attention_minutes": 50,
-      "avg_test_time_seconds": 68,
+      "avg_test_time_seconds": 65,
       "learning_pace_inferred": "slow"
     },
     "interaction": {
@@ -518,13 +528,28 @@
       "prefers_discussion": false
     },
     "motivation": {
-      "primary": "就业准备（目标：AI工程师/NLP方向）",
-      "secondary": "科研兴趣（对Transformer/Attention机制有好奇心）",
-      "project_driven": true,
-      "target_project": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务"
+      "primary": "入门AI，能看懂简单的ML代码",
+      "secondary": "",
+      "project_driven": false,
+      "target_project": ""
     }
   },
   "knowledge_gaps": [
+    {
+      "kp_id": "kp_002",
+      "kp_name": "线性代数",
+      "domain": "数学基础",
+      "mastery": 0.0474,
+      "gap_type": "blindspot",
+      "priority": "high",
+      "description": "掌握度仅5%, 存在严重知识盲区",
+      "blocked_by": [],
+      "blocks": [
+        "kp_004"
+      ],
+      "suggested_action": "远期待学章节，暂不处理",
+      "confidence": 0.75
+    },
     {
       "kp_id": "kp_014",
       "kp_name": "Transformer与Attention",
@@ -696,6 +721,36 @@
       "confidence": 0.86
     },
     {
+      "kp_id": "kp_026",
+      "kp_name": "信息论基础",
+      "domain": "数学基础",
+      "mastery": 0.2142,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 概率论, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_003"
+      ],
+      "blocks": [],
+      "suggested_action": "前置概率论未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.87
+    },
+    {
+      "kp_id": "kp_029",
+      "kp_name": "损失函数",
+      "domain": "优化算法",
+      "mastery": 0.2142,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 概率论, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_003"
+      ],
+      "blocks": [],
+      "suggested_action": "前置概率论未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.87
+    },
+    {
       "kp_id": "kp_004",
       "kp_name": "矩阵运算",
       "domain": "数学基础",
@@ -710,21 +765,6 @@
         "kp_011"
       ],
       "suggested_action": "前置线性代数未掌握，建议在进入当前模块前安排补充讲义",
-      "confidence": 0.86
-    },
-    {
-      "kp_id": "kp_026",
-      "kp_name": "信息论基础",
-      "domain": "数学基础",
-      "mastery": 0.2689,
-      "gap_type": "blocked",
-      "priority": "high",
-      "description": "前置知识点未掌握: 概率论, 导致当前知识点学习受阻",
-      "blocked_by": [
-        "kp_003"
-      ],
-      "blocks": [],
-      "suggested_action": "前置概率论未掌握，建议在进入当前模块前安排补充讲义",
       "confidence": 0.86
     },
     {
@@ -852,21 +892,6 @@
       "confidence": 0.86
     },
     {
-      "kp_id": "kp_029",
-      "kp_name": "损失函数",
-      "domain": "优化算法",
-      "mastery": 0.2689,
-      "gap_type": "blocked",
-      "priority": "high",
-      "description": "前置知识点未掌握: 概率论, 导致当前知识点学习受阻",
-      "blocked_by": [
-        "kp_003"
-      ],
-      "blocks": [],
-      "suggested_action": "前置概率论未掌握，建议在进入当前模块前安排补充讲义",
-      "confidence": 0.86
-    },
-    {
       "kp_id": "kp_022",
       "kp_name": "特征工程",
       "domain": "实践应用",
@@ -902,7 +927,7 @@
       "kp_id": "kp_006",
       "kp_name": "监督学习",
       "domain": "机器学习基础",
-      "mastery": 0.31,
+      "mastery": 0.4502,
       "gap_type": "blocked",
       "priority": "high",
       "description": "前置知识点未掌握: 概率论, 导数与梯度, 导致当前知识点学习受阻",
@@ -924,7 +949,7 @@
       "kp_id": "kp_010",
       "kp_name": "评估指标",
       "domain": "机器学习基础",
-      "mastery": 0.3775,
+      "mastery": 0.4502,
       "gap_type": "blocked",
       "priority": "high",
       "description": "前置知识点未掌握: 监督学习, 导致当前知识点学习受阻",
@@ -935,7 +960,7 @@
         "kp_025"
       ],
       "suggested_action": "前置监督学习未掌握，建议在进入当前模块前安排补充讲义",
-      "confidence": 0.86
+      "confidence": 0.87
     },
     {
       "kp_id": "kp_005",
@@ -987,21 +1012,6 @@
       "confidence": 0.85
     },
     {
-      "kp_id": "kp_002",
-      "kp_name": "线性代数",
-      "domain": "数学基础",
-      "mastery": 0.4256,
-      "gap_type": "weak",
-      "priority": "medium",
-      "description": "掌握度43%, 需要巩固提升",
-      "blocked_by": [],
-      "blocks": [
-        "kp_004"
-      ],
-      "suggested_action": "后续矩阵运算章节前安排快速回顾",
-      "confidence": 0.83
-    },
-    {
       "kp_id": "kp_001",
       "kp_name": "微积分基础",
       "domain": "数学基础",
@@ -1027,8 +1037,8 @@
     {
       "kp_id": "kp_002",
       "kp_name": "线性代数",
-      "depth": "advanced",
-      "rationale": "mastery=0.43 部分掌握，需巩固提升"
+      "depth": "entry",
+      "rationale": "mastery=0.05 未接触"
     },
     {
       "kp_id": "kp_003",
@@ -1052,13 +1062,13 @@
       "kp_id": "kp_026",
       "kp_name": "信息论基础",
       "depth": "entry",
-      "rationale": "mastery=0.27 薄弱，从入门开始"
+      "rationale": "mastery=0.21 未学，入门讲授"
     },
     {
       "kp_id": "kp_006",
       "kp_name": "监督学习",
-      "depth": "entry",
-      "rationale": "mastery=0.31 薄弱，从入门开始"
+      "depth": "advanced",
+      "rationale": "mastery=0.45 部分掌握，需巩固提升"
     },
     {
       "kp_id": "kp_007",
@@ -1081,8 +1091,8 @@
     {
       "kp_id": "kp_010",
       "kp_name": "评估指标",
-      "depth": "entry",
-      "rationale": "mastery=0.38 薄弱，从入门开始"
+      "depth": "advanced",
+      "rationale": "mastery=0.45 部分掌握，需巩固提升"
     },
     {
       "kp_id": "kp_027",
@@ -1160,7 +1170,7 @@
       "kp_id": "kp_029",
       "kp_name": "损失函数",
       "depth": "entry",
-      "rationale": "mastery=0.27 薄弱，从入门开始"
+      "rationale": "mastery=0.21 未学，入门讲授"
     },
     {
       "kp_id": "kp_021",
@@ -1205,7 +1215,7 @@
     "target_chapter_id": "ch03_cnn",
     "target_chapter_name": "卷积神经网络（CNN）",
     "target_depth": "进阶",
-    "depth_rationale": "学习者ML基础薄弱(ML相关均值0.33)，建议从基础讲起，但PyTorch经验不足需配足代码实操",
+    "depth_rationale": "学习者ML基础薄弱(ML相关均值0.31)，建议从基础讲起，但PyTorch经验不足需配足代码实操",
     "lecture_notes": {
       "must_include": [
         "卷积运算的数学定义（互相关 vs 卷积的区别）",
@@ -1330,9 +1340,9 @@
   ],
   "evidence": [
     {
-      "claim": "全局能力θ=-1.15, ability_level=beginner",
+      "claim": "全局能力θ=-0.89, ability_level=beginner",
       "source": "irt_estimation",
-      "detail": "累计5道题(覆盖4个知识点)的IRT-MLE跨知识点估计，学历先验θ=-0.5(专科)，L2正则λ=0.5",
+      "detail": "累计9道题(覆盖7个知识点)的IRT-MLE跨知识点估计，学历先验θ=-0.5(专科)，L2正则λ=0.5",
       "confidence": 0.9
     },
     {
@@ -1344,13 +1354,13 @@
     {
       "claim": "主要错误模式=概念混淆(100%)",
       "source": "answer_history",
-      "detail": "5题中4道错题自动分类。双标注一致率=0.87",
+      "detail": "9题中6道错题自动分类。双标注一致率=0.87",
       "confidence": 0.85
     },
     {
-      "claim": "PyTorch能力=入门级",
+      "claim": "编程能力=入门",
       "source": "self_assessment",
-      "detail": "自填问卷Q8-Q10：只写过tensor基本操作和数据加载，未完整训练过模型",
+      "detail": "自填问卷: 编程能力自评「入门」",
       "confidence": 0.75
     },
     {
@@ -1358,23 +1368,17 @@
       "source": "gap_analysis",
       "detail": "gap_analyzer: kp_014 mastery<0.5 且是前置依赖，判定blocked",
       "confidence": 0.86
-    },
-    {
-      "claim": "编码能力score=0.70",
-      "source": "self_assessment_and_interaction",
-      "detail": "自填问卷: sklearn项目+LeetCode 80题; 交互数据: practice类占32%",
-      "confidence": 0.72
     }
   ],
   "diagnosis_summary": {
-    "short": "张小明(专科计算机应用技术) — θ=-1.15 初学者 — ML基础扎实、DL刚入门 — 当前学习CNN(进阶) — 主要错误模式: 概念混淆(100%)",
-    "full": "学习者「张小明」(专科/计算机应用技术/GPA N/A)。全局能力θ=-1.15，综合等级: 初学者。最强领域: 数学基础(37.3%)，最弱领域: 深度学习(18.3%)。共30个薄弱点(25高/5中/0低)。建议优先攻克: Transformer与Attention, 循环神经网络RNN/LSTM, 模型部署。",
+    "short": "张小明(专科计算机应用技术) — θ=-0.89 初学者 — ML基础扎实、DL刚入门 — 当前学习CNN(进阶) — 主要错误模式: 概念混淆(100%)",
+    "full": "学习者「张小明」(专科/计算机应用技术/GPA N/A)。全局能力θ=-0.89，综合等级: 初学者。最强领域: 机器学习基础(31.5%)，最弱领域: 深度学习(18.3%)。共30个薄弱点(26高/4中/0低)。建议优先攻克: 线性代数, Transformer与Attention, 循环神经网络RNN/LSTM。",
     "profile_confidence": "中等偏高。IRT估计≥0.85，自填问卷部分0.70-0.75。建议ch03完成后重新诊断。"
   },
   "meta": {
-    "total_test_count": 5,
+    "total_test_count": 9,
     "total_interaction_count": 0,
-    "diagnosed_at": "2026-08-12T22:45:53Z",
+    "diagnosed_at": "2026-08-17T01:23:29Z",
     "next_suggested_diagnosis": "ch03_cnn完成后（预计2026-08-08）"
   }
 }

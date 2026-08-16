@@ -28,13 +28,35 @@ class Education(BaseModel):
     relevant_courses: List[str] = Field(default_factory=list, description="相关课程")
 
 
+class CourseSelfAssessment(BaseModel):
+    """分课程自我评价 — 知识点级自评（高等数学/线性代数/概率论等）"""
+    name: str = Field("", description="课程名")
+    level: str = Field("未学过", description="未学过/入门/基础/熟练/精通")
+    note: str = Field("", description="自由描述/自我评价")
+
+
+class ProjectExperience(BaseModel):
+    """项目经历"""
+    name: str = Field("", description="项目名")
+    role: str = Field("", description="担任角色/职责")
+    description: str = Field("", description="项目描述")
+    tech_stack: List[str] = Field(default_factory=list, description="技术栈")
+    duration_months: int = Field(0, description="持续月数")
+
+
 class SelfAssessment(BaseModel):
     """自填问卷摘要"""
     ml_level: str = ""
     dl_level: str = ""
     math_level: str = ""
+    programming_level: str = ""
     learning_goal: str = ""
     weekly_hours: int = 5
+    position: str = Field("", description="职位/担任角色")
+    strengths: str = Field("", description="优势/已掌握内容详细描述")
+    weaknesses: str = Field("", description="薄弱/待提升内容详细描述")
+    courses: List[CourseSelfAssessment] = Field(default_factory=list, description="分课程自评")
+    projects: List[ProjectExperience] = Field(default_factory=list, description="项目经历")
 
 
 class TestRecord(BaseModel):

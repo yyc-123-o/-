@@ -19,11 +19,17 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from models.schemas import Learner, Education, SelfAssessment, TestRecord, InteractionRecord
+from models.schemas import (
+    Learner, Education, SelfAssessment, TestRecord, InteractionRecord,
+    CourseSelfAssessment, ProjectExperience,
+)
 from models.knowledge_graph import KG, KnowledgePoint
 
 # 错题时的错误模式候选
 _ERROR_PATTERNS = ["概念混淆", "计算错误", "逻辑跳跃", "忽略条件"]
+
+# 难度档 (IRT b) → 三级标注
+_TIER_LABEL = {"easy": "易", "medium": "中", "hard": "难"}
 
 
 # ============================================================
@@ -39,32 +45,36 @@ def _load_real_questions() -> List[dict]:
     return []
 
 
-def generate_test_bank(kg: KnowledgeGraph, rng: np.random.Generator) -> List[dict]:
-    """生成测试题库 — 优先使用真实题目，不足时自动生成补充"""
-    real = _load_real_questions()
-    real_ids = {q["question_id"] for q in real}
-    bank = list(real)
+def _difficulty_tier(difficulty: float) -> str:
+    """根据 IRT b 值划分难度档 — 与自适应测试的难度梯度档位保持一致
 
-    # 为没有真实题目的知识点生成补充题
+    易: b ≤ -0.2 / 中: -0.2 < b ≤ 0.8 / 难: b > 0.8
+    """
+    if difficulty <= -0.2:
+        return "easy"
+    elif difficulty <= 0.8:
+        return "medium"
+    return "hard"
+
+
+def generate_test_bank(kg: KnowledgeGraph, rng: np.random.Generator) -> List[dict]:
+    """生成测试题库 — 加载真实题目并附加难度档标注
+
+    题库在 data/real_questions.json 中已覆盖全部知识点;
+    若有遗漏仅打印警告, 不再生成占位符题。
+    """
+    real = _load_real_questions()
+    bank = []
+    for q in real:
+        item = dict(q)
+        item["level"] = _difficulty_tier(item.get("difficulty", 0.0))
+        item["level_label"] = _TIER_LABEL[item["level"]]
+        bank.append(item)
+
     covered_kps = {q["knowledge_point_id"] for q in bank}
-    for kp in kg.points:
-        if kp.id not in covered_kps:
-            for i in range(3):
-                qid = f"q_{kp.id}_{i+1}"
-                if qid not in real_ids:
-                    difficulty = round(kp.difficulty + rng.uniform(-0.5, 0.5), 2)
-                    discrimination = round(rng.uniform(0.6, 1.4), 2)
-                    bank.append({
-                        "question_id": qid,
-                        "knowledge_point_id": kp.id,
-                        "knowledge_point_name": kp.name,
-                        "domain": kp.domain,
-                        "difficulty": difficulty,
-                        "discrimination": discrimination,
-                        "question_text": f"请回答关于「{kp.name}」的相关问题。（难度 {difficulty:.1f}）",
-                        "options": ["选项A", "选项B", "选项C", "选项D"],
-                        "correct_answer": 0,
-                    })
+    missing = [kp.id for kp in kg.points if kp.id not in covered_kps]
+    if missing:
+        print(f"[题库] 警告: 以下知识点缺少真实题目: {missing}")
 
     return bank
 
@@ -241,8 +251,23 @@ def generate_all_mock_data() -> Tuple[List[Learner], List[dict]]:
         ml_level="刚接触，跟着B站教程跑过demo",
         dl_level="完全不了解",
         math_level="高数学过但忘了很多",
+        programming_level="入门，能写简单Python脚本",
         learning_goal="入门AI，能看懂简单的ML代码",
         weekly_hours=5,
+        position="无（在校学生）",
+        strengths="对Python有基本了解，能看懂简单的代码逻辑",
+        weaknesses="数学基础薄弱，概率论与线代几乎遗忘，深度学习零基础",
+        courses=[
+            CourseSelfAssessment(name="高等数学", level="入门", note="学过但忘了很多"),
+            CourseSelfAssessment(name="线性代数", level="未学过", note=""),
+            CourseSelfAssessment(name="概率论与数理统计", level="未学过", note=""),
+            CourseSelfAssessment(name="Python编程", level="基础", note="能写简单脚本"),
+            CourseSelfAssessment(name="数据结构与算法", level="入门", note="了解数组/链表"),
+            CourseSelfAssessment(name="机器学习", level="入门", note="跑过demo"),
+            CourseSelfAssessment(name="深度学习", level="未学过", note=""),
+            CourseSelfAssessment(name="最优化方法", level="未学过", note=""),
+        ],
+        projects=[],
     )
 
     # 学习者2: 中级
@@ -268,8 +293,30 @@ def generate_all_mock_data() -> Tuple[List[Learner], List[dict]]:
         ml_level="了解基础，做过sklearn项目",
         dl_level="知道CNN/RNN名字，没实际写过",
         math_level="微积分和线代还行，概率论偏弱",
+        programming_level="熟悉，能独立完成sklearn项目",
         learning_goal="系统掌握深度学习，能独立完成CV方向项目",
         weekly_hours=10,
+        position="班级学习委员",
+        strengths="机器学习基础较好，会特征工程与调参；微积分和线代尚可",
+        weaknesses="概率论偏弱，深度学习只懂概念、缺乏代码实操经验",
+        courses=[
+            CourseSelfAssessment(name="高等数学", level="基础", note="微积分基本掌握"),
+            CourseSelfAssessment(name="线性代数", level="基础", note="矩阵运算熟练"),
+            CourseSelfAssessment(name="概率论与数理统计", level="入门", note="偏弱"),
+            CourseSelfAssessment(name="Python编程", level="熟练", note="做过sklearn项目"),
+            CourseSelfAssessment(name="数据结构与算法", level="基础", note=""),
+            CourseSelfAssessment(name="机器学习", level="基础", note="会线性回归/分类/聚类"),
+            CourseSelfAssessment(name="深度学习", level="入门", note="只懂CNN/RNN概念"),
+            CourseSelfAssessment(name="最优化方法", level="入门", note=""),
+        ],
+        projects=[
+            ProjectExperience(name="房价预测回归分析", role="独立完成",
+                              description="基于sklearn的房价预测，含数据清洗、特征工程、网格搜索调参",
+                              tech_stack=["Python", "scikit-learn", "pandas"], duration_months=2),
+            ProjectExperience(name="新闻文本分类", role="合作者",
+                              description="用朴素贝叶斯和TF-IDF做新闻分类，负责数据预处理",
+                              tech_stack=["Python", "jieba", "scikit-learn"], duration_months=1),
+        ],
     )
 
     # 学习者3: 高级
@@ -295,8 +342,30 @@ def generate_all_mock_data() -> Tuple[List[Learner], List[dict]]:
         ml_level="熟练掌握，有过Kaggle竞赛经验",
         dl_level="熟悉CNN/RNN/Transformer，独立完成过项目",
         math_level="数学基础扎实，能看懂论文公式推导",
+        programming_level="精通，有竞赛与项目经验",
         learning_goal="深入LLM前沿，准备发表一篇NLP方向论文",
         weekly_hours=20,
+        position="实验室研究助理 / 竞赛队长",
+        strengths="数学基础扎实能推公式，深度学习熟悉CNN/RNN/Transformer，有完整项目与竞赛经验",
+        weaknesses="模型部署与工程化（量化/推理优化）经验相对较少",
+        courses=[
+            CourseSelfAssessment(name="高等数学", level="熟练", note="能看懂论文公式推导"),
+            CourseSelfAssessment(name="线性代数", level="熟练", note="矩阵分解/特征分解熟练"),
+            CourseSelfAssessment(name="概率论与数理统计", level="熟练", note=""),
+            CourseSelfAssessment(name="Python编程", level="精通", note=""),
+            CourseSelfAssessment(name="数据结构与算法", level="熟练", note=""),
+            CourseSelfAssessment(name="机器学习", level="熟练", note="有Kaggle经验"),
+            CourseSelfAssessment(name="深度学习", level="熟练", note="独立完成过CV/NLP项目"),
+            CourseSelfAssessment(name="最优化方法", level="基础", note=""),
+        ],
+        projects=[
+            ProjectExperience(name="Kaggle图像分割竞赛", role="队长",
+                              description="基于U-Net/DeepLab的医学图像分割，Top 5%",
+                              tech_stack=["Python", "PyTorch", "segmentation_models"], duration_months=3),
+            ProjectExperience(name="基于Transformer的文本分类", role="独立完成",
+                              description="用BERT微调做多分类，含数据增强与对抗训练",
+                              tech_stack=["Python", "PyTorch", "transformers"], duration_months=2),
+        ],
     )
 
     return [learner1, learner2, learner3], test_bank

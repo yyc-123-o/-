@@ -71,6 +71,37 @@ def _ability_level_str(theta: float) -> str:
         return "advanced"
 
 
+# 分课程自评 → 领域级结论
+_COURSE_LEVEL_SCORE = {"未学过": 0.0, "入门": 0.35, "基础": 0.60, "熟练": 0.80, "精通": 1.00}
+
+_COURSE_DOMAIN_MAP = {
+    "数学基础": ["高等数学", "线性代数", "概率论与数理统计", "最优化方法"],
+    "机器学习基础": ["机器学习", "数据结构与算法"],
+    "深度学习": ["深度学习"],
+    "编程能力": ["Python编程"],
+}
+
+
+def _self_assessed_domain_hints(sa) -> Dict[str, dict]:
+    """把分课程自评映射为领域级自评结论 (数学/机器学习/深度学习/编程)"""
+    if not sa or not sa.courses:
+        return {}
+
+    domain_scores: Dict[str, List[float]] = {}
+    for course in sa.courses:
+        score = _COURSE_LEVEL_SCORE.get(course.level, 0.0)
+        for domain, names in _COURSE_DOMAIN_MAP.items():
+            if course.name in names:
+                domain_scores.setdefault(domain, []).append(score)
+
+    hints: Dict[str, dict] = {}
+    for domain, scores in domain_scores.items():
+        mean = sum(scores) / len(scores)
+        level = "强" if mean >= 0.70 else "中" if mean >= 0.40 else "弱"
+        hints[domain] = {"mean": round(mean, 2), "level": level, "n_courses": len(scores)}
+    return hints
+
+
 def _compute_status_distribution(status_map: Dict[str, str]) -> Dict[str, StatusDistributionItem]:
     dist: Dict[str, StatusDistributionItem] = {}
     counts: Dict[str, int] = {}
@@ -225,6 +256,7 @@ def _build_ability_level(
 def _build_learning_preferences(
     test_records: List[TestRecord],
     interactions: List[InteractionRecord],
+    self_assessment=None,
 ) -> LearningPreferences:
     """构建学习偏好 (0803 五组结构)"""
     # 从交互数据推断
@@ -251,14 +283,26 @@ def _build_learning_preferences(
     else:
         interaction_level = "low"
 
+    # 自填问卷驱动的偏好 (项目/职位/编程能力)
+    sa = self_assessment
+    projects = sa.projects if sa and sa.projects else []
+    position = sa.position if sa and sa.position else ""
+    programming_level = sa.programming_level if sa and sa.programming_level else "入门"
+    strengths = sa.strengths if sa and sa.strengths else ""
+
+    primary_motivation = sa.learning_goal if sa and sa.learning_goal else "提升AI能力"
+    secondary_motivation = f"担任角色：{position}" if position else ""
+    project_driven = len(projects) > 0
+    target_project = " → ".join([p.name for p in projects[:3]]) if projects else ""
+
     return LearningPreferences(
         format=FormatPreference(
             content_order=["概念直觉理解", "数学推导", "代码实战", "面试考点"],
             code_language="Python",
             framework="PyTorch",
-            framework_level="入门（仅写过tensor基本操作）",
+            framework_level=programming_level,
             framework_confidence=0.75,
-            confidence_note="自填问卷：只写过tensor基本操作和数据加载，未完整训练过模型",
+            confidence_note=strengths if strengths else "自填问卷未填写优势描述",
         ),
         style=StylePreference(
             visual_learner=True,
@@ -280,10 +324,10 @@ def _build_learning_preferences(
             prefers_discussion=False,
         ),
         motivation=MotivationPreference(
-            primary="就业准备（目标：AI工程师/NLP方向）",
-            secondary="科研兴趣（对Transformer/Attention机制有好奇心）",
-            project_driven=True,
-            target_project="图像分类实战 → 目标检测 → 基于Transformer的视觉任务",
+            primary=primary_motivation,
+            secondary=secondary_motivation,
+            project_driven=project_driven,
+            target_project=target_project,
         ),
     )
 
@@ -501,13 +545,42 @@ def _build_evidence(
             confidence=error_patterns.classification_confidence,
         ))
 
-    # PyTorch能力
+    # 编程能力 / 职位
+    sa = learner.self_assessment
+    programming_level = sa.programming_level if sa and sa.programming_level else "入门"
     evidence.append(EvidenceRecord(
-        claim="PyTorch能力=入门级",
+        claim=f"编程能力={programming_level}",
         source="self_assessment",
-        detail="自填问卷Q8-Q10：只写过tensor基本操作和数据加载，未完整训练过模型",
+        detail=f"自填问卷: 编程能力自评「{programming_level}」"
+                + (f"；担任角色：{sa.position}" if sa and sa.position else ""),
         confidence=0.75,
     ))
+
+    # 项目经历
+    if sa and sa.projects:
+        proj_names = "、".join([p.name for p in sa.projects[:3]])
+        evidence.append(EvidenceRecord(
+            claim=f"项目经历 {len(sa.projects)} 个: {proj_names}",
+            source="self_assessment",
+            detail="自填问卷: " + "；".join(
+                f"{p.name}({p.role}, {p.tech_stack and '/'.join(p.tech_stack)})"
+                for p in sa.projects[:3]
+            ),
+            confidence=0.80,
+        ))
+
+    # 分课程自评
+    domain_hints = _self_assessed_domain_hints(sa)
+    if domain_hints:
+        hint_str = "，".join(
+            f"{d}={h['level']}({h['mean']:.2f})" for d, h in domain_hints.items()
+        )
+        evidence.append(EvidenceRecord(
+            claim=f"分课程自评领域结论: {hint_str}",
+            source="self_assessment",
+            detail=f"自填问卷分课程自评 {len(sa.courses)} 门课程映射到 4 个领域",
+            confidence=0.70,
+        ))
 
     # 主要盲区
     blocked_gaps = [g for g in gaps if g.gap_type == "blocked" and g.priority == "high"]
@@ -518,14 +591,6 @@ def _build_evidence(
             detail=f"gap_analyzer: {g.kp_id} mastery<0.5 且是前置依赖，判定blocked",
             confidence=g.confidence,
         ))
-
-    # 编码能力
-    evidence.append(EvidenceRecord(
-        claim="编码能力score=0.70",
-        source="self_assessment_and_interaction",
-        detail="自填问卷: sklearn项目+LeetCode 80题; 交互数据: practice类占32%",
-        confidence=0.72,
-    ))
 
     return evidence
 
@@ -554,6 +619,11 @@ def _build_diagnosis_summary(
     primary_err = error_patterns.primary_weakness
     primary_err_ratio = error_patterns.primary_weakness_ratio
 
+    sa_hints = _self_assessed_domain_hints(learner.self_assessment)
+    sa_sentence = ""
+    if sa_hints:
+        sa_sentence = "自评：" + "，".join(f"{d}{h['level']}" for d, h in sa_hints.items()) + "。"
+
     short = (
         f"{learner.name}({learner.education.level}{learner.education.major}) — "
         f"θ={global_theta:.2f} {level_cn} — "
@@ -571,6 +641,7 @@ def _build_diagnosis_summary(
         f"共{len(gaps)}个薄弱点"
         f"({len(high_gaps)}高/{len(med_gaps)}中/{len(low_gaps)}低)。"
         f"建议优先攻克: {', '.join([g.kp_name for g in high_gaps[:3]])}。"
+        f"{sa_sentence}"
     )
 
     profile_confidence = "中等偏高。IRT估计≥0.85，自填问卷部分0.70-0.75。建议ch03完成后重新诊断。"
@@ -631,7 +702,9 @@ def build_profile(
         global_theta, overall_accuracy,
     )
     ability_level = _build_ability_level(global_theta, mastery_map, domain_mastery)
-    learning_preferences = _build_learning_preferences(learner.test_records, learner.interaction_records)
+    learning_preferences = _build_learning_preferences(
+        learner.test_records, learner.interaction_records, learner.self_assessment
+    )
     depth_labels = _build_depth_labels(kg, mastery_map)
     resource_hints = _build_resource_hints(kg, learning_scope, error_patterns, mastery_map)
     prior_chapters = _build_prior_chapters()
@@ -641,15 +714,25 @@ def build_profile(
     )
 
     # 9. 组装 learner 信息
+    sa = learner.self_assessment
     learner_info = {
         "name": learner.name,
         "education": learner.education.model_dump() if learner.education else {},
-        "self_assessment": learner.self_assessment.model_dump() if learner.self_assessment else {
+        "position": sa.position if sa else "",
+        "projects": [p.model_dump() for p in sa.projects] if sa and sa.projects else [],
+        "courses": [c.model_dump() for c in sa.courses] if sa and sa.courses else [],
+        "self_assessment": sa.model_dump() if sa else {
             "ml_level": "",
             "dl_level": "",
             "math_level": "",
+            "programming_level": "",
             "learning_goal": "",
             "weekly_hours": 5,
+            "position": "",
+            "strengths": "",
+            "weaknesses": "",
+            "courses": [],
+            "projects": [],
         },
     }
 
