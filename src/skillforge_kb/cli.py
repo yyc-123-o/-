@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import uvicorn
 import yaml
 from langgraph.checkpoint.sqlite import SqliteSaver
 from neo4j import GraphDatabase
@@ -18,6 +19,7 @@ from skillforge_kb.agents.runtime import (
     run_standalone_event,
     validate_standalone_agent_paths,
 )
+from skillforge_kb.api.app import create_app
 from skillforge_kb.config import Settings
 from skillforge_kb.evaluation import (
     DEFAULT_SYNTHETIC_CASE_COUNT,
@@ -35,6 +37,7 @@ from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.coverage import analyze_candidate_coverage, write_coverage_report
 from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 from skillforge_kb.ontology.validation import validate_catalog
+from skillforge_kb.platform.runtime import build_default_platform_service
 
 app = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -47,6 +50,22 @@ DEFAULT_KNOWLEDGE_FILE = PROJECT_ROOT / "data" / "index_chunks.jsonl"
 @app.callback()
 def main() -> None:
     """Operate the SkillForge knowledge base."""
+
+
+@app.command("platform-serve")
+def platform_serve(
+    project_root: Annotated[
+        Path | None,
+        typer.Option(exists=True, file_okay=False),
+    ] = None,
+    host: Annotated[str, typer.Option()] = "127.0.0.1",
+    port: Annotated[int, typer.Option(min=1, max=65535)] = 8000,
+) -> None:
+    try:
+        service = build_default_platform_service(project_root or Path.cwd())
+    except (OSError, ValueError, ValidationError, yaml.YAMLError) as exc:
+        raise typer.BadParameter(f"platform configuration failed: {exc}") from exc
+    uvicorn.run(create_app(service), host=host, port=port)
 
 
 @app.command("fusion-dry-run")

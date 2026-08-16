@@ -32,6 +32,47 @@ def test_agent_run_prints_json() -> None:
     assert payload["current_node"] is not None
 
 
+def test_platform_serve_builds_service_and_starts_uvicorn(monkeypatch, tmp_path: Path) -> None:
+    calls: dict[str, object] = {}
+    service = object()
+    application = object()
+
+    monkeypatch.setattr(
+        "skillforge_kb.cli.build_default_platform_service",
+        lambda root: calls.update(project_root=root) or service,
+    )
+    monkeypatch.setattr(
+        "skillforge_kb.cli.create_app",
+        lambda value: calls.update(service=value) or application,
+    )
+    monkeypatch.setattr(
+        "skillforge_kb.cli.uvicorn.run",
+        lambda app, **kwargs: calls.update(app=app, **kwargs),
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "platform-serve",
+            "--project-root",
+            str(tmp_path),
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8123",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert calls == {
+        "project_root": tmp_path,
+        "service": service,
+        "app": application,
+        "host": "127.0.0.1",
+        "port": 8123,
+    }
+
+
 def test_agent_run_persists_duplicate_event(tmp_path: Path) -> None:
     state_db = tmp_path / "agent.sqlite3"
     args = [
