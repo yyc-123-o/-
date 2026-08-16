@@ -1,0 +1,834 @@
+[
+  {
+    "question_id": "q_kp_001_1",
+    "knowledge_point_id": "kp_001",
+    "knowledge_point_name": "微积分基础",
+    "domain": "数学基础",
+    "difficulty": -1.0,
+    "discrimination": 1.0,
+    "question_text": "函数 f(x)=x² 在 x=2 处的导数是多少？",
+    "options": [
+      "2",
+      "4",
+      "8",
+      "1"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_001_2",
+    "knowledge_point_id": "kp_001",
+    "knowledge_point_name": "微积分基础",
+    "domain": "数学基础",
+    "difficulty": -0.7,
+    "discrimination": 1.1,
+    "question_text": "极限 lim(x→0) sin(x)/x 的值是多少？",
+    "options": [
+      "0",
+      "∞",
+      "1",
+      "不存在"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_002_1",
+    "knowledge_point_id": "kp_002",
+    "knowledge_point_name": "线性代数",
+    "domain": "数学基础",
+    "difficulty": -0.5,
+    "discrimination": 1.2,
+    "question_text": "以下哪个是单位矩阵的特征值？",
+    "options": [
+      "0",
+      "-1",
+      "1",
+      "2"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_002_2",
+    "knowledge_point_id": "kp_002",
+    "knowledge_point_name": "线性代数",
+    "domain": "数学基础",
+    "difficulty": -0.3,
+    "discrimination": 1.0,
+    "question_text": "向量 [1,0,0] 和 [0,1,0] 的点积是多少？",
+    "options": [
+      "0",
+      "1",
+      "2",
+      "-1"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_003_1",
+    "knowledge_point_id": "kp_003",
+    "knowledge_point_name": "概率论",
+    "domain": "数学基础",
+    "difficulty": 0.1,
+    "discrimination": 1.0,
+    "question_text": "掷一枚公平硬币两次，两次都是正面的概率是多少？",
+    "options": [
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/3"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_003_2",
+    "knowledge_point_id": "kp_003",
+    "knowledge_point_name": "概率论",
+    "domain": "数学基础",
+    "difficulty": 0.3,
+    "discrimination": 0.9,
+    "question_text": "贝叶斯定理的核心公式是？",
+    "options": [
+      "P(A|B)=P(A)P(B)",
+      "P(A|B)=P(B|A)P(A)/P(B)",
+      "P(A|B)=P(A)+P(B)",
+      "P(A|B)=P(A∩B)/P(A)"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_004_1",
+    "knowledge_point_id": "kp_004",
+    "knowledge_point_name": "矩阵运算",
+    "domain": "数学基础",
+    "difficulty": 0.6,
+    "discrimination": 1.1,
+    "question_text": "矩阵 A(2×3) 乘以 B(3×2) 的结果维度是？",
+    "options": [
+      "3×3",
+      "2×2",
+      "2×3",
+      "3×2"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_004_2",
+    "knowledge_point_id": "kp_004",
+    "knowledge_point_name": "矩阵运算",
+    "domain": "数学基础",
+    "difficulty": 0.8,
+    "discrimination": 1.2,
+    "question_text": "特征分解 A=VΛV⁻¹ 中，Λ 是什么矩阵？",
+    "options": [
+      "正交矩阵",
+      "对角矩阵",
+      "单位矩阵",
+      "三角矩阵"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_005_1",
+    "knowledge_point_id": "kp_005",
+    "knowledge_point_name": "导数与梯度",
+    "domain": "数学基础",
+    "difficulty": 0.0,
+    "discrimination": 1.0,
+    "question_text": "函数 f(x,y)=x²+y² 在点(1,1)处的梯度是？",
+    "options": [
+      "(2,2)",
+      "(1,1)",
+      "(2x,2y)",
+      "(0,0)"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_005_2",
+    "knowledge_point_id": "kp_005",
+    "knowledge_point_name": "导数与梯度",
+    "domain": "数学基础",
+    "difficulty": 0.2,
+    "discrimination": 1.1,
+    "question_text": "链式法则用于计算什么？",
+    "options": [
+      "函数的极限",
+      "复合函数的导数",
+      "函数的积分",
+      "函数的极值"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_006_1",
+    "knowledge_point_id": "kp_006",
+    "knowledge_point_name": "监督学习",
+    "domain": "机器学习基础",
+    "difficulty": 0.0,
+    "discrimination": 1.0,
+    "question_text": "以下哪个是监督学习任务？",
+    "options": [
+      "K-Means聚类",
+      "图像分类",
+      "PCA降维",
+      "关联规则挖掘"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_006_2",
+    "knowledge_point_id": "kp_006",
+    "knowledge_point_name": "监督学习",
+    "domain": "机器学习基础",
+    "difficulty": 0.1,
+    "discrimination": 0.9,
+    "question_text": "线性回归的损失函数通常是？",
+    "options": [
+      "交叉熵",
+      "Hinge Loss",
+      "均方误差(MSE)",
+      "KL散度"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_007_1",
+    "knowledge_point_id": "kp_007",
+    "knowledge_point_name": "无监督学习",
+    "domain": "机器学习基础",
+    "difficulty": 0.5,
+    "discrimination": 1.1,
+    "question_text": "K-Means聚类中，K代表什么？",
+    "options": [
+      "迭代次数",
+      "聚类中心数",
+      "样本数",
+      "特征数"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_007_2",
+    "knowledge_point_id": "kp_007",
+    "knowledge_point_name": "无监督学习",
+    "domain": "机器学习基础",
+    "difficulty": 0.6,
+    "discrimination": 1.0,
+    "question_text": "PCA的主要目的是？",
+    "options": [
+      "分类",
+      "降维",
+      "聚类",
+      "回归"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_008_1",
+    "knowledge_point_id": "kp_008",
+    "knowledge_point_name": "过拟合与欠拟合",
+    "domain": "机器学习基础",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "训练集准确率很高但测试集准确率很低，这通常是什么问题？",
+    "options": [
+      "欠拟合",
+      "过拟合",
+      "数据不平衡",
+      "特征缺失"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_008_2",
+    "knowledge_point_id": "kp_008",
+    "knowledge_point_name": "过拟合与欠拟合",
+    "domain": "机器学习基础",
+    "difficulty": 0.6,
+    "discrimination": 1.1,
+    "question_text": "以下哪个方法可以有效缓解过拟合？",
+    "options": [
+      "增加模型参数量",
+      "去掉正则化",
+      "增加训练数据量",
+      "减少dropout比率"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_009_1",
+    "knowledge_point_id": "kp_009",
+    "knowledge_point_name": "交叉验证",
+    "domain": "机器学习基础",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "K折交叉验证中，数据被分成几份？",
+    "options": [
+      "1份",
+      "2份",
+      "K份",
+      "K+1份"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_009_2",
+    "knowledge_point_id": "kp_009",
+    "knowledge_point_name": "交叉验证",
+    "domain": "机器学习基础",
+    "difficulty": 0.6,
+    "discrimination": 1.1,
+    "question_text": "留一法(LOOCV)是K折交叉验证的哪种特例？",
+    "options": [
+      "K=2",
+      "K=10",
+      "K=n（样本数）",
+      "K=1"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_010_1",
+    "knowledge_point_id": "kp_010",
+    "knowledge_point_name": "评估指标",
+    "domain": "机器学习基础",
+    "difficulty": 0.0,
+    "discrimination": 0.9,
+    "question_text": "精确率(Precision)的计算公式是？",
+    "options": [
+      "TP/(TP+FP)",
+      "TP/(TP+FN)",
+      "(TP+TN)/总数",
+      "TP/FP"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_010_2",
+    "knowledge_point_id": "kp_010",
+    "knowledge_point_name": "评估指标",
+    "domain": "机器学习基础",
+    "difficulty": 0.2,
+    "discrimination": 1.0,
+    "question_text": "当数据严重不平衡时，哪个指标更可靠？",
+    "options": [
+      "准确率(Accuracy)",
+      "F1分数",
+      "均方误差",
+      "R²"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_011_1",
+    "knowledge_point_id": "kp_011",
+    "knowledge_point_name": "神经网络基础",
+    "domain": "深度学习",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "一个三层MLP包含哪些层？",
+    "options": [
+      "输入层、隐藏层、输出层",
+      "卷积层、池化层、全连接层",
+      "编码器、解码器",
+      "注意力层、前馈层"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_011_2",
+    "knowledge_point_id": "kp_011",
+    "knowledge_point_name": "神经网络基础",
+    "domain": "深度学习",
+    "difficulty": 0.6,
+    "discrimination": 1.2,
+    "question_text": "前向传播的主要计算是？",
+    "options": [
+      "梯度计算",
+      "矩阵乘法和激活函数",
+      "参数更新",
+      "损失函数求导"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_012_1",
+    "knowledge_point_id": "kp_012",
+    "knowledge_point_name": "卷积神经网络CNN",
+    "domain": "深度学习",
+    "difficulty": 1.0,
+    "discrimination": 1.2,
+    "question_text": "CNN中的卷积操作本质上是？",
+    "options": [
+      "矩阵乘法",
+      "滑动窗口的加权求和",
+      "傅里叶变换",
+      "池化操作"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_012_2",
+    "knowledge_point_id": "kp_012",
+    "knowledge_point_name": "卷积神经网络CNN",
+    "domain": "深度学习",
+    "difficulty": 1.2,
+    "discrimination": 1.1,
+    "question_text": "输入32×32×3图像，用5×5卷积核、stride=1、padding=2、输出通道=6，输出尺寸是？",
+    "options": [
+      "28×28×6",
+      "32×32×6",
+      "30×30×6",
+      "26×26×6"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_013_1",
+    "knowledge_point_id": "kp_013",
+    "knowledge_point_name": "循环神经网络RNN/LSTM",
+    "domain": "深度学习",
+    "difficulty": 1.5,
+    "discrimination": 1.0,
+    "question_text": "LSTM中的「遗忘门」的作用是？",
+    "options": [
+      "决定哪些新信息存入细胞状态",
+      "决定输出什么值",
+      "决定丢弃哪些旧信息",
+      "决定学习率大小"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_014_1",
+    "knowledge_point_id": "kp_014",
+    "knowledge_point_name": "Transformer与Attention",
+    "domain": "深度学习",
+    "difficulty": 2.0,
+    "discrimination": 1.3,
+    "question_text": "Transformer中Self-Attention的Q、K、V分别代表什么？",
+    "options": [
+      "查询、键、值",
+      "问题、知识、验证",
+      "量化、关键、变量",
+      "队列、内核、向量"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_014_2",
+    "knowledge_point_id": "kp_014",
+    "knowledge_point_name": "Transformer与Attention",
+    "domain": "深度学习",
+    "difficulty": 1.8,
+    "discrimination": 1.2,
+    "question_text": "Multi-Head Attention的主要优势是？",
+    "options": [
+      "减少参数量",
+      "在不同子空间学习注意力",
+      "加速训练",
+      "降低显存"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_015_1",
+    "knowledge_point_id": "kp_015",
+    "knowledge_point_name": "激活函数",
+    "domain": "深度学习",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "ReLU函数的公式是？",
+    "options": [
+      "max(0,x)",
+      "1/(1+e^(-x))",
+      "(e^x-e^(-x))/(e^x+e^(-x))",
+      "max(0.1x,x)"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_015_2",
+    "knowledge_point_id": "kp_015",
+    "knowledge_point_name": "激活函数",
+    "domain": "深度学习",
+    "difficulty": 0.6,
+    "discrimination": 1.1,
+    "question_text": "ReLU相比Sigmoid的主要优点是？",
+    "options": [
+      "输出有界",
+      "缓解梯度消失",
+      "输出以零为中心",
+      "计算更复杂"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_016_1",
+    "knowledge_point_id": "kp_016",
+    "knowledge_point_name": "梯度下降",
+    "domain": "优化算法",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "SGD中的「随机」指的是什么？",
+    "options": [
+      "随机初始化参数",
+      "每次随机选一个样本",
+      "随机选择学习率",
+      "随机打乱网络结构"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_016_2",
+    "knowledge_point_id": "kp_016",
+    "knowledge_point_name": "梯度下降",
+    "domain": "优化算法",
+    "difficulty": 0.7,
+    "discrimination": 1.2,
+    "question_text": "Mini-batch梯度下降相比批量梯度下降的优点是？",
+    "options": [
+      "更稳定",
+      "更快收敛且可跳出局部最优",
+      "保证全局最优",
+      "不需要学习率"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_017_1",
+    "knowledge_point_id": "kp_017",
+    "knowledge_point_name": "反向传播",
+    "domain": "优化算法",
+    "difficulty": 1.0,
+    "discrimination": 1.3,
+    "question_text": "反向传播算法基于什么数学原理？",
+    "options": [
+      "矩阵分解",
+      "链式法则",
+      "泰勒展开",
+      "傅里叶变换"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_017_2",
+    "knowledge_point_id": "kp_017",
+    "knowledge_point_name": "反向传播",
+    "domain": "优化算法",
+    "difficulty": 1.2,
+    "discrimination": 1.1,
+    "question_text": "计算图(Computation Graph)在反向传播中的作用是？",
+    "options": [
+      "加速前向传播",
+      "可视化网络结构",
+      "记录运算顺序以便求梯度",
+      "减少内存占用"
+    ],
+    "correct_answer": 2
+  },
+  {
+    "question_id": "q_kp_018_1",
+    "knowledge_point_id": "kp_018",
+    "knowledge_point_name": "Adam优化器",
+    "domain": "优化算法",
+    "difficulty": 1.0,
+    "discrimination": 1.2,
+    "question_text": "Adam优化器结合了哪两种优化方法？",
+    "options": [
+      "SGD和Adam",
+      "Momentum和RMSProp",
+      "AdaGrad和SGD",
+      "Nesterov和Adam"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_018_2",
+    "knowledge_point_id": "kp_018",
+    "knowledge_point_name": "Adam优化器",
+    "domain": "优化算法",
+    "difficulty": 1.1,
+    "discrimination": 1.0,
+    "question_text": "Adam中的「自适应」指的是什么？",
+    "options": [
+      "自动调整网络结构",
+      "自适应调整学习率",
+      "自适应选择损失函数",
+      "自适应调整batch size"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_019_1",
+    "knowledge_point_id": "kp_019",
+    "knowledge_point_name": "正则化L1/L2/Dropout",
+    "domain": "优化算法",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "L2正则化又叫做什么？",
+    "options": [
+      "Lasso回归",
+      "权重衰减",
+      "Early Stopping",
+      "Dropout"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_019_2",
+    "knowledge_point_id": "kp_019",
+    "knowledge_point_name": "正则化L1/L2/Dropout",
+    "domain": "优化算法",
+    "difficulty": 0.6,
+    "discrimination": 1.1,
+    "question_text": "Dropout在训练时随机丢弃什么？",
+    "options": [
+      "输入数据",
+      "神经元",
+      "整个网络层",
+      "损失函数"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_020_1",
+    "knowledge_point_id": "kp_020",
+    "knowledge_point_name": "学习率调度",
+    "domain": "优化算法",
+    "difficulty": 1.0,
+    "discrimination": 1.0,
+    "question_text": "余弦退火(Cosine Annealing)学习率调度的特点是？",
+    "options": [
+      "学习率线性下降",
+      "学习率按余弦曲线周期性变化",
+      "学习率恒定不变",
+      "学习率指数衰减"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_021_1",
+    "knowledge_point_id": "kp_021",
+    "knowledge_point_name": "数据预处理",
+    "domain": "实践应用",
+    "difficulty": 0.0,
+    "discrimination": 0.9,
+    "question_text": "数据标准化的常用方法是？",
+    "options": [
+      "减去均值除以标准差",
+      "乘以2",
+      "加1",
+      "取对数"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_021_2",
+    "knowledge_point_id": "kp_021",
+    "knowledge_point_name": "数据预处理",
+    "domain": "实践应用",
+    "difficulty": 0.1,
+    "discrimination": 1.0,
+    "question_text": "处理缺失值的常见方法不包括？",
+    "options": [
+      "删除含缺失值的样本",
+      "用均值填充",
+      "用模型预测缺失值",
+      "增加模型层数"
+    ],
+    "correct_answer": 3
+  },
+  {
+    "question_id": "q_kp_022_1",
+    "knowledge_point_id": "kp_022",
+    "knowledge_point_name": "特征工程",
+    "domain": "实践应用",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "One-Hot编码用于处理什么类型的特征？",
+    "options": [
+      "连续数值特征",
+      "类别特征",
+      "图像特征",
+      "文本特征"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_023_1",
+    "knowledge_point_id": "kp_023",
+    "knowledge_point_name": "模型调参",
+    "domain": "实践应用",
+    "difficulty": 1.0,
+    "discrimination": 1.1,
+    "question_text": "网格搜索(Grid Search)的缺点是什么？",
+    "options": [
+      "找不到最优参数",
+      "计算代价随参数数量指数增长",
+      "只能优化连续参数",
+      "需要梯度信息"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_025_1",
+    "knowledge_point_id": "kp_025",
+    "knowledge_point_name": "模型评估与AB测试",
+    "domain": "实践应用",
+    "difficulty": 1.0,
+    "discrimination": 1.0,
+    "question_text": "A/B测试中，对照组和实验组的区别是？",
+    "options": [
+      "没有区别",
+      "实验组使用新方案",
+      "对照组使用新方案",
+      "两组都用新方案"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_026_1",
+    "knowledge_point_id": "kp_026",
+    "knowledge_point_name": "信息论基础",
+    "domain": "数学基础",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "交叉熵(Cross Entropy)用于衡量什么？",
+    "options": [
+      "两个概率分布的差异",
+      "模型的参数量",
+      "数据的方差",
+      "梯度的大小"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_027_1",
+    "knowledge_point_id": "kp_027",
+    "knowledge_point_name": "集成学习",
+    "domain": "机器学习基础",
+    "difficulty": 1.0,
+    "discrimination": 1.0,
+    "question_text": "Bagging和Boosting的主要区别是？",
+    "options": [
+      "Bagging并行训练、Boosting串行训练",
+      "Bagging串行训练、Boosting并行训练",
+      "两者完全一样",
+      "Bagging只用于分类"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_028_1",
+    "knowledge_point_id": "kp_028",
+    "knowledge_point_name": "BatchNorm与归一化",
+    "domain": "深度学习",
+    "difficulty": 1.0,
+    "discrimination": 1.1,
+    "question_text": "BatchNorm对每个mini-batch做什么操作？",
+    "options": [
+      "归一化到均值0方差1",
+      "将数据扩大到2倍",
+      "随机丢弃神经元",
+      "改变batch大小"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_028_2",
+    "knowledge_point_id": "kp_028",
+    "knowledge_point_name": "BatchNorm与归一化",
+    "domain": "深度学习",
+    "difficulty": 1.2,
+    "discrimination": 1.2,
+    "question_text": "BatchNorm在训练和推理时的行为有何不同？",
+    "options": [
+      "完全相同",
+      "训练用batch统计量，推理用全局统计量",
+      "训练用全局统计量，推理用batch统计量",
+      "推理时不使用BatchNorm"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_029_1",
+    "knowledge_point_id": "kp_029",
+    "knowledge_point_name": "损失函数",
+    "domain": "优化算法",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "分类任务最常用的损失函数是？",
+    "options": [
+      "MSE",
+      "交叉熵",
+      "MAE",
+      "Huber Loss"
+    ],
+    "correct_answer": 1
+  },
+  {
+    "question_id": "q_kp_030_1",
+    "knowledge_point_id": "kp_030",
+    "knowledge_point_name": "数据增强",
+    "domain": "实践应用",
+    "difficulty": 0.5,
+    "discrimination": 1.0,
+    "question_text": "图像数据增强的常见方法不包括？",
+    "options": [
+      "随机旋转",
+      "随机裁剪",
+      "水平翻转",
+      "增加全连接层"
+    ],
+    "correct_answer": 3
+  },
+  {
+    "question_id": "q_kp_024_1",
+    "knowledge_point_id": "kp_024",
+    "knowledge_point_name": "模型部署",
+    "domain": "实践应用",
+    "difficulty": 1.77,
+    "discrimination": 0.95,
+    "question_text": "请回答关于「模型部署」的相关问题。（难度 1.8）",
+    "options": [
+      "选项A",
+      "选项B",
+      "选项C",
+      "选项D"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_024_2",
+    "knowledge_point_id": "kp_024",
+    "knowledge_point_name": "模型部署",
+    "domain": "实践应用",
+    "difficulty": 1.86,
+    "discrimination": 1.16,
+    "question_text": "请回答关于「模型部署」的相关问题。（难度 1.9）",
+    "options": [
+      "选项A",
+      "选项B",
+      "选项C",
+      "选项D"
+    ],
+    "correct_answer": 0
+  },
+  {
+    "question_id": "q_kp_024_3",
+    "knowledge_point_id": "kp_024",
+    "knowledge_point_name": "模型部署",
+    "domain": "实践应用",
+    "difficulty": 1.09,
+    "discrimination": 1.38,
+    "question_text": "请回答关于「模型部署」的相关问题。（难度 1.1）",
+    "options": [
+      "选项A",
+      "选项B",
+      "选项C",
+      "选项D"
+    ],
+    "correct_answer": 0
+  }
+]
