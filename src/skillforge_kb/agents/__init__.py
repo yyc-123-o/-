@@ -36,6 +36,15 @@ from .planning_tools import (
     update_course_plan_tool,
 )
 from .resource_tools import FakeResourceGenerator, ResourceGenerationTool
+from .retrieval_agent import DomainRetrievalAgent
+from .retrieval_agent_models import (
+    DomainRetrievalRequest,
+    DomainRetrievalResult,
+    EvidenceGap,
+    EvidenceSummary,
+    RetrievalMethod,
+    RetrievedEvidence,
+)
 from .runtime import (
     StandaloneAgentPaths,
     build_standalone_course_planning_agent,
@@ -46,6 +55,11 @@ from .runtime import (
 
 __all__ = [
     "CoursePlanningAgent",
+    "DomainRetrievalAgent",
+    "DomainRetrievalRequest",
+    "DomainRetrievalResult",
+    "EvidenceGap",
+    "EvidenceSummary",
     "PlanningFeedbackCoordinator",
     "PlanningFeedbackResult",
     "CoursePlanningAgentResult",
@@ -70,6 +84,8 @@ __all__ = [
     "PlanningToolAudit",
     "PlanningToolResult",
     "ResourceGenerationTool",
+    "RetrievedEvidence",
+    "RetrievalMethod",
     "ProcessedPlanningEvent",
     "UpdateCoursePlanInput",
     "build_create_course_plan_node",
