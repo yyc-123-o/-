@@ -47,6 +47,27 @@ uv run ruff check src tests/unit
 uv run mypy src/skillforge_kb
 ```
 
+## Three-Agent Platform
+
+Start the local Course Planning, Domain Retrieval, and Resource Generation
+platform without an API key:
+
+```powershell
+uv sync --frozen
+uv run skillforge-kb platform-serve `
+  --project-root . `
+  --host 127.0.0.1 `
+  --port 8000
+```
+
+Open `http://127.0.0.1:8000` and upload
+`tests/fixtures/profile-2026-0001-demo.json`. Strict mode is the default and
+returns a structured blocked result while the published evidence manifest is
+empty. Candidate preview can generate a deterministic, explicitly
+non-publishable draft from candidate material. Run history is in memory and is
+cleared when the process restarts. The Learner Profile Agent, real model calls,
+authentication, and production persistence are outside this release.
+
 The fusion CLI is read-only with respect to source directories:
 
 ```powershell

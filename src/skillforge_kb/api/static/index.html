@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <title>SkillForge 课程平台</title>
+    <link rel="stylesheet" href="/static/app.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="masthead">
+        <div class="brand-block">
+          <span class="brand-index">SF/01</span>
+          <h1>SkillForge</h1>
+          <p>课程规划平台</p>
+        </div>
+        <div class="run-state" aria-live="polite">
+          <span>运行状态</span>
+          <strong id="run-status">未开始</strong>
+        </div>
+      </header>
+
+      <nav class="pipeline" aria-label="Agent 执行轨道">
+        <div class="pipeline-step" data-stage="plan_course">
+          <span>01</span>
+          <strong>课程规划</strong>
+          <small>等待</small>
+        </div>
+        <div class="pipeline-step" data-stage="retrieve_evidence">
+          <span>02</span>
+          <strong>领域检索</strong>
+          <small>等待</small>
+        </div>
+        <div class="pipeline-step" data-stage="generate_resource">
+          <span>03</span>
+          <strong>资源生成</strong>
+          <small>等待</small>
+        </div>
+      </nav>
+
+      <div class="workspace">
+        <aside class="control-panel" aria-label="运行输入">
+          <section class="control-section">
+            <div class="section-number">01</div>
+            <h2>学情画像</h2>
+            <label class="file-control" for="profile-file">
+              <span>选择 JSON 文件</span>
+              <input id="profile-file" type="file" accept="application/json,.json">
+            </label>
+            <div id="profile-summary" class="profile-summary" aria-live="polite">
+              <span>尚未选择画像</span>
+            </div>
+            <p id="profile-error" class="field-error" role="alert"></p>
+          </section>
+
+          <section class="control-section">
+            <div class="section-number">02</div>
+            <h2>执行设置</h2>
+            <fieldset class="mode-control">
+              <legend>生成模式</legend>
+              <label>
+                <input type="radio" name="execution-mode" value="strict" checked>
+                <span>严格模式</span>
+              </label>
+              <label>
+                <input type="radio" name="execution-mode" value="candidate_preview">
+                <span>候选预览</span>
+              </label>
+            </fieldset>
+            <label class="number-control" for="top-k">
+              <span>检索数量</span>
+              <input id="top-k" type="number" min="1" max="20" value="5">
+            </label>
+          </section>
+
+          <button id="run-platform" class="primary-action" type="button" disabled>
+            运行课程流程
+          </button>
+        </aside>
+
+        <main class="results-panel">
+          <div class="result-header">
+            <div>
+              <span class="result-label">当前运行</span>
+              <strong id="run-id">暂无记录</strong>
+            </div>
+            <div id="publication-status" class="publication-status" hidden></div>
+          </div>
+
+          <div class="tabs" role="tablist" aria-label="运行结果">
+            <button type="button" role="tab" aria-selected="true" data-tab="path-view">学习路径</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="evidence-view">检索证据</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="resource-view">生成资源</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="raw-view">原始结果</button>
+          </div>
+
+          <section id="path-view" class="tab-panel" role="tabpanel">
+            <div class="empty-state">运行后显示学习路径</div>
+          </section>
+          <section id="evidence-view" class="tab-panel" role="tabpanel" hidden>
+            <div class="empty-state">运行后显示正式证据、候选证据与缺口</div>
+          </section>
+          <section id="resource-view" class="tab-panel" role="tabpanel" hidden>
+            <div class="empty-state">满足门禁后显示资源结果</div>
+          </section>
+          <section id="raw-view" class="tab-panel" role="tabpanel" hidden>
+            <pre id="raw-json">{}</pre>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>

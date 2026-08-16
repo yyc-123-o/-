@@ -1,7 +1,9 @@
+from pathlib import Path
 from typing import Protocol
 
 from fastapi import FastAPI, HTTPException, Response, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from skillforge_kb.platform.models import (
     PlatformRunRequest,
@@ -22,6 +24,8 @@ class PlatformApplicationService(Protocol):
 def create_app(service: PlatformApplicationService) -> FastAPI:
     app = FastAPI(title="SkillForge Platform API", version="1.0.0")
     app.state.platform_service = service
+    static_root = Path(__file__).with_name("static")
+    app.mount("/static", StaticFiles(directory=static_root), name="static")
 
     @app.exception_handler(IdempotencyConflict)
     async def idempotency_conflict_handler(
@@ -44,6 +48,10 @@ def create_app(service: PlatformApplicationService) -> FastAPI:
             "status": "ok",
             "execution_modes": ["strict", "candidate_preview"],
         }
+
+    @app.get("/", response_class=FileResponse, include_in_schema=False)
+    def console() -> FileResponse:
+        return FileResponse(static_root / "index.html")
 
     @app.post(
         "/api/v1/runs",
