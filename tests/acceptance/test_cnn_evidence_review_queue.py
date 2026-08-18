@@ -56,5 +56,6 @@ def test_review_queue_cli_writes_candidate_only_report(tmp_path: Path) -> None:
     assert report["review_status"] == "candidate"
     assert report["publishable"] is False
     assert report["missing_content_kinds"] == ["exercise"]
+    assert report["missing_requirements"] == ["pytorch_nn_conv2d", "exercise"]
     assert len(report["candidates"]) == 2
     assert json.loads(input_path.read_text(encoding="utf-8").splitlines()[0]) == rows[0]

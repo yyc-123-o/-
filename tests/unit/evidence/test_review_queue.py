@@ -9,6 +9,7 @@ def _row(**overrides: object) -> dict[str, object]:
         "source_url": "https://github.com/MingchaoZhu/DeepLearning",
         "license_status": "allowed",
         "license": "MIT",
+        "tier": "S2",
         "language": "zh",
         "content_kind": "definition",
         "concept_ids": ["dl.cnn.convolution"],
@@ -51,6 +52,8 @@ def test_queue_keeps_valid_definition_and_code_and_reports_exercise_gap() -> Non
         "definition",
     ]
     assert payload["missing_content_kinds"] == ["exercise"]
+    assert payload["missing_requirements"] == ["pytorch_nn_conv2d", "exercise"]
+    assert all(item["tier"] == "S2" for item in payload["candidates"])
     assert payload["excluded_candidates"][0]["reason"] == "disallowed_source_family"
 
 
@@ -62,3 +65,18 @@ def test_queue_rejects_rows_without_exact_concept_anchor() -> None:
     assert payload["candidates"] == []
     assert payload["missing_content_kinds"] == ["definition", "code", "exercise"]
     assert payload["excluded_candidates"][0]["reason"] == "concept_scope_mismatch"
+
+
+def test_queue_rejects_weak_concept_binding_without_cnn_source_anchor() -> None:
+    payload = build_cnn_review_queue(
+        [
+            _row(
+                chunk_id="misbound-svm-1",
+                source_title="DeepLearning Chapter 5 Machine Learning Basics",
+                text="linear kernel and support vector machine implementation",
+            )
+        ]
+    )
+
+    assert payload["candidates"] == []
+    assert payload["excluded_candidates"][0]["reason"] == "source_scope_mismatch"

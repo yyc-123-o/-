@@ -13,6 +13,7 @@ _DISALLOWED_TERMS = (
     "生成对抗",
     "转置卷积",
 )
+_SOURCE_ANCHORS = ("cnn", "convolution", "conv2d", "卷积")
 
 
 def build_cnn_review_queue(
@@ -41,6 +42,16 @@ def build_cnn_review_queue(
     )
     excluded.sort(key=lambda item: (item["chunk_id"], item["reason"]))
     available = {str(item["content_kind"]) for item in candidates}
+    code_excerpts = [
+        str(item["excerpt"]).casefold()
+        for item in candidates
+        if item["content_kind"] == "code"
+    ]
+    missing_requirements: list[str] = []
+    if not any("nn.conv2d" in excerpt for excerpt in code_excerpts):
+        missing_requirements.append("pytorch_nn_conv2d")
+    if "exercise" not in available:
+        missing_requirements.append("exercise")
     return {
         "schema_version": "cnn-evidence-review-queue.v1",
         "concept_id": CONCEPT_ID,
@@ -55,6 +66,7 @@ def build_cnn_review_queue(
         "missing_content_kinds": [
             kind for kind in REQUIRED_KINDS if kind not in available
         ],
+        "missing_requirements": missing_requirements,
     }
 
 
@@ -93,6 +105,14 @@ def _exclusion_reason(
     ).casefold()
     if any(term in searchable for term in _DISALLOWED_TERMS):
         return "disallowed_source_family"
+    source_scope = " ".join(
+        (
+            _text(row.get("source_title")),
+            _heading_text(row.get("heading_path")),
+        )
+    ).casefold()
+    if not any(anchor in source_scope for anchor in _SOURCE_ANCHORS):
+        return "source_scope_mismatch"
     return None
 
 
@@ -105,6 +125,7 @@ def _candidate(row: Mapping[str, object], chunk_id: str) -> dict[str, object]:
         "source_url": _text(row.get("source_url")),
         "license_status": "allowed",
         "license": _text(row.get("license")),
+        "tier": _text(row.get("tier")) or None,
         "language": _text(row.get("language")),
         "content_kind": _text(row.get("content_kind")),
         "concept_id": CONCEPT_ID,
