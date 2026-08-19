@@ -3,6 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from skillforge_kb.domain.enums import ContentKind
+
 
 class KnowledgeDifficulty(StrEnum):
     BEGINNER = "入门"
@@ -28,6 +30,7 @@ class KnowledgeChunk(BaseModel):
     domain_tag: str = Field(min_length=1)
     difficulty: KnowledgeDifficulty
     token_count: int = Field(ge=0)
+    content_kind: ContentKind | None = None
 
     @field_validator("heading_path", mode="before")
     @classmethod

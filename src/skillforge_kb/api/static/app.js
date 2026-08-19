@@ -1,5 +1,6 @@
 const state = {
   profile: null,
+  profileWarnings: [],
   result: null,
 };
 
@@ -24,22 +25,45 @@ async function handleProfileFile(event) {
   const file = event.target.files?.[0];
   if (!file) {
     state.profile = null;
+    state.profileWarnings = [];
     runButton.disabled = true;
     renderProfileSummary();
     return;
   }
   try {
-    const profile = JSON.parse(await file.text());
-    validateProfile(profile);
-    state.profile = profile;
+    const uploadedProfile = JSON.parse(await file.text());
+    const normalized = await normalizeProfile(uploadedProfile);
+    state.profile = normalized.snapshot;
+    state.profileWarnings = normalized.warnings;
+    validateProfile(state.profile);
     runButton.disabled = false;
     renderProfileSummary();
   } catch (error) {
     state.profile = null;
+    state.profileWarnings = [];
     runButton.disabled = true;
     profileError.textContent = error instanceof Error ? error.message : "画像文件无效";
     renderProfileSummary();
   }
+}
+
+async function normalizeProfile(profile) {
+  if (profile?.schema_version && profile?.graph_version) {
+    return { snapshot: profile, warnings: [] };
+  }
+  if (profile?.profile_version !== "2.1") {
+    throw new Error("画像必须是平台快照或学情诊断 Agent v2.1 输出");
+  }
+  const response = await fetch("/api/v1/profiles/adapt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profile),
+  });
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.detail?.message || "学情画像适配失败");
+  }
+  return { snapshot: payload.snapshot, warnings: payload.warnings || [] };
 }
 
 function validateProfile(profile) {
@@ -64,6 +88,19 @@ function renderProfileSummary() {
     textElement("span", `图谱版本 ${state.profile.graph_version}`),
     textElement("span", `画像版本 ${state.profile.schema_version}`),
   );
+  if (state.profileWarnings.length > 0) {
+    const details = document.createElement("details");
+    details.className = "profile-warnings";
+    details.append(
+      textElement("summary", `适配警告 ${state.profileWarnings.length} 条`),
+    );
+    const list = document.createElement("ul");
+    state.profileWarnings.forEach((warning) => {
+      list.append(textElement("li", `${warning.legacy_id}: ${warning.reason}`));
+    });
+    details.append(list);
+    profileSummary.append(details);
+  }
 }
 
 function resetProfileError() {

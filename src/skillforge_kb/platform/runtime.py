@@ -10,6 +10,7 @@ from skillforge_kb.evidence.manifest import EvidenceIndex, load_evidence_index
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.concept_attributes import load_concept_attributes
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
+from skillforge_kb.ontology.profile_agent_adapter import LearnerProfileAgentAdapter
 from skillforge_kb.ontology.resource_blueprints import (
     ResourceBlueprintCatalog,
     load_resource_blueprints,
@@ -32,6 +33,7 @@ class DefaultPlatformPaths:
     attributes_file: Path
     blueprints_file: Path
     evidence_file: Path
+    profile_agent_map_file: Path
     knowledge_file: Path
 
     @classmethod
@@ -44,6 +46,9 @@ class DefaultPlatformPaths:
             blueprints_file=ontology / "resource_blueprints_v1.yaml",
             evidence_file=(
                 root / "resources" / "evidence" / "evidence_manifest_v1.yaml"
+            ),
+            profile_agent_map_file=(
+                root / "resources" / "ontology" / "profile_agent_kp_map_v1.yaml"
             ),
             knowledge_file=root / "data" / "index_chunks.jsonl",
         )
@@ -86,6 +91,7 @@ def validate_default_platform_paths(paths: DefaultPlatformPaths) -> None:
         paths.attributes_file,
         paths.blueprints_file,
         paths.evidence_file,
+        paths.profile_agent_map_file,
         paths.knowledge_file,
     ):
         if not path.is_file():
@@ -117,3 +123,17 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         clock=SystemClock(),
     )
     return PlatformService(dependencies, InMemoryPlatformRunRepository())
+
+
+def build_default_profile_agent_adapter(
+    project_root: Path,
+) -> LearnerProfileAgentAdapter:
+    root = project_root.expanduser().resolve()
+    paths = DefaultPlatformPaths.from_project_root(root)
+    validate_default_platform_paths(paths)
+    catalog = OntologyCatalog.load(paths.course_file, paths.relations_file)
+    validate_catalog(catalog)
+    return LearnerProfileAgentAdapter.load_mappings(
+        catalog,
+        paths.profile_agent_map_file,
+    )

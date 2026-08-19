@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from skillforge_kb.api.app import create_app
+from skillforge_kb.ontology.catalog import OntologyCatalog
+from skillforge_kb.ontology.profile_agent_adapter import LearnerProfileAgentAdapter
 
 
 def _request(profile_payload: dict[str, object], *, top_k: int = 5) -> dict[str, object]:
@@ -101,3 +105,39 @@ def test_unexpected_runtime_failure_returns_503(profile_payload: dict[str, objec
 
     assert response.status_code == 503
     assert response.json()["detail"]["code"] == "platform_unavailable"
+
+
+def test_profile_agent_output_can_be_adapted(client, service) -> None:
+    root = Path(__file__).parents[3]
+    catalog = OntologyCatalog.load(
+        root / "resources" / "ontology" / "ai_course_v1.yaml",
+        root / "resources" / "ontology" / "ai_relations_v1.yaml",
+    )
+    adapter = LearnerProfileAgentAdapter(
+        catalog,
+        mappings={"kp_012": "dl.cnn.convolution"},
+    )
+    raw = {
+        "profile_id": "PROFILE-LEARNER_TEST_001",
+        "profile_version": "2.1",
+        "generated_at": "2026-08-19T10:00:00Z",
+        "learner_id": "learner_test_001",
+        "knowledge_mastery": {
+            "points": {
+                "kp_012": {
+                    "mastery": 0.3,
+                    "status": "weak",
+                    "confidence": 0.9,
+                }
+            }
+        },
+    }
+
+    app = create_app(service, profile_adapter=adapter)
+    with TestClient(app) as adapted_client:
+        response = adapted_client.post("/api/v1/profiles/adapt", json=raw)
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["snapshot"]["profile_id"] == "PROFILE-LEARNER_TEST_001"
+    assert payload["snapshot"]["knowledge_mastery"][0]["concept_id"] == "dl.cnn.convolution"

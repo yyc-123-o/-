@@ -60,13 +60,17 @@ uv run skillforge-kb platform-serve `
   --port 8000
 ```
 
-Open `http://127.0.0.1:8000` and upload
-`tests/fixtures/profile-2026-0001-demo.json`. Strict mode is the default and
-returns a structured blocked result while the published evidence manifest is
-empty. Candidate preview can generate a deterministic, explicitly
-non-publishable draft from candidate material. Run history is in memory and is
-cleared when the process restarts. The Learner Profile Agent, real model calls,
-authentication, and production persistence are outside this release.
+Open `http://127.0.0.1:8000` and upload either
+`tests/fixtures/profile-2026-0001-demo.json` or a v2.1 output from the imported
+`学情诊断Agent`. v2.1 profiles are normalized through
+`POST /api/v1/profiles/adapt` before planning; only explicit atomic mappings
+are published into the canonical snapshot and unmapped composite points are
+returned as warnings. Strict mode is the default and returns a structured
+blocked result while the published evidence manifest is empty. Candidate
+preview can generate a deterministic, explicitly non-publishable draft only
+from correctly typed candidate material. Run history is in memory and is
+cleared when the process restarts. Real model calls, authentication, and
+production persistence remain outside this release.
 
 The fusion CLI is read-only with respect to source directories:
 

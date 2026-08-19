@@ -214,6 +214,24 @@ input:focus-visible {
   font-weight: 500;
 }
 
+.profile-warnings {
+  margin-top: 4px;
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.profile-warnings summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.profile-warnings ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
 .field-error {
   min-height: 20px;
   margin: 8px 0 0;

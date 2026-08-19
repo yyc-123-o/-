@@ -79,6 +79,9 @@ def test_agent_queries_definition_code_and_exercise(resource_case) -> None:
     assert set(result.evidence_gap.missing_content_kinds) == set(
         handoff.evidence_filters.content_kinds
     )
+    assert len({item.chunk_id for item in result.candidate_evidence}) == len(
+        result.candidate_evidence
+    )
 
 
 def test_candidate_hits_remain_unapproved(resource_case) -> None:
@@ -107,3 +110,41 @@ def test_candidate_hits_remain_unapproved(resource_case) -> None:
         ContentKind.CODE,
         ContentKind.EXERCISE,
     } for item in result.candidate_evidence)
+
+
+def test_declared_code_chunk_cannot_satisfy_exercise_query(resource_case) -> None:
+    brief, _ = resource_case
+    handoff = ResourceHandoffContract.from_brief(brief)
+    corpus = KnowledgeCorpus(
+        chunks=(
+            KnowledgeChunk(
+                chunk_id="declared-code",
+                doc_id="cnn-doc",
+                source_title="CNN code",
+                heading_path=("CNN", "Code"),
+                text="Python PyTorch nn.Conv2d 输入输出 shape 参数。",
+                domain_tag="ai-knowledge",
+                difficulty="进阶",
+                token_count=20,
+                content_kind=ContentKind.CODE,
+            ),
+        ),
+        digest="2" * 64,
+    )
+    agent = DomainRetrievalAgent(
+        corpus,
+        KnowledgeRetrievalTool(Bm25KnowledgeRetriever(corpus)),
+        EvidenceIndex(version="evidence-manifest-v1", graph_version=handoff.graph_version),
+    )
+    request = DomainRetrievalRequest(
+        original_query="卷积运算",
+        rewritten_queries=("卷积输出尺寸练习",),
+        profile_id=handoff.profile_id,
+        concept_id=handoff.concept_id,
+        depth=handoff.delivery_depth,
+        top_k=3,
+    )
+
+    result = agent.retrieve(request, handoff)
+
+    assert all(item.content_kind is not ContentKind.EXERCISE for item in result.candidate_evidence)

@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol
 
@@ -5,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.platform.models import (
     PlatformRunRequest,
     PlatformRunResult,
@@ -21,9 +23,17 @@ class PlatformApplicationService(Protocol):
     def get(self, run_id: str) -> PlatformRunResult | None: ...
 
 
-def create_app(service: PlatformApplicationService) -> FastAPI:
+class ProfileAdaptationService(Protocol):
+    def adapt(self, raw: Mapping[str, object]) -> AdaptedLearnerProfile: ...
+
+
+def create_app(
+    service: PlatformApplicationService,
+    profile_adapter: ProfileAdaptationService | None = None,
+) -> FastAPI:
     app = FastAPI(title="SkillForge Platform API", version="1.0.0")
     app.state.platform_service = service
+    app.state.profile_adapter = profile_adapter
     static_root = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static_root), name="static")
 
@@ -48,6 +58,28 @@ def create_app(service: PlatformApplicationService) -> FastAPI:
             "status": "ok",
             "execution_modes": ["strict", "candidate_preview"],
         }
+
+    @app.post("/api/v1/profiles/adapt")
+    def adapt_profile(raw_profile: dict[str, object]) -> dict[str, object]:
+        if profile_adapter is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "code": "profile_adapter_unavailable",
+                    "message": "learner profile Agent adapter is not configured",
+                },
+            )
+        try:
+            adapted = profile_adapter.adapt(raw_profile)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "invalid_profile_agent_output",
+                    "message": str(exc) or type(exc).__name__,
+                },
+            ) from exc
+        return adapted.model_dump(mode="json")
 
     @app.get("/", response_class=FileResponse, include_in_schema=False)
     def console() -> FileResponse:

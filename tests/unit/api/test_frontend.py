@@ -27,3 +27,6 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert javascript.status_code == 200
     assert "#002fa7" in css.text.casefold()
     assert "/api/v1/runs" in javascript.text
+    assert "/api/v1/profiles/adapt" in javascript.text
+    assert "profileWarnings" in javascript.text
+    assert "适配警告" in javascript.text

@@ -37,7 +37,10 @@ from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.coverage import analyze_candidate_coverage, write_coverage_report
 from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 from skillforge_kb.ontology.validation import validate_catalog
-from skillforge_kb.platform.runtime import build_default_platform_service
+from skillforge_kb.platform.runtime import (
+    build_default_platform_service,
+    build_default_profile_agent_adapter,
+)
 
 app = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -62,10 +65,12 @@ def platform_serve(
     port: Annotated[int, typer.Option(min=1, max=65535)] = 8000,
 ) -> None:
     try:
-        service = build_default_platform_service(project_root or Path.cwd())
+        root = project_root or Path.cwd()
+        service = build_default_platform_service(root)
+        profile_adapter = build_default_profile_agent_adapter(root)
     except (OSError, ValueError, ValidationError, yaml.YAMLError) as exc:
         raise typer.BadParameter(f"platform configuration failed: {exc}") from exc
-    uvicorn.run(create_app(service), host=host, port=port)
+    uvicorn.run(create_app(service, profile_adapter=profile_adapter), host=host, port=port)
 
 
 @app.command("fusion-dry-run")

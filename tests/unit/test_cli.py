@@ -35,6 +35,7 @@ def test_agent_run_prints_json() -> None:
 def test_platform_serve_builds_service_and_starts_uvicorn(monkeypatch, tmp_path: Path) -> None:
     calls: dict[str, object] = {}
     service = object()
+    profile_adapter = object()
     application = object()
 
     monkeypatch.setattr(
@@ -42,8 +43,15 @@ def test_platform_serve_builds_service_and_starts_uvicorn(monkeypatch, tmp_path:
         lambda root: calls.update(project_root=root) or service,
     )
     monkeypatch.setattr(
+        "skillforge_kb.cli.build_default_profile_agent_adapter",
+        lambda root: calls.update(adapter_project_root=root) or profile_adapter,
+    )
+    monkeypatch.setattr(
         "skillforge_kb.cli.create_app",
-        lambda value: calls.update(service=value) or application,
+        lambda value, profile_adapter: calls.update(
+            service=value,
+            profile_adapter=profile_adapter,
+        ) or application,
     )
     monkeypatch.setattr(
         "skillforge_kb.cli.uvicorn.run",
@@ -66,7 +74,9 @@ def test_platform_serve_builds_service_and_starts_uvicorn(monkeypatch, tmp_path:
     assert result.exit_code == 0
     assert calls == {
         "project_root": tmp_path,
+        "adapter_project_root": tmp_path,
         "service": service,
+        "profile_adapter": profile_adapter,
         "app": application,
         "host": "127.0.0.1",
         "port": 8123,

@@ -1,0 +1,26 @@
+version: profile-agent-kp-map-v1
+graph_version: ai-course-v1
+mappings:
+  kp_003: math.probability.probability-distribution
+  kp_004: math.linear-algebra.matrix-operations
+  kp_005: math.calculus.derivative-gradient
+  kp_006: ml.supervised.learning
+  kp_007: ml.clustering.kmeans
+  kp_008: ml.generalization.overfitting
+  kp_009: ml.model-selection.cross-validation
+  kp_010: ml.evaluation.classification-metrics
+  kp_011: dl.feedforward.mlp
+  kp_012: dl.cnn.convolution
+  kp_013: nlp.rnn
+  kp_014: llm.transformer.encoder
+  kp_015: dl.activation.relu
+  kp_016: ml.optimization.gradient-descent
+  kp_017: dl.backpropagation
+  kp_018: dl.optimization.adam
+  kp_019: dl.regularization.l1-l2
+  kp_020: ml.optimization.learning-rate
+  kp_023: dl.practice.hyperparameter-tuning
+  kp_027: ml.ensemble.random-forest
+  kp_028: dl.optimization.batch-normalization
+  kp_029: ml.objective.loss-function
+  kp_030: dl.regularization.data-augmentation

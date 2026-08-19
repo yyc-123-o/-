@@ -22,11 +22,12 @@ Generated `__pycache__` directories and `test_outputs/` artifacts were omitted.
 
 ## Integration Boundary
 
-The standalone output is `LearnerProfile` v2.1. The platform currently accepts
-the normalized `LearnerProfileSnapshot` contract, so an adapter is still needed
-before this Agent can become the platform's input stage. The adapter must map
-concept IDs, graph version, mastery, abilities, error patterns, preferences, and
-provenance without copying path or resource decisions into the profile snapshot.
+The standalone output is `LearnerProfile` v2.1. The platform now exposes
+`POST /api/v1/profiles/adapt` and the web console normalizes this output before
+running the planner. The adapter maps only explicit atomic concept IDs, reports
+unmapped composite IDs as warnings, and copies graph version, mastery,
+abilities, error patterns, preferences, and provenance without copying path or
+resource decisions into the profile snapshot.
 
 The imported Agent declares `numpy` and `scipy` dependencies separately from the
 platform environment. The current project environment can compile the files but

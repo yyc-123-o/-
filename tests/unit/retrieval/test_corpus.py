@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from skillforge_kb.domain.enums import ContentKind
 from skillforge_kb.retrieval.corpus import KnowledgeCorpus
 from skillforge_kb.retrieval.models import KnowledgeDifficulty, KnowledgeQuery
 
@@ -37,6 +38,17 @@ def test_load_validates_rows_and_builds_stable_digest(tmp_path: Path) -> None:
     assert corpus.chunks[0].difficulty is KnowledgeDifficulty.INTERMEDIATE
     assert corpus.chunks[0].heading_path == ("检索增强生成",)
     assert corpus.digest == KnowledgeCorpus.load(path).digest
+
+
+def test_loader_preserves_declared_content_kind(tmp_path: Path) -> None:
+    path = tmp_path / "chunks.jsonl"
+    row = valid_row()
+    row["content_kind"] = "code"
+    write_rows(path, [row])
+
+    corpus = KnowledgeCorpus.load(path)
+
+    assert corpus.chunks[0].content_kind is ContentKind.CODE
 
 
 def test_loader_rejects_duplicate_ids(tmp_path: Path) -> None:

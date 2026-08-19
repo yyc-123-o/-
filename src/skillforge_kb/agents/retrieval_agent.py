@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterable
 
 from skillforge_kb.domain.enums import ContentKind, LicenseStatus
@@ -5,7 +6,7 @@ from skillforge_kb.evidence.manifest import EvidenceIndex
 from skillforge_kb.evidence.models import EvidenceReviewStatus
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.retrieval.corpus import KnowledgeCorpus
-from skillforge_kb.retrieval.models import KnowledgeHit, KnowledgeQuery
+from skillforge_kb.retrieval.models import KnowledgeChunk, KnowledgeHit, KnowledgeQuery
 from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
 from .retrieval_agent_models import (
@@ -146,6 +147,9 @@ class DomainRetrievalAgent:
             )
             result = self._retrieval_tool.invoke(query)
             for hit in result.hits:
+                chunk = self._chunks_by_id.get(hit.chunk_id)
+                if chunk is not None and _infer_content_kind(chunk) is not content_kind:
+                    continue
                 rows.append(self._candidate_from_hit(hit, request, content_kind))
         deduplicated: dict[tuple[str, ContentKind], RetrievedEvidence] = {}
         for row in rows:
@@ -210,3 +214,25 @@ def _sort_evidence(items: Iterable[RetrievedEvidence]) -> tuple[RetrievedEvidenc
             key=lambda item: (item.content_kind.value, -item.score, item.evidence_key),
         )
     )
+
+
+_CODE_MARKERS = re.compile(
+    r"(?:```|\b(?:import|from|def|class|return)\b|nn\.Conv2d|torch\.|numpy\.|np\.)",
+    re.IGNORECASE,
+)
+_EXERCISE_MARKERS = re.compile(
+    r"(?:练习|习题|题目|请计算|答案|解析|作答|选择题|填空题|exercise|question|solution)",
+    re.IGNORECASE,
+)
+
+
+def _infer_content_kind(chunk: KnowledgeChunk) -> ContentKind:
+    """Return the declared kind or a conservative legacy-chunk classification."""
+    if chunk.content_kind is not None:
+        return chunk.content_kind
+    searchable = " ".join((*chunk.heading_path, chunk.text))
+    if _EXERCISE_MARKERS.search(searchable):
+        return ContentKind.EXERCISE
+    if _CODE_MARKERS.search(searchable):
+        return ContentKind.CODE
+    return ContentKind.DEFINITION
