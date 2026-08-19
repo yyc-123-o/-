@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学情诊断 Agent v2.1</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh}
+.header{background:linear-gradient(135deg,#4facfe 0%,#00f2fe 100%);color:#fff;padding:16px 32px;box-shadow:0 2px 8px rgba(0,0,0,.1);display:flex;justify-content:space-between;align-items:center}
+.header h1{font-size:22px}.header p{font-size:13px;opacity:.9}
+.container{max-width:1500px;margin:0 auto;padding:16px 20px}
+.tabs{display:flex;margin-bottom:16px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tab-btn{flex:1;padding:12px 16px;border:none;background:#fff;font-size:14px;cursor:pointer;transition:all .2s;border-bottom:3px solid transparent;color:#64748b;font-weight:500}
+.tab-btn:hover{color:#4facfe;background:#f8fafc}
+.tab-btn.active{color:#4facfe;border-bottom-color:#4facfe;font-weight:700}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.controls{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;background:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.controls select,.controls button{padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+.controls select{border:2px solid #4facfe;background:#fff;min-width:180px}
+.controls button{background:#4facfe;color:#fff;border:none;transition:all .2s}
+.controls button:hover{background:#3d8bcc}
+.controls button.green{background:#22c55e}.controls button.green:hover{background:#16a34a}
+.controls button.purple{background:#6366f1}.controls button.purple:hover{background:#4f46e5}
+.controls button.orange{background:#f59e0b}.controls button.orange:hover{background:#d97706}
+.controls button.gold{background:#b8860b;color:#fff}.controls button.gold:hover{background:#8b6914}
+.controls button:disabled{background:#cbd5e1;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h2{font-size:15px;color:#333;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #4facfe}
+.info-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
+.info-row .label{color:#666}.info-row .value{font-weight:600;color:#1a1a2e}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-beginner{background:#fde68a;color:#92400e}.badge-intermediate{background:#bfdbfe;color:#1e40af}.badge-advanced{background:#bbf7d0;color:#14532d}
+.summary-box{background:#f8fafc;border-left:4px solid #4facfe;padding:10px 14px;border-radius:4px;font-size:12px;line-height:1.7;color:#444}
+.chart-container{width:100%;height:320px}
+.loading{text-align:center;padding:30px;color:#94a3b8}
+.gaps-table{width:100%;border-collapse:collapse;font-size:12px}
+.gaps-table th{background:#f1f5f9;padding:7px 10px;text-align:left;font-weight:600;color:#475569}
+.gaps-table td{padding:7px 10px;border-bottom:1px solid #e2e8f0}.gaps-table tr:hover{background:#f8fafc}
+.gap-type{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.gap-blindspot{background:#fee2e2;color:#991b1b}.gap-weak{background:#fef3c7;color:#92400e}
+.gap-blocked{background:#ede9fe;color:#5b21b6}.gap-difficult{background:#fce7f3;color:#9d174d}
+.priority-high{color:#dc2626;font-weight:700}.priority-medium{color:#d97706}.priority-low{color:#6b7280}
+.domain-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.domain-bar .label{width:90px;font-size:12px;text-align:right}
+.domain-bar .bar-bg{flex:1;height:18px;background:#e2e8f0;border-radius:9px;overflow:hidden}
+.domain-bar .bar-fill{height:100%;border-radius:9px;transition:width .5s}
+.domain-bar .pct{width:40px;font-size:11px;font-weight:600}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:#475569;margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit}
+.form-group textarea{min-height:80px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.question-card{background:#f0f9ff;border:2px solid #4facfe;border-radius:12px;padding:20px;margin-bottom:12px}
+.option-btn{display:block;width:100%;padding:10px 14px;margin:6px 0;border:2px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;text-align:left;transition:all .2s}
+.option-btn:hover{border-color:#4facfe;background:#f0f9ff}
+.theta-meter{display:flex;align-items:center;gap:10px;margin:12px 0}
+.theta-meter .bar{flex:1;height:12px;background:#e2e8f0;border-radius:6px;overflow:hidden}
+.theta-meter .bar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e);transition:width .3s}
+.upload-area{border:2px dashed #cbd5e1;border-radius:12px;padding:30px;text-align:center;transition:all .2s;cursor:pointer}
+.upload-area:hover{border-color:#4facfe;background:#f0f9ff}
+.upload-area textarea{width:100%;min-height:200px;font-family:monospace;font-size:12px;border:none;outline:none;resize:vertical;background:transparent}
+</style>
+</head>
+<body>
+<div class="header">
+  <div><h1>学情诊断 Agent v2.1</h1><p>IRT-2PL | 自适应测试 | 四维画像 | 章节级资源生成提示</p></div>
+  <span id="apiStatus" style="font-size:12px;opacity:.8"></span>
+</div>
+<div class="container">
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">画像看板</button>
+  <button class="tab-btn" onclick="switchTab('questionnaire')">自填问卷</button>
+  <button class="tab-btn" onclick="switchTab('upload')">上传数据</button>
+  <button class="tab-btn" onclick="switchTab('adaptive')">自适应测试</button>
+</div>
+
+<div id="tab-dashboard" class="tab-panel active">
+  <div class="controls">
+    <select id="learnerSelect" onchange="loadProfile()"><option value="">-- 选择学习者 --</option></select>
+    <select id="chapterSelect" onchange="loadProfile()"><option value="ch03_cnn">ch03 CNN</option></select>
+    <button onclick="doDiagnose()">执行诊断</button>
+    <button class="gold" onclick="outputProfileJson()">输出画像 JSON</button>
+    <button class="purple" onclick="regenerateData()">重置模拟数据</button>
+    <span id="statusText" style="font-size:13px;color:#64748b;margin-left:auto"></span>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>学习者档案</h2><div id="learnerInfo"><div class="loading">请选择学习者并执行诊断</div></div></div>
+    <div class="card"><h2>诊断摘要</h2><div id="summaryBox" class="summary-box">请先执行学情诊断</div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>领域掌握度雷达图</h2><div id="radarChart" class="chart-container"></div></div>
+    <div class="card"><h2>分领域掌握度</h2><div id="domainBars"></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>知识点掌握度热力图</h2><div id="heatmapChart" class="chart-container" style="height:380px"></div></div>
+    <div class="card"><h2>知识盲区清单</h2><div id="gapsList" style="max-height:380px;overflow-y:auto"><div class="loading">请先执行学情诊断</div></div></div>
+  </div>
+</div>
+
+<div id="tab-questionnaire" class="tab-panel">
+  <div class="card">
+    <h2>自填问卷 - 构建初始画像</h2>
+    <div class="form-row">
+      <div class="form-group"><label>姓名</label><input id="qName" value="张三"></div>
+      <div class="form-group"><label>学历</label><select id="qLevel"><option>专科</option><option selected>本科</option><option>硕士</option><option>博士</option></select></div>
+      <div class="form-group"><label>专业</label><input id="qMajor" value="计算机科学与技术"></div>
+      <div class="form-group"><label>学校</label><input id="qInstitution" value="某大学"></div>
+      <div class="form-group"><label>GPA</label><input id="qGpa" value="3.2" type="number" step="0.1"></div>
+      <div class="form-group"><label>每周学习小时数</label><input id="qHours" value="8" type="number" min="1" max="40"></div>
+    </div>
+    <div class="form-group"><label>相关课程（逗号分隔）</label><input id="qCourses" value="Python, 数据结构, 高等数学"></div>
+    <div class="form-group"><label>ML 掌握程度</label><select id="qML"><option>完全不了解</option><option>刚接触，跑过demo</option><option selected>了解基础，做过项目</option><option>熟练掌握</option></select></div>
+    <div class="form-group"><label>DL 掌握程度</label><select id="qDL"><option>完全不了解</option><option selected>知道名字，没写过</option><option>熟悉CNN/RNN</option><option>独立完成过项目</option></select></div>
+    <div class="form-group"><label>数学基础</label><select id="qMath"><option>薄弱</option><option selected>还行</option><option>扎实，能推公式</option></select></div>
+    <div class="form-group"><label>学习目标</label><input id="qGoal" value="系统掌握深度学习，能独立完成CV项目"></div>
+    <button class="green" onclick="submitQuestionnaire()" style="width:100%;padding:12px;font-size:15px">提交问卷并创建学习者</button>
+    <div id="qResult" style="margin-top:10px;font-size:13px"></div>
+  </div>
+</div>
+
+<div id="tab-upload" class="tab-panel">
+  <div class="card">
+    <h2>上传学习者 JSON 数据</h2>
+    <p style="font-size:13px;color:#64748b;margin-bottom:12px">粘贴包含 education / self_assessment / test_records / interaction_records 的完整 JSON</p>
+    <div class="upload-area" onclick="document.getElementById('uploadJson').focus()"><textarea id="uploadJson" onclick="event.stopPropagation()"></textarea></div>
+    <div style="margin-top:12px;display:flex;gap:10px">
+      <button class="green" onclick="submitUpload()" style="flex:1;padding:12px;font-size:15px">上传并创建学习者</button>
+      <button class="purple" onclick="loadSampleJson()" style="padding:12px 20px">加载示例 JSON</button>
+    </div>
+    <div id="uploadResult" style="margin-top:10px;font-size:13px"></div>
+  </div>
+</div>
+
+<div id="tab-adaptive" class="tab-panel">
+  <div class="controls">
+    <select id="atLearnerSelect"><option value="">-- 选择被测学习者 --</option></select>
+    <button class="green" onclick="startAdaptiveTest()">开始测试</button>
+    <button class="orange" onclick="finishAdaptiveAndDiagnose()" id="btnFinishAT" disabled>结束测试并诊断</button>
+    <span id="atStatus" style="font-size:13px;color:#64748b;margin-left:auto"></span>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>当前题目</h2><div id="questionArea"><div class="loading">请先选择学习者并点击"开始测试"</div></div></div>
+    <div class="card"><h2>测试状态</h2><div id="thetaDisplay"><div class="loading">等待开始</div></div></div>
+  </div>
+  <div class="card"><h2>答题历史</h2><div id="answerHistory" style="max-height:200px;overflow-y:auto"><div class="loading">暂无记录</div></div></div>
+</div>
+</div>
+
+<script>
+var radarChart=null,heatmapChart=null,_profiles={},_atSessionId=null,_atLearnerId=null,_atAnswers=[];
+function initCharts(){radarChart=echarts.init(document.getElementById('radarChart'));heatmapChart=echarts.init(document.getElementById('heatmapChart'));window.addEventListener('resize',function(){radarChart.resize();heatmapChart.resize();});}
+async function init(){initCharts();await loadLearners();await loadChapters();fetch('/api/learners').then(function(r){return r.json()}).then(function(d){document.getElementById('apiStatus').textContent='API OK | '+d.learners.length+' learners';}).catch(function(){document.getElementById('apiStatus').textContent='API OFFLINE';});}
+function switchTab(name){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});var btns=document.querySelectorAll('.tab-btn');for(var i=0;i<btns.length;i++){if(btns[i].getAttribute('onclick').indexOf(name)>=0){btns[i].classList.add('active');break;}}document.getElementById('tab-'+name).classList.add('active');if(name==='adaptive')refreshATLearners();if(name==='dashboard'){setTimeout(function(){if(radarChart)radarChart.resize();if(heatmapChart)heatmapChart.resize();},300);}}
+
+// ---- Shared ----
+async function loadLearners(){var resp=await fetch('/api/learners');var data=await resp.json();['learnerSelect','atLearnerSelect'].forEach(function(sid){var sel=document.getElementById(sid);if(!sel)return;var cur=sel.value;sel.innerHTML='<option value="">-- 选择学习者 --</option>';data.learners.forEach(function(l){var o=document.createElement('option');o.value=l.id;o.textContent=l.name+' ('+l.education_level+'/'+l.major+') ['+l.test_count+'题]';sel.appendChild(o);});if(cur)sel.value=cur;});}
+async function loadChapters(){try{var resp=await fetch('/api/chapters');var data=await resp.json();var sel=document.getElementById('chapterSelect');sel.innerHTML='';data.chapters.forEach(function(ch){var o=document.createElement('option');o.value=ch.chapter_id;o.textContent=ch.chapter_id+' '+ch.chapter_name;if(ch.chapter_id==='ch03_cnn')o.selected=true;sel.appendChild(o);});}catch(e){}}
+
+// ---- TAB1 Dashboard ----
+async function quickDiagnose(lid){switchTab('dashboard');await loadLearners();var sel=document.getElementById('learnerSelect');sel.value=lid;if(sel.value!==lid){console.warn('Learner '+lid+' not in dropdown, diagnosing anyway');}await doDiagnose(lid);}
+async function doDiagnose(lid){if(!lid)lid=document.getElementById('learnerSelect').value;if(!lid){alert('请先选择学习者');return}var chId=document.getElementById('chapterSelect').value||'ch03_cnn';var sel=document.getElementById('learnerSelect');document.getElementById('statusText').textContent='正在诊断...';var resp=await fetch('/api/learner/'+lid+'/diagnose?chapter_id='+chId,{method:'POST'});var data=await resp.json();if(data.success){document.getElementById('statusText').textContent=data.message;_profiles[lid]=data.profile;renderDashboard(data.profile);setTimeout(function(){if(radarChart)radarChart.resize();if(heatmapChart)heatmapChart.resize();},200);}else{document.getElementById('statusText').textContent='失败: '+(data.message||data.detail||JSON.stringify(data));}}
+async function loadProfile(){var lid=document.getElementById('learnerSelect').value;if(!lid)return;var chId=document.getElementById('chapterSelect').value||'ch03_cnn';var resp=await fetch('/api/learner/'+lid+'/profile?chapter_id='+chId);if(!resp.ok){alert('获取失败');return}var p=await resp.json();_profiles[lid]=p;renderDashboard(p);}
+async function regenerateData(){document.getElementById('statusText').textContent='重置中...';var resp=await fetch('/api/demo/generate',{method:'POST'});var data=await resp.json();document.getElementById('statusText').textContent=data.message;_profiles={};await loadLearners();}
+function outputProfileJson(){var lid=document.getElementById('learnerSelect').value;if(!lid||!_profiles[lid]){alert('请先执行诊断');return}var json=JSON.stringify(_profiles[lid],null,2);var w=window.open('','_blank','width=900,height=700');w.document.write('<html><head><title>Profile - '+lid+'</title><style>body{background:#1e293b;color:#e2e8f0;font-family:monospace;font-size:12px;padding:16px;white-space:pre-wrap}</style></head><body>'+json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</body></html>');}
+
+function renderDashboard(p){var km=p.knowledge_mastery,al=p.ability_level,prefs=p.learning_preferences,ds=p.diagnosis_summary;var lvlCN={beginner:'初学者',intermediate:'中级',advanced:'高级'};var lvl=al.overall||km.ability_level||'beginner';document.getElementById('learnerInfo').innerHTML='<div class="info-row"><span class="label">姓名</span><span class="value">'+p.learner.name+'</span></div><div class="info-row"><span class="label">能力等级</span><span class="badge badge-'+lvl+'">'+(lvlCN[lvl]||lvl)+'</span></div><div class="info-row"><span class="label">全局 theta</span><span class="value">'+km.global_theta.toFixed(3)+'</span></div><div class="info-row"><span class="label">章节</span><span class="value">'+p.learning_scope.chapter_id+' / '+p.learning_scope.primary_kp_name+'</span></div><div class="info-row"><span class="label">目标深度</span><span class="value">'+p.learning_scope.target_depth+' '+p.learning_scope.estimated_hours+'h</span></div><div class="info-row"><span class="label">测试/交互</span><span class="value">'+p.meta.total_test_count+' / '+p.meta.total_interaction_count+'</span></div><div class="info-row"><span class="label">节奏</span><span class="value">'+prefs.pace.learning_pace_inferred+' / '+prefs.pace.weekly_hours+'h/周</span></div><div class="info-row"><span class="label">活跃度</span><span class="value">'+prefs.interaction.level+' | hint '+(prefs.interaction.hint_dependency*100).toFixed(0)+'%</span></div><div class="info-row"><span class="label">主要错误</span><span class="value">'+p.error_patterns.primary_weakness+' ('+(p.error_patterns.primary_weakness_ratio*100).toFixed(0)+'%)</span></div>';var db=document.getElementById('domainBars');db.innerHTML='';Object.entries(km.domain_summary).sort(function(a,b){return b[1].mean_mastery-a[1].mean_mastery}).forEach(function(e){var d=e[0],it=e[1],pct=(it.mean_mastery*100).toFixed(1);var c=it.mean_mastery>=0.6?'#22c55e':it.mean_mastery>=0.4?'#f59e0b':'#ef4444';db.innerHTML+='<div class="domain-bar"><span class="label">'+d+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="pct">'+pct+'%</span></div>'});var rd={};Object.entries(km.domain_summary).forEach(function(e){rd[e[0]]=e[1].mean_mastery});renderRadar(rd);document.getElementById('summaryBox').textContent=ds.full||'';renderGaps(p.knowledge_gaps);fetch('/api/learner/'+p.learner_id+'/mastery-detail').then(function(r){return r.json()}).then(function(d){renderHeatmap(d)});}
+function renderRadar(dm){var domains=Object.keys(dm);radarChart.setOption({tooltip:{trigger:'item'},radar:{indicator:domains.map(function(d){return{name:d,max:100}}),shape:'polygon',splitNumber:5,axisName:{color:'#475569',fontSize:12},splitArea:{areaStyle:{color:['#f8fafc','#f1f5f9','#e2e8f0','#cbd5e1','#94a3b8']}},splitLine:{lineStyle:{color:'#cbd5e1'}},axisLine:{lineStyle:{color:'#cbd5e1'}}},series:[{type:'radar',data:[{value:domains.map(function(d){return(dm[d]*100).toFixed(1)}),name:'mastery',areaStyle:{color:'rgba(79,172,254,0.3)'},lineStyle:{color:'#4facfe',width:2},itemStyle:{color:'#4facfe'}}]}]});}
+function renderHeatmap(detail){var dd=detail.domain_data,domains=Object.keys(dd),xl=domains,yc=[],fd=[],yi=0;domains.forEach(function(d,di){dd[d].forEach(function(k){yc.push(k.kp_name);fd.push([di,yi,k.mastery]);yi++});yi++});heatmapChart.setOption({tooltip:{position:'top',formatter:function(p){return xl[p.data[0]]+' > '+yc[p.data[1]]+'<br/>'+ (p.data[2]*100).toFixed(1)+'%'}},grid:{left:180,right:20,top:30,bottom:40},xAxis:{type:'category',data:xl,splitArea:{show:true},axisLabel:{fontSize:11,color:'#475569'}},yAxis:{type:'category',data:yc.map(function(_,i){return i}),splitArea:{show:true},axisLabel:{fontSize:10,color:'#64748b',formatter:function(v){var n=yc[parseInt(v)];return n?(n.length>8?n.substring(0,8)+'..':n):''}}},visualMap:{min:0,max:1,calculable:true,orient:'horizontal',left:'center',bottom:0,inRange:{color:['#ef4444','#f59e0b','#22c55e']},text:['high','low'],textStyle:{color:'#475569',fontSize:11}},series:[{type:'heatmap',data:fd,label:{show:false},emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,0.3)'}}}]});}
+function renderGaps(gaps){var div=document.getElementById('gapsList');if(!gaps||gaps.length===0){div.innerHTML='<div class="loading">无盲区</div>';return}var tc={blindspot:'盲区',weak:'薄弱',blocked:'阻塞',difficult:'困难'},tcl={blindspot:'gap-blindspot',weak:'gap-weak',blocked:'gap-blocked',difficult:'gap-difficult'};var h='<table class="gaps-table"><thead><tr><th>P</th><th>Type</th><th>KP</th><th>Domain</th><th>Mastery</th><th>Conf</th><th>Action</th></tr></thead><tbody>';gaps.forEach(function(g){h+='<tr><td class="priority-'+g.priority+'">'+(g.priority==='high'?'H':g.priority==='medium'?'M':'L')+'</td><td><span class="gap-type '+tcl[g.gap_type]+'">'+(tc[g.gap_type]||g.gap_type)+'</span></td><td>'+g.kp_name+'</td><td>'+g.domain+'</td><td>'+(g.mastery*100).toFixed(0)+'%</td><td>'+(g.confidence*100).toFixed(0)+'%</td><td style="font-size:11px;color:#64748b">'+(g.suggested_action||g.description)+'</td></tr>'});h+='</tbody></table>';div.innerHTML=h;}
+
+// ---- TAB2 Questionnaire ----
+async function submitQuestionnaire(){var payload={name:document.getElementById('qName').value,education:{level:document.getElementById('qLevel').value,major:document.getElementById('qMajor').value,institution:document.getElementById('qInstitution').value,gpa:parseFloat(document.getElementById('qGpa').value)||null,relevant_courses:document.getElementById('qCourses').value.split(',').map(function(s){return s.trim()}).filter(Boolean)},self_assessment:{ml_level:document.getElementById('qML').value,dl_level:document.getElementById('qDL').value,math_level:document.getElementById('qMath').value,learning_goal:document.getElementById('qGoal').value,weekly_hours:parseInt(document.getElementById('qHours').value)||5},test_records:[],interaction_records:[]};var resp=await fetch('/api/learner/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await resp.json();var lid=data.learner_id;document.getElementById('qResult').innerHTML='<span style="color:#22c55e">OK! ID: '+lid+'</span> - <a href="#" onclick="switchTab(\'dashboard\');setTimeout(function(){quickDiagnose(\''+lid+'\')},300);return false;">立即诊断</a>';await loadLearners();}
+
+// ---- TAB3 Upload ----
+function loadSampleJson(){document.getElementById('uploadJson').value=JSON.stringify({name:"王五",education:{level:"硕士",major:"人工智能",institution:"某科研院所",gpa:3.7,relevant_courses:["深度学习","NLP","计算机视觉"]},self_assessment:{ml_level:"熟练掌握",dl_level:"熟悉CNN/RNN",math_level:"扎实",learning_goal:"发表NLP论文",weekly_hours:15},test_records:[{knowledge_point_id:"kp_012",difficulty:1.0,discrimination:1.2,is_correct:true,time_spent:45},{knowledge_point_id:"kp_012",difficulty:1.3,discrimination:1.0,is_correct:false,time_spent:80,error_pattern:"概念混淆"},{knowledge_point_id:"kp_014",difficulty:2.0,discrimination:1.1,is_correct:true,time_spent:60},{knowledge_point_id:"kp_003",difficulty:0.0,discrimination:0.9,is_correct:false,time_spent:55,error_pattern:"计算错误"}],interaction_records:[{knowledge_point_id:"kp_012",type:"practice",duration:300,detail:"CNN练习"},{knowledge_point_id:"kp_014",type:"view",duration:180,detail:"阅读Transformer论文"}]},null,2);}
+async function submitUpload(){try{var payload=JSON.parse(document.getElementById('uploadJson').value);var resp=await fetch('/api/learner/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await resp.json();var lid=data.learner_id;document.getElementById('uploadResult').innerHTML='<span style="color:#22c55e">OK! ID: '+lid+' ('+data.test_count+' tests/'+data.interaction_count+' interactions)</span> - <a href="#" onclick="switchTab(\'dashboard\');setTimeout(function(){doDiagnose(\''+lid+'\')},200);return false;">立即诊断</a>';await loadLearners();}catch(e){document.getElementById('uploadResult').innerHTML='<span style="color:#ef4444">Error: '+e.message+'</span>'}}
+
+// ---- TAB4 Adaptive Test ----
+async function refreshATLearners(){var resp=await fetch('/api/learners');var data=await resp.json();var sel=document.getElementById('atLearnerSelect'),cur=sel.value;sel.innerHTML='<option value="">-- 选择被测学习者 --</option>';data.learners.forEach(function(l){var o=document.createElement('option');o.value=l.id;o.textContent=l.name+' ('+l.education_level+') ['+l.test_count+'题]';sel.appendChild(o)});if(cur)sel.value=cur;}
+async function startAdaptiveTest(){var lid=document.getElementById('atLearnerSelect').value;if(!lid){alert('请先选择学习者');return}_atLearnerId=lid;_atAnswers=[];var resp=await fetch('/api/adaptive-test/start/'+lid,{method:'POST'});var data=await resp.json();_atSessionId=data.session_id;document.getElementById('atStatus').textContent='Session: '+data.session_id;document.getElementById('btnFinishAT').disabled=false;window._tc=window._tc||{};renderQuestion(data);renderTheta(data.current_theta,0);document.getElementById('answerHistory').innerHTML='';}
+
+function renderQuestion(data){
+  if(data.finished){
+    document.getElementById('questionArea').innerHTML='<div class="question-card"><h3>✅ 测试完成</h3><p style="font-size:18px;margin:12px 0">theta = <b>'+(data.final_theta||data.current_theta).toFixed(4)+'</b></p><p style="color:#64748b">'+data.stop_reason+' | '+data.question_count+' questions</p><p style="color:#22c55e;font-weight:600;margin-top:8px">正在自动转移答题记录并执行诊断...</p></div>';
+    if(data.answers&&data.answers.length>0){_atAnswers=data.answers;renderHistory();}
+    renderTheta(data.final_theta||data.current_theta,data.question_count);
+    // Auto-trigger transfer + diagnose when test finishes naturally
+    setTimeout(function(){finishAdaptiveAndDiagnose();},800);
+    return;
+  }
+  var q=data.next_question;if(!q){document.getElementById('questionArea').innerHTML='<div class="loading">No questions</div>';return}
+  window._tc[q.question_id]=q;
+  var hasQ=q.question_text&&q.options&&q.options.length>0;
+  var h='<div class="question-card">';
+  h+='<div class="q-id">#'+(data.question_count+1)+' - '+q.knowledge_point_name+' - difficulty '+q.difficulty.toFixed(1)+'</div>';
+  if(hasQ){
+    h+='<div style="font-size:15px;font-weight:600;margin:12px 0;text-align:left;line-height:1.6">'+q.question_text+'</div>';
+    var labels=['A','B','C','D'];
+    q.options.forEach(function(o,i){h+='<button class="option-btn" onclick="submitAnswer(\''+q.question_id+'\','+i+',\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">'+labels[i]+'. '+o+'</button>'});
+  }else{
+    h+='<p style="color:#94a3b8">IRT adaptive question (simplified)</p>';
+    h+='<div style="display:flex;gap:12px;justify-content:center;margin-top:12px"><button class="option-btn" style="width:120px;text-align:center;background:#22c55e;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',0,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">CORRECT</button><button class="option-btn" style="width:120px;text-align:center;background:#ef4444;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',-1,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">WRONG</button></div>';
+  }
+  h+='</div>';document.getElementById('questionArea').innerHTML=h;renderTheta(data.current_theta,data.question_count);
+}
+
+function renderTheta(theta,qCount){var pct=Math.max(0,Math.min(100,((theta+4)/8)*100));document.getElementById('thetaDisplay').innerHTML='<div style="font-size:28px;font-weight:700;text-align:center;margin:10px 0">theta = '+theta.toFixed(4)+'</div><div class="theta-meter"><span style="font-size:11px">-4</span><div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div><span style="font-size:11px">+4</span></div><div style="text-align:center;font-size:13px;color:#64748b">Answered: '+qCount+' | Stop: 3 consecutive wrong / convergence(&lt;0.15,>=8q) / max 30q</div>'}
+
+async function submitAnswer(qid,userAnswer,kpName,kpId){
+  var q=window._tc?window._tc[qid]:null;
+  var isCorrect=false;
+  if(q&&typeof q.correct_answer!=='undefined'){isCorrect=(userAnswer===q.correct_answer)}
+  else{isCorrect=(userAnswer===0)}
+  var t0=Date.now();
+  var resp=await fetch('/api/adaptive-test/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:_atSessionId,question_id:qid,is_correct:isCorrect,time_spent:Math.round((Date.now()-t0)/1000)})});
+  var data=await resp.json();
+  _atAnswers.push({qid:qid,kpName:kpName,kpId:kpId,correct:isCorrect,theta:data.current_theta||0,userAnswer:userAnswer});
+  renderHistory();renderQuestion(data);
+}
+
+function renderHistory(){var hist=document.getElementById('answerHistory');if(_atAnswers.length===0){hist.innerHTML='<div style="color:#94a3b8;font-size:12px">No answers</div>';return}var h='';for(var i=_atAnswers.length-1;i>=0;i--){var a=_atAnswers[i];var isCorrect=a.is_correct!==undefined?a.is_correct:a.correct;var kpName=a.knowledge_point_name||a.kpName||a.kp_id||a.kpId||'?';var theta=a.theta_after!==undefined?a.theta_after:a.theta;var c=isCorrect?'#22c55e':'#ef4444',l=isCorrect?'CORRECT':'WRONG';h+='<div style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:12px;border-bottom:1px solid #f1f5f9"><span style="color:#94a3b8;min-width:24px">#'+(i+1)+'</span><span style="color:'+c+';font-weight:700;min-width:60px">'+l+'</span><span style="min-width:100px">'+kpName+'</span><span>theta='+(typeof theta==='number'?theta.toFixed(3):theta)+'</span></div>'}hist.innerHTML=h;}
+
+async function finishAdaptiveAndDiagnose(){
+  if(!_atLearnerId||!_atSessionId){
+    document.getElementById('atStatus').textContent='没有活跃的测试会话';
+    return;
+  }
+  document.getElementById('atStatus').textContent='正在转移答题记录...';
+  document.getElementById('btnFinishAT').disabled=true;
+
+  // Check session state first
+  var sessResp = await fetch('/api/adaptive-test/session/'+_atSessionId);
+  var sessData = await sessResp.json();
+  if(!sessData.finished){
+    document.getElementById('atStatus').textContent='测试尚未完成，请继续答题或等待自动停止';
+    document.getElementById('btnFinishAT').disabled=false;
+    return;
+  }
+
+  var applyResp=await fetch('/api/adaptive-test/apply/'+_atLearnerId+'?session_id='+_atSessionId,{method:'POST'});
+  var applyData=await applyResp.json();
+  if(!applyResp.ok){
+    document.getElementById('atStatus').textContent='转移失败: '+JSON.stringify(applyData);
+    document.getElementById('btnFinishAT').disabled=false;
+    return;
+  }
+  document.getElementById('atStatus').textContent=applyData.message+' 正在诊断...';
+  var lid=_atLearnerId;_atSessionId=null;_atAnswers=[];
+
+  // Refresh learner list and switch to dashboard
+  await loadLearners();
+  switchTab('dashboard');
+
+  // Ensure learner select has the right value, then diagnose
+  var sel=document.getElementById('learnerSelect');
+  // Wait a tick for DOM update
+  await new Promise(function(r){setTimeout(r,100);});
+  sel.value=lid;
+  if(sel.value!==lid){
+    // Learner not in dropdown yet - try direct diagnosis anyway
+    console.log('Learner not in dropdown, diagnosing directly: '+lid);
+  }
+  try {
+    await doDiagnose(lid);
+    setTimeout(function(){
+      if(radarChart)radarChart.resize();
+      if(heatmapChart)heatmapChart.resize();
+    },300);
+  } catch(e){
+    document.getElementById('statusText').textContent='诊断失败: '+e.message;
+  }
+}
+</script>
+</body>
+</html>

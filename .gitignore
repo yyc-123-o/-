@@ -11,6 +11,9 @@ data/raw/
 data/build/
 reports/generated/
 
+# Standalone learner-profile diagnostics write reproducible outputs locally.
+/学情诊断Agent/test_outputs/
+
 # Local teammate datasets and derived search artifacts are not repository sources.
 /知识库/
 /processed/
