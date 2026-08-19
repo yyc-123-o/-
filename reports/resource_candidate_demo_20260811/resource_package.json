@@ -1,0 +1,903 @@
+{
+  "release_status": "candidate_draft",
+  "target_concept_id": "dl.cnn.convolution",
+  "target_depth": "intro",
+  "decision_card": {
+    "release_status": "candidate_draft",
+    "target": {
+      "concept_id": "dl.cnn.convolution",
+      "delivery_depth": "intro",
+      "chapter_id": "ch03_cnn",
+      "chapter_name": "卷积神经网络（CNN）"
+    },
+    "authority_rule": "课程规划交接决定概念、深度、先修与发布门禁；画像只决定呈现和支持方式。",
+    "learner_adaptation": {
+      "global_theta": 0.32,
+      "error_focus": [
+        "特别注意区分'卷积'与'互相关'操作、区分BatchNorm的training/eval模式，这两个是高频概念混淆点"
+      ],
+      "preferences": {
+        "format": {
+          "content_order": [
+            "概念直觉理解",
+            "数学推导",
+            "代码实战",
+            "面试考点"
+          ],
+          "code_language": "Python",
+          "framework": "PyTorch",
+          "framework_level": "入门（仅写过tensor基本操作）",
+          "framework_confidence": 0.75,
+          "confidence_note": "自填问卷Q8-Q10：只写过tensor基本操作和数据加载，未完整训练过模型"
+        },
+        "style": {
+          "visual_learner": true,
+          "prefers_step_by_step": true,
+          "prefers_comparison_tables": true,
+          "prefers_diagrams": true,
+          "prefers_math_formulas": true
+        },
+        "pace": {
+          "weekly_hours": 10,
+          "session_attention_minutes": 50,
+          "avg_test_time_seconds": 45,
+          "learning_pace_inferred": "medium"
+        },
+        "interaction": {
+          "level": "medium",
+          "hint_dependency": 0.25,
+          "view_practice_ratio": "1.5:1",
+          "prefers_discussion": false
+        },
+        "motivation": {
+          "primary": "就业准备（目标：AI工程师/NLP方向）",
+          "secondary": "科研兴趣（对Transformer/Attention机制有好奇心）",
+          "project_driven": true,
+          "target_project": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务"
+        }
+      }
+    },
+    "planning_gate": {
+      "allowed": false,
+      "status": "blocked_prerequisite_and_evidence",
+      "blocking_codes": [
+        "blocked_hard_prerequisite",
+        "blocked_missing_published_evidence"
+      ],
+      "blocking_details": [
+        "必须先完成 dl.vision.image-tensor，再由课程规划 Agent 重新计算当前节点状态。",
+        "必须为 dl.cnn.convolution:intro 发布至少 definition、code、exercise 三类合规证据。"
+      ],
+      "draft_generation_allowed": false,
+      "next_action": {
+        "course_planning_agent": "接收 dl.vision.image-tensor 完成事件并重新输出同一路径上的节点状态。",
+        "domain_retrieval_agent": "审核候选来源、许可证和概念绑定，补齐标准卷积定义与练习证据。",
+        "resource_generation_agent": "等待 allowed=true 的新交接文件；不得使用本文件中的 candidate_evidence 生成正式资源。"
+      }
+    },
+    "blockers": [
+      "必须先完成 dl.vision.image-tensor，再由课程规划 Agent 重新计算当前节点状态。",
+      "必须为 dl.cnn.convolution:intro 发布至少 definition、code、exercise 三类合规证据。"
+    ],
+    "warnings": [
+      "画像建议深度为“进阶”，本次以课程规划交接的“intro”为准。",
+      "本次为候选草稿演示，未通过审核前不得作为正式资源发布。"
+    ],
+    "input_provenance": {
+      "input_dir": "D:\\揭榜挂帅张维\\完整输入",
+      "profile": "学情画像输出-最终版 0803修改.json",
+      "planning_handoff": "resource_agent_handoff_cnn_0803.json",
+      "retrieval_output": "domain_retrieval_agent_output_cnn_0804.json",
+      "publication_manifest": null
+    }
+  },
+  "evidence_matrix": {
+    "release_status": "candidate_draft",
+    "policy": "候选证据只能支持候选草稿；只有审核、发布和许可证均合规的证据才能支持正式发布。",
+    "resource_bindings": [
+      {
+        "resource_type": "lecture_notes",
+        "evidence_ids": [
+          "dl_ch09_cnn_a3dde521400f",
+          "dl_ch09_cnn_5e2a9735ace2"
+        ],
+        "citation_status": "candidate_draft"
+      },
+      {
+        "resource_type": "pytorch_practical_guide",
+        "evidence_ids": [
+          "dl_ch09_cnn_51551ccb3ced",
+          "derived_dl_ch09_cnn_pytorch_conv2d_0804"
+        ],
+        "citation_status": "candidate_draft"
+      },
+      {
+        "resource_type": "layered_assessment",
+        "evidence_ids": [
+          "derived_dl_ch09_cnn_exercise_0804"
+        ],
+        "citation_status": "candidate_draft"
+      },
+      {
+        "resource_type": "assessment_answer_key",
+        "evidence_ids": [
+          "derived_dl_ch09_cnn_exercise_0804"
+        ],
+        "citation_status": "candidate_draft"
+      }
+    ],
+    "claim_bindings": [
+      {
+        "claim_id": "lecture.local_connection",
+        "resource_type": "lecture_notes",
+        "section": "第 3 节：为什么图像适合卷积",
+        "claim": "局部连接与参数共享解释 CNN 相对全连接层的参数优势。",
+        "required_evidence_kind": "definition",
+        "evidence_ids": [
+          "dl_ch09_cnn_a3dde521400f",
+          "dl_ch09_cnn_5e2a9735ace2"
+        ],
+        "citation_status": "candidate_only",
+        "publishable": false
+      },
+      {
+        "claim_id": "lecture.correlation_boundary",
+        "resource_type": "lecture_notes",
+        "section": "第 4 节：卷积、互相关与特征图",
+        "claim": "数学卷积与深度学习常用互相关需在卷积核翻转上明确区分。",
+        "required_evidence_kind": "definition",
+        "evidence_ids": [
+          "dl_ch09_cnn_a3dde521400f",
+          "dl_ch09_cnn_5e2a9735ace2"
+        ],
+        "citation_status": "candidate_only",
+        "publishable": false
+      },
+      {
+        "claim_id": "lecture.shape_formula",
+        "resource_type": "lecture_notes",
+        "section": "第 5 节：输出尺寸",
+        "claim": "输出尺寸计算使用 kernel、padding 和 stride 的标准公式。",
+        "required_evidence_kind": "definition",
+        "evidence_ids": [
+          "dl_ch09_cnn_a3dde521400f",
+          "dl_ch09_cnn_5e2a9735ace2"
+        ],
+        "citation_status": "candidate_only",
+        "publishable": false
+      },
+      {
+        "claim_id": "practical.conv2d_mapping",
+        "resource_type": "pytorch_practical_guide",
+        "section": "第 2–5 节：Conv2d 工作示例",
+        "claim": "PyTorch Conv2d 参数与输入输出 shape 的映射。",
+        "required_evidence_kind": "code",
+        "evidence_ids": [
+          "dl_ch09_cnn_51551ccb3ced",
+          "derived_dl_ch09_cnn_pytorch_conv2d_0804"
+        ],
+        "citation_status": "candidate_only",
+        "publishable": false
+      },
+      {
+        "claim_id": "assessment.shape_items",
+        "resource_type": "layered_assessment",
+        "section": "Q4–Q6：尺寸与参数量",
+        "claim": "输出尺寸和参数量题目及逐步解析。",
+        "required_evidence_kind": "exercise",
+        "evidence_ids": [
+          "derived_dl_ch09_cnn_exercise_0804"
+        ],
+        "citation_status": "candidate_only",
+        "publishable": false
+      },
+      {
+        "claim_id": "assessment.code_items",
+        "resource_type": "layered_assessment",
+        "section": "Q7–Q8：代码阅读",
+        "claim": "NCHW 与 Conv2d 参数纠错题。",
+        "required_evidence_kind": "exercise",
+        "evidence_ids": [
+          "derived_dl_ch09_cnn_exercise_0804"
+        ],
+        "citation_status": "candidate_only",
+        "publishable": false
+      }
+    ],
+    "evidence_records": {
+      "dl_ch09_cnn_a3dde521400f": {
+        "content_kind": "definition",
+        "source_title": "DeepLearning Chapter 9 Convolutional Networks",
+        "review_status": "candidate",
+        "evidence_status": "candidate_only",
+        "license_status": "allowed",
+        "locator": [
+          "1 卷积运算",
+          "二维卷积运算"
+        ]
+      },
+      "dl_ch09_cnn_5e2a9735ace2": {
+        "content_kind": "definition",
+        "source_title": "DeepLearning Chapter 9 Convolutional Networks",
+        "review_status": "candidate",
+        "evidence_status": "candidate_only",
+        "license_status": "allowed",
+        "locator": [
+          "3 深度学习框架下的卷积",
+          "3.2 输入值与核",
+          "3.3 填充 (Padding)"
+        ]
+      },
+      "dl_ch09_cnn_51551ccb3ced": {
+        "content_kind": "code",
+        "source_title": "DeepLearning Chapter 9 Convolutional Networks",
+        "review_status": "candidate",
+        "evidence_status": "candidate_only",
+        "license_status": "allowed",
+        "locator": [
+          "二维卷积实现过程",
+          "参数说明与输出说明"
+        ]
+      },
+      "derived_dl_ch09_cnn_pytorch_conv2d_0804": {
+        "content_kind": "code",
+        "source_title": "Derived PyTorch candidate from DeepLearning Chapter 9 Convolutional Networks",
+        "review_status": "candidate",
+        "evidence_status": "candidate_only",
+        "license_status": "unregistered",
+        "locator": [
+          "derived candidate",
+          "PyTorch nn.Conv2d mapping"
+        ]
+      },
+      "derived_dl_ch09_cnn_exercise_0804": {
+        "content_kind": "exercise",
+        "source_title": "Derived exercise candidate from DeepLearning Chapter 9 Convolutional Networks",
+        "review_status": "candidate",
+        "evidence_status": "candidate_only",
+        "license_status": "unregistered",
+        "locator": [
+          "derived candidate",
+          "卷积输出尺寸与参数量练习"
+        ]
+      }
+    }
+  },
+  "quality_report": {
+    "release_status": "candidate_draft",
+    "planning_gate_allowed": false,
+    "candidate_evidence_count": 5,
+    "published_evidence_count": 0,
+    "candidate_evidence_kinds": [
+      "code",
+      "definition",
+      "exercise"
+    ],
+    "missing_candidate_evidence_kinds": [],
+    "missing_published_evidence_kinds": [
+      "code",
+      "definition",
+      "exercise"
+    ],
+    "resource_types_generated": [
+      "lecture_notes",
+      "pytorch_practical_guide",
+      "layered_assessment",
+      "assessment_answer_key"
+    ],
+    "coverage_report": {
+      "learning_outcomes_total": 3,
+      "learning_outcomes_missing_from_package": [],
+      "error_focus_total": 1,
+      "error_focus_missing_from_package": [],
+      "resources_without_evidence_binding": [],
+      "passed": true
+    },
+    "assessment_blueprint_item_count": 8,
+    "personalization_checks": {
+      "mastery_used": true,
+      "ability_dimensions_used": true,
+      "pace_used": true,
+      "visual_preference_honored": true,
+      "project_goal_used": true,
+      "prior_chapter_used": true
+    },
+    "personalization_trace_coverage": {
+      "trace_count": 8,
+      "unlinked_input_fields": [],
+      "all_input_fields_have_output_effect": true
+    },
+    "claim_evidence_coverage": {
+      "claim_count": 6,
+      "unbound_claim_ids": [],
+      "candidate_only_claim_ids": [
+        "lecture.local_connection",
+        "lecture.correlation_boundary",
+        "lecture.shape_formula",
+        "practical.conv2d_mapping",
+        "assessment.shape_items",
+        "assessment.code_items"
+      ],
+      "all_claims_have_evidence": true,
+      "all_claims_publishable": false
+    },
+    "notebook_validation": {
+      "status": "passed",
+      "executed_code_cells": 7,
+      "runtime": "local_python_with_torch"
+    },
+    "checks": {
+      "scope_consistent": true,
+      "formal_evidence_complete": false,
+      "formal_publish_allowed": false,
+      "candidate_draft_requires_opt_in": true
+    },
+    "next_actions": [
+      "领域检索/知识库侧需审核发布证据类型：code、definition、exercise。",
+      "课程规划侧需在先修完成后重新下发资源交接，并更新发布门禁。",
+      "资源生成侧仅可保留 candidate_draft，不得标为正式课程资源。"
+    ]
+  },
+  "resources": [
+    {
+      "resource_type": "lecture_notes",
+      "title": "卷积神经网络（CNN）个性化讲义",
+      "content": "# 卷积神经网络（CNN）：卷积运算学习讲义\n\n## 你将解决的真实问题\n\n给一张 32×32 的 RGB 图片，为什么一个小小的 3×3 窗口能提取有用特征？为什么 stride 从 1 改成 2，输出会从 32×32 变成 16×16？本讲义不要求你背定义，而要求你能先预测、再计算、最后用代码验证。\n\n## 本次学习边界\n\n当前学习深度为 **intro**：先把图像张量、卷积窗口、padding、stride 与Conv2d 的联系建立起来。完整 CNN 训练、BatchNorm 和更复杂架构会在后续先修解锁后单独进入，不在这一节混讲。\n\n推荐学习顺序：概念直觉理解 → 数学推导 → 代码实战 → 面试考点。\n\n### 本周两次学习安排\n\n- 第 1 次（50 分钟）：概念直觉与两次尺寸推导；检查：能解释 NCHW、卷积/互相关区别，并手算 32→16。\n- 第 2 次（40 分钟）：PyTorch shape 验证与代码纠错；检查：能运行 Conv2d/池化断言并定位 NHWC 错误。\n\n本周可投入 10 小时；当前资源包只占 90 分钟。剩余时间建议：先完成图像张量前置复习与错题复盘；不要在课程规划未解锁前跳到完整 CNN 训练。\n\n## 1. 学习目标与完成标准\n\n- 解释卷积运算的核心含义并识别其基本场景。\n- 识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。\n- 在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。\n\n完成标准不是“看懂代码”：你需要能手算一次输出尺寸，解释一个卷积核如何同时处理 RGB 三个通道，并在 PyTorch 中确认每一步的 NCHW shape。\n\n## 2. 先补一块必要前置：图像张量\n\n![NCHW 图像张量](01_nchw_tensor_layout.svg)\n\nPyTorch 图像默认使用 NCHW：N 是批次，C 是通道，H、W 是高度与宽度。一批两张 CIFAR-10 彩色图片应写成 (2, 3, 32, 32)，而不是 NHWC。后续 Conv2d 的 in_channels 必须等于 C；这是代码形状错误最常见的根源。\n\n## 3. 为什么图像适合卷积：从 MLP 的参数爆炸开始\n\n若将 32×32×3 图像直接展平并连接到 1000 个隐藏单元，参数量约为 32×32×3×1000 = 3,072,000。一个 3×3、3 输入通道、8 输出通道的卷积层只有 3×3×3×8 + 8 = 224 个参数。卷积依靠两件事减少参数：\n\n- 局部连接：一个输出位置只看输入附近的小窗口；\n- 参数共享：同一个卷积核在整张图上滑动，边缘和纹理无论出现在哪里都可复用。\n\n## 4. 卷积、互相关与特征图\n\n![卷积滑窗](02_convolution_window.svg)\n\n把 3×3 卷积核看成一个小检测器。它在输入上滑动，每个位置做逐元素相乘再求和，得到一张输出特征图。严格的数学卷积会翻转卷积核；深度学习框架的 Conv2d 通常计算互相关，但工程里仍习惯称为卷积层。\n\n| 对比项 | 数学卷积 | CNN 常用互相关 |\n|---|---|---|\n| 卷积核 | 先翻转 | 通常不翻转 |\n| 共同点 | 局部窗口、乘加汇聚 | 局部窗口、乘加汇聚 |\n| 学习时要点 | 术语与手算要区分 | 代码接口仍叫 Conv2d |\n\n## 5. 输出尺寸：必须逐步计算\n\n![shape 推理流程](03_shape_reasoning_flow.svg)\n\n本学生的数学支架策略：数学基础可支持推导：保留两道完整尺寸例题与参数量核对，要求写出中间步骤。\n\n单个空间维度的公式为：\n\n~~~text\n输出 = floor((输入 + 2×padding - kernel_size) / stride) + 1\n~~~\n\n例 1：输入 32、kernel=3、padding=1、stride=1：floor((32+2-3)/1)+1=32，空间尺寸保持不变。\n\n例 2：输入 32、kernel=3、padding=1、stride=2：floor((32+2-3)/2)+1=16，输出为 16×16。这里最容易错的是漏掉两侧填充的 2×padding，或把 stride 当成减法。\n\n## 6. 通道、卷积核与参数量\n\n彩色图片有 3 个输入通道。设置 Conv2d(3, 8, 3) 时，8 表示要学习 8 组卷积核，每一组都覆盖全部 3 个输入通道。因此忽略 bias 的参数量为 3×8×3×3=216；默认启用 8 个 bias，总参数为 224。out_channels 改变的是输出特征图数量，不是特征图的高和宽。\n\n## 7. stride、padding、池化：不要混为一谈\n\n| 操作 | 是否有可学习参数 | 主要作用 | 常见误解 |\n|---|---:|---|---|\n| Conv2d | 是 | 提取局部特征 | 以为只改变通道 |\n| padding | 否 | 控制边界和尺寸 | 忘记公式中的 2P |\n| stride | 否 | 控制窗口移动距离 | 忽略对尺寸的下采样 |\n| MaxPool2d | 否 | 汇聚局部响应 | 误以为等同卷积 |\n\n## 8. 公式如何映射到 PyTorch\n\n~~~python\nnn.Conv2d(\n    in_channels=3, out_channels=8,\n    kernel_size=3, stride=2, padding=1\n)\n~~~\n\n调用前先打印 x.shape；调用后先打印 y.shape；再用公式核对 32 是否变成 16。这一顺序对应“概念 → 公式 → 代码 → 验证”，避免只运行、不理解。\n\n## 9. 针对本学习者的防错设计\n\n- 特别注意区分'卷积'与'互相关'操作、区分BatchNorm的training/eval模式，这两个是高频概念混淆点\n\n- 输出尺寸公式必须配至少两个逐步计算示例，突出 padding 和 stride。\n- 先解释为什么图像适合局部连接，再引出卷积，禁止直接跳到 ResNet。\n- 用对比表区分卷积、互相关、转置卷积和池化。\n\n学习建议：先看讲义第 2–6 节，完成 Notebook 的 shape 断言，再做测验中的计算题；如果连续两题算错，不进入下一节，而是回到第 5 节逐项代入。\n\n## 10. 本轮边界与下一阶段\n\n- 用滑动窗口和局部感受的图示解释卷积直觉。\n- 说明输入张量 NCHW、卷积核、输入/输出通道的关系。\n- 分步讲解 H_out=floor((H+2P-K)/S)+1，并给出两道完整计算示例。\n- 用对比表区分卷积、互相关、转置卷积和池化。\n- 只做基础 Conv2d 讲解，不扩展到完整 CNN 架构。\n- 使用 Python、PyTorch 和 Jupyter Notebook。\n- 从形状为 [B,C,H,W] 的小型图像张量开始，不假定学生会完整训练模型。\n- 提供 4 个 worked examples，覆盖 Conv2d、kernel_size、stride、padding 和通道变化。\n- 提供 8 个 guided exercises，包含输出尺寸计算、参数修改和错误代码诊断。\n- 每段代码必须显示输入/输出 shape，并包含可直接运行的最小示例。\n- 生成 8 道题：3 道概念题、3 道输出尺寸计算题、2 道 PyTorch 代码阅读/纠错题。\n- 每道题必须给出答案、逐步解析、关联学习目标和错误类型。\n- 至少一道题专门检查 padding 翻倍项，至少一道题检查 stride 对尺寸的影响。\n- 不得使用 ResNet、迁移学习或高级 CNN 架构作为必答前置。\n\n当图像张量先修完成、正式证据发布且课程规划重新允许时，下一轮可增加特征图可视化、BatchNorm、完整 CNN 训练与 CIFAR-10 项目。\n\n当前项目连接：用 CIFAR-10 的 32×32×3 输入理解卷积 shape；后续连接图像分类与目标检测。\n\n## 候选证据来源\n\n- definition：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_a3dde521400f，candidate_only）\n- definition：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_5e2a9735ace2，candidate_only）\n- code：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_51551ccb3ced，candidate_only）\n- code：Derived PyTorch candidate from DeepLearning Chapter 9 Convolutional Networks（derived_dl_ch09_cnn_pytorch_conv2d_0804，candidate_only）\n- exercise：Derived exercise candidate from DeepLearning Chapter 9 Convolutional Networks（derived_dl_ch09_cnn_exercise_0804，candidate_only）\n\n> 资源状态：candidate_draft。这是可学习、可审核的候选草稿；正式教学发布前仍需完成证据审核与课程门禁。\n",
+      "evidence_ids": [
+        "dl_ch09_cnn_a3dde521400f",
+        "dl_ch09_cnn_5e2a9735ace2"
+      ],
+      "release_status": "candidate_draft"
+    },
+    {
+      "resource_type": "pytorch_practical_guide",
+      "title": "卷积神经网络（CNN） PyTorch 实操指南",
+      "content": "# 卷积神经网络（CNN）：PyTorch Conv2d 实操工作簿\n\n这是一份边预测、边运行、边记录的实验工作簿。每个实验先在纸上写预测结果，再运行代码；如果预测与结果不同，按调试表定位原因。\n\n## 0. 本实操的目标与边界\n\n本实操不是直接训练大型 CNN，而是把“张量 → Conv2d 参数 → 输出 shape → 参数量”这条链跑通。每段代码不超过一个概念：先预测，再运行，再解释差异。\n\n本学生的代码支架策略：代码能力可用但框架经验有限：提供可运行最小示例，要求一次只修改一个参数并用断言验证。\n\n## 1. 环境与输入检查\n\n使用 Python、PyTorch 与 Jupyter。先执行：\n\n~~~python\nimport torch\nfrom torch import nn\nx = torch.randn(2, 3, 32, 32)\nprint(tuple(x.shape))  # 预期 (2, 3, 32, 32)\n~~~\n\n如果第二维不是 3，不要先改 Conv2d；先检查数据是否被错误地组织成 NHWC。\n\n## 2. 工作示例 A：保持空间尺寸\n\n~~~python\nlayer = nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1)\ny = layer(x)\nassert y.shape == (2, 8, 32, 32)\nprint(tuple(y.shape))\n~~~\n\n解释：padding=1 抵消 3×3 卷积核带来的边界缩小；out_channels=8 只改变通道数。\n\n## 3. 工作示例 B：使用 stride 下采样\n\n~~~python\nlayer = nn.Conv2d(3, 8, kernel_size=3, stride=2, padding=1)\ny = layer(x)\nassert y.shape == (2, 8, 16, 16)\n~~~\n\n请在运行前写下 floor((32+2×1-3)/2)+1=16，再用断言验证。\n\n## 4. 工作示例 C：核对参数量\n\n~~~python\nweight_params = layer.weight.numel()\nbias_params = 0 if layer.bias is None else layer.bias.numel()\nprint(weight_params, bias_params, weight_params + bias_params)\nassert weight_params == 3 * 8 * 3 * 3\n~~~\n\n这一步专门防止把 8 个输出通道误当成 8×8 的空间尺寸。\n\n## 4.5 先看图，再改代码\n\n请先打开资源包中的 01_nchw_tensor_layout.svg、02_convolution_window.svg 和03_shape_reasoning_flow.svg：前两张用于建立视觉直觉，最后一张用于每次运行前手动预测 shape。图示偏好不会改变课程深度，只改变解释与练习方式。\n\n## 5. 工作示例 D：卷积后接池化\n\n~~~python\npool = nn.MaxPool2d(kernel_size=2, stride=2)\nz = pool(y)\nassert z.shape == (2, 8, 8, 8)\nprint('conv:', tuple(y.shape), 'pool:', tuple(z.shape))\n~~~\n\n池化没有可训练卷积核；它是在每个通道内做局部汇聚。不要把池化的尺寸变化归因于 out_channels。\n\n## 6. 形状调试清单\n\n| 现象 | 首先检查 | 修复动作 |\n|---|---|---|\n| expected input to have 3 channels | x.shape 的第二维 | 调整数据到 NCHW 或修改 in_channels |\n| 输出宽高和手算不一致 | kernel、padding、stride | 逐项代入公式，不凭直觉 |\n| 参数量对不上 | weight 与 bias | 分开计算 3×8×3×3 和 8 |\n| 代码能跑但解释不出 | 没有记录中间 shape | 每层都打印输入与输出 |\n\n## 7. 四个引导练习\n\n1. 将 padding 从 1 改为 0，先预测输出为 15×15，再运行验证。\n2. 将 stride 从 2 改为 1，解释为什么输出回到 32×32。\n3. 将 out_channels 从 8 改为 16，列出变化与不变的维度。\n4. 创建形状为 (2, 32, 32, 3) 的张量，解释为什么不能直接送入 Conv2d。\n\n## 8. 连接到后续项目\n\n当课程规划解除前置阻塞后，这些 shape 与参数量检查会直接迁移到 CIFAR-10：真实数据加载、训练/验证划分、损失曲线、特征图可视化与模型保存。现在先把每一层的输入输出说清楚，后续训练才不会被维度错误掩盖。\n\n## 候选证据来源\n\n- definition：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_a3dde521400f，candidate_only）\n- definition：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_5e2a9735ace2，candidate_only）\n- code：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_51551ccb3ced，candidate_only）\n- code：Derived PyTorch candidate from DeepLearning Chapter 9 Convolutional Networks（derived_dl_ch09_cnn_pytorch_conv2d_0804，candidate_only）\n- exercise：Derived exercise candidate from DeepLearning Chapter 9 Convolutional Networks（derived_dl_ch09_cnn_exercise_0804，candidate_only）\n\n> 资源状态：candidate_draft。这是可学习、可审核的候选草稿；正式教学发布前仍需完成证据审核与课程门禁。\n",
+      "evidence_ids": [
+        "dl_ch09_cnn_51551ccb3ced",
+        "derived_dl_ch09_cnn_pytorch_conv2d_0804"
+      ],
+      "release_status": "candidate_draft"
+    },
+    {
+      "resource_type": "layered_assessment",
+      "title": "卷积神经网络（CNN）分层测验（学生卷）",
+      "content": "# 卷积神经网络（CNN）：分层测验（学生卷）\n\n建议用时：45 分钟。请先独立完成，不要直接打开答案卷。计算题必须写出代入过程；代码题必须写出判断依据。\n\n## A. 概念辨析\n\n### Q1｜卷积与互相关\n\nPyTorch 的 Conv2d 在实现上通常更接近数学卷积还是互相关？为什么工程里仍称其为卷积层？\n\n### Q2｜局部连接与参数共享\n\n为什么卷积比全连接层更适合 32×32 图像？请各写出一个原因。\n\n### Q3｜卷积与池化\n\n下列哪项有可学习参数：Conv2d、padding、stride、MaxPool2d？\n\n## B. 公式推导\n\n### Q4｜保持尺寸\n\n输入宽度 32，kernel=3，padding=1，stride=1。输出宽度是多少？\n\n请写出公式、代入、化简和最终结果四步。\n\n### Q5｜stride 下采样\n\n输入宽度 32，kernel=3，padding=1，stride=2。输出宽度是多少？\n\n请特别标出 padding 对应的 2×1，以及最后的 +1。\n\n### Q6｜参数量\n\nConv2d(3, 8, kernel_size=3, bias=True) 的参数量是多少？\n\n请分别写出 weight 参数和 bias 参数；不要把输出空间尺寸写入参数量公式。\n\n## C. 代码阅读与纠错\n\n### Q7｜填参数\n\n要把 (2, 3, 32, 32) 变为 (2, 8, 16, 16)，补全：\n\n~~~python\nnn.Conv2d(3, 8, kernel_size=3, stride=___, padding=___)\n~~~\n\n除填写参数外，请用输出尺寸公式验证。\n\n### Q8｜定位 NCHW 错误\n\nx 的 shape 是 (2, 32, 32, 3)，layer 是 nn.Conv2d(3, 8, 3)。为什么可能报通道错误？\n\n请指出 Conv2d 把哪个维度当成通道，并写出一种正确调整方式。\n\n## 作答后怎么做\n\n将答案提交给测验反馈模块。它会根据 Q1–Q8 的错误类型生成下一轮补救重点；高分只会触发课程规划复核，不会自动跳过先修。\n\n> 资源状态：candidate_draft。这是可学习、可审核的候选草稿；正式教学发布前仍需完成证据审核与课程门禁。\n",
+      "evidence_ids": [
+        "derived_dl_ch09_cnn_exercise_0804"
+      ],
+      "release_status": "candidate_draft"
+    },
+    {
+      "resource_type": "assessment_answer_key",
+      "title": "卷积神经网络（CNN）分层测验（教师答案与反馈卷）",
+      "content": "# 卷积神经网络（CNN）：分层测验答案与反馈卷\n\n此文件用于教师审核或系统自动批改，不与学生卷同时发放。\n\n## 参考答案与评分点\n\n### Q1（概念混淆）\n\n答：Conv2d 通常实现互相关，卷积核不做数学卷积的翻转；工程命名仍沿用卷积层。写出“核不翻转”和“工程命名”各得分。\n\n### Q2（逻辑跳跃）\n\n答：局部连接只看邻近像素；参数共享让同一卷积核在不同位置复用。只写“参数少”但无原因，不给满分。\n\n### Q3（概念混淆）\n\n答：只有 Conv2d 有可学习的卷积核和 bias；padding、stride 是超参数，MaxPool2d 是无参数汇聚操作。\n\n### Q4\n\nfloor((32+2×1-3)/1)+1=32。评分必须检查是否写出 2×padding。\n\n### Q5\n\nfloor((32+2×1-3)/2)+1=16。若得到 15，通常漏掉最后的 +1；若得到 14 或更小，检查是否遗漏 padding。\n\n### Q6\n\nweight=3×8×3×3=216，bias=8，总计 224。输出宽高不影响该层参数量。\n\n### Q7\n\nstride=2，padding=1；并用 Q5 的公式验证输出为 16×16。\n\n### Q8\n\nConv2d 将第二维解释为通道，当前第二维为 32 而不是 3；可使用 x.permute(0, 3, 1, 2) 转换为 NCHW。\n\n## 错题回流表\n\n| 错题 | 错误类型 | 下一步资源 |\n|---|---|---|\n| Q1/Q3 | 概念混淆 | 讲义第 4、7 节 + 对比图 |\n| Q4/Q5/Q6 | 计算错误 | Notebook 公式与参数量单元 |\n| Q7/Q8 | 代码 shape 错误 | Notebook NCHW 与调试单元 |\n\n## 证据来源\n\n- definition：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_a3dde521400f，candidate_only）\n- definition：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_5e2a9735ace2，candidate_only）\n- code：DeepLearning Chapter 9 Convolutional Networks（dl_ch09_cnn_51551ccb3ced，candidate_only）\n- code：Derived PyTorch candidate from DeepLearning Chapter 9 Convolutional Networks（derived_dl_ch09_cnn_pytorch_conv2d_0804，candidate_only）\n- exercise：Derived exercise candidate from DeepLearning Chapter 9 Convolutional Networks（derived_dl_ch09_cnn_exercise_0804，candidate_only）\n\n> 资源状态：candidate_draft。这是可学习、可审核的候选草稿；正式教学发布前仍需完成证据审核与课程门禁。\n",
+      "evidence_ids": [
+        "derived_dl_ch09_cnn_exercise_0804"
+      ],
+      "release_status": "candidate_draft"
+    }
+  ],
+  "notebook": {
+    "cells": [
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "# 卷积神经网络（CNN）：Conv2d 最小可运行实操\n",
+          "\n",
+          "当前教学深度：intro。按“预测 → 运行 → 核对公式 → 修改参数”完成。\n",
+          "\n",
+          "本 Notebook 不训练完整 CNN；它先解决图像张量、卷积参数和 shape 三个前置问题。\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "import torch\n",
+          "from torch import nn\n",
+          "\n",
+          "torch.manual_seed(7)\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 1. 先确认 NCHW\n",
+          "\n",
+          "PyTorch 的图像输入为 [batch, channel, height, width]。不要把 NHWC 直接送入 Conv2d。\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "x = torch.randn(2, 3, 32, 32)  # [batch, channel, height, width]\n",
+          "conv_same = nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1)\n",
+          "y_same = conv_same(x)\n",
+          "assert y_same.shape == (2, 8, 32, 32)\n",
+          "print('same padding:', tuple(x.shape), '->', tuple(y_same.shape))\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 2. 公式与实际输出必须一致\n",
+          "\n",
+          "先用函数计算，再由 Conv2d 的输出 shape 交叉验证。这里专门防止漏写 2×padding。\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "def output_size(size, kernel, padding, stride):\n",
+          "    return (size + 2 * padding - kernel) // stride + 1\n",
+          "\n",
+          "assert output_size(32, 3, 1, 1) == 32\n",
+          "assert output_size(32, 3, 1, 2) == 16\n",
+          "print('formula checks:', output_size(32, 3, 1, 1), output_size(32, 3, 1, 2))\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 2.5 手算一个窗口\n",
+          "\n",
+          "先看单通道、2×2 卷积核的一个位置，理解“逐元素相乘再求和”。\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "small = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])\n",
+          "kernel = torch.tensor([[1.0, 0.0], [0.0, -1.0]])\n",
+          "manual_first = (small[:2, :2] * kernel).sum()\n",
+          "assert manual_first.item() == -4.0\n",
+          "print('first window correlation result:', manual_first.item())\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "conv_stride = nn.Conv2d(3, 8, kernel_size=3, stride=2, padding=1)\n",
+          "y_stride = conv_stride(x)\n",
+          "assert y_stride.shape == (2, 8, 16, 16)\n",
+          "parameter_count = sum(\n",
+          "    parameter.numel() for parameter in conv_stride.parameters()\n",
+          ")\n",
+          "print('stride=2:', tuple(y_stride.shape), 'parameters:', parameter_count)\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 3. 通道数改变与空间尺寸改变是两件事\n",
+          "\n",
+          "out_channels 改变输出特征图数量；stride/padding 改变空间大小。下面将两者分开验证。\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "conv_channels = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)\n",
+          "y_channels = conv_channels(x)\n",
+          "assert y_channels.shape == (2, 16, 32, 32)\n",
+          "assert sum(parameter.numel() for parameter in conv_channels.parameters()) == 448\n",
+          "print('channels changed:', tuple(y_channels.shape))\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 4. 卷积后接池化\n",
+          "\n",
+          "池化会缩小空间尺寸，但没有可训练卷积核。请与 stride=2 的卷积结果比较。\n"
+        ]
+      },
+      {
+        "cell_type": "code",
+        "execution_count": null,
+        "metadata": {},
+        "outputs": [],
+        "source": [
+          "pool = nn.MaxPool2d(kernel_size=2, stride=2)\n",
+          "pooled = pool(y_same)\n",
+          "assert pooled.shape == (2, 8, 16, 16)\n",
+          "print('pooling:', tuple(y_same.shape), '->', tuple(pooled.shape))\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 5. 调试练习\n",
+          "\n",
+          "将 padding 改为 0：先预测 32 会变成多少，再修改代码和断言。若报通道错误，先打印 x.shape，而不是随意改 in_channels。\n"
+        ]
+      },
+      {
+        "cell_type": "markdown",
+        "metadata": {},
+        "source": [
+          "## 6. 提交前自检\n",
+          "\n",
+          "1. 能写出 NCHW 的含义；2. 能手算两组输出尺寸；3. 能解释 224 个参数来自哪里；4. 能区分卷积与池化。完成后再进入分层测验。\n"
+        ]
+      }
+    ],
+    "metadata": {
+      "kernelspec": {
+        "display_name": "Python 3",
+        "language": "python",
+        "name": "python3"
+      },
+      "language_info": {
+        "name": "python",
+        "version": "3"
+      }
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5
+  },
+  "assessment_blueprint": [
+    {
+      "question_id": "cnn-c01",
+      "category": "concept",
+      "error_category": "concept_confusion",
+      "learning_outcome": "解释卷积运算的核心含义并识别其基本场景。",
+      "difficulty": "easy"
+    },
+    {
+      "question_id": "cnn-c02",
+      "category": "concept",
+      "error_category": "concept_confusion",
+      "learning_outcome": "解释卷积运算的核心含义并识别其基本场景。",
+      "difficulty": "medium"
+    },
+    {
+      "question_id": "cnn-c03",
+      "category": "concept",
+      "error_category": "logic_jump",
+      "learning_outcome": "解释卷积运算的核心含义并识别其基本场景。",
+      "difficulty": "medium"
+    },
+    {
+      "question_id": "cnn-s01",
+      "category": "calculation",
+      "error_category": "calculation_error",
+      "learning_outcome": "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+      "difficulty": "easy"
+    },
+    {
+      "question_id": "cnn-s02",
+      "category": "calculation",
+      "error_category": "calculation_error",
+      "learning_outcome": "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+      "difficulty": "medium"
+    },
+    {
+      "question_id": "cnn-s03",
+      "category": "calculation",
+      "error_category": "condition_omission",
+      "learning_outcome": "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+      "difficulty": "hard"
+    },
+    {
+      "question_id": "cnn-p01",
+      "category": "code_reading",
+      "error_category": "code_shape_error",
+      "learning_outcome": "在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。",
+      "difficulty": "medium"
+    },
+    {
+      "question_id": "cnn-p02",
+      "category": "code_reading",
+      "error_category": "code_shape_error",
+      "learning_outcome": "在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。",
+      "difficulty": "hard"
+    }
+  ],
+  "personalization_plan": {
+    "learner_snapshot": {
+      "target_mastery": 0.18,
+      "target_mastery_status": "not_learned",
+      "target_mastery_confidence": 0.7,
+      "global_theta": 0.32,
+      "coding_ability": 0.7,
+      "mathematical_foundation": 0.62,
+      "theoretical_understanding": 0.55
+    },
+    "current_resource_boundary": {
+      "delivery_depth": "intro",
+      "generation_gate": "blocked_prerequisite_and_evidence",
+      "reason": "当前仅生成卷积运算补救包；完整 CNN 章节内容等待先修与证据门禁解除。"
+    },
+    "resource_shape": {
+      "worked_example_count": 4,
+      "guided_exercise_count": 8,
+      "assessment_item_count": 8,
+      "code_cell_max_lines": 30,
+      "visual_assets": [
+        "01_nchw_tensor_layout.svg",
+        "02_convolution_window.svg",
+        "03_shape_reasoning_flow.svg"
+      ]
+    },
+    "scaffolding_policy": {
+      "mastery_strategy": "掌握度较低：采用补救型入门路径，先给完整示例，再给带提示练习。",
+      "coding_strategy": "代码能力可用但框架经验有限：提供可运行最小示例，要求一次只修改一个参数并用断言验证。",
+      "math_strategy": "数学基础可支持推导：保留两道完整尺寸例题与参数量核对，要求写出中间步骤。"
+    },
+    "session_plan": [
+      {
+        "session": 1,
+        "minutes": 50,
+        "goal": "概念直觉与两次尺寸推导",
+        "materials": [
+          "讲义第 2–6 节",
+          "卷积滑窗图",
+          "Q1–Q5"
+        ],
+        "success_check": "能解释 NCHW、卷积/互相关区别，并手算 32→16。"
+      },
+      {
+        "session": 2,
+        "minutes": 40,
+        "goal": "PyTorch shape 验证与代码纠错",
+        "materials": [
+          "Notebook 全部代码单元",
+          "Q6–Q8"
+        ],
+        "success_check": "能运行 Conv2d/池化断言并定位 NHWC 错误。"
+      }
+    ],
+    "weekly_capacity": {
+      "weekly_hours": 10,
+      "current_pack_minutes": 90,
+      "remaining_minutes_after_current_pack": 510,
+      "recommended_use_of_remaining_time": "先完成图像张量前置复习与错题复盘；不要在课程规划未解锁前跳到完整 CNN 训练。"
+    },
+    "presentation_strategy": {
+      "content_order": [
+        "概念直觉理解",
+        "数学推导",
+        "代码实战",
+        "面试考点"
+      ],
+      "visual_learner": true,
+      "step_by_step": true,
+      "comparison_tables": true,
+      "formula_first_for_calculation_errors": true
+    },
+    "project_connection": {
+      "target_project": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务",
+      "current_connection": "用 CIFAR-10 的 32×32×3 输入理解卷积 shape；后续连接图像分类与目标检测。"
+    },
+    "deferred_advanced_content": [
+      "卷积运算的数学定义（互相关 vs 卷积的区别）",
+      "CNN各层详解：卷积层（kernel/filter/stride/padding）、池化层（max/avg/global）、全连接层",
+      "感受野（Receptive Field）的定义、计算公式与直观理解",
+      "参数共享与局部连接 — CNN vs MLP 的参数量对比表",
+      "特征图可视化：浅层检测边缘/纹理，深层检测语义",
+      "BatchNorm原理",
+      "Dropout在CNN中的特殊用法",
+      "1×1卷积的三种用途：降维/升维/跨通道信息融合",
+      "常见训练技巧：数据标准化、学习率warmup、梯度裁剪"
+    ],
+    "prior_chapter_signal": {
+      "chapter_name": "机器学习核心回顾+神经网络入门",
+      "accuracy": 0.71,
+      "observed_errors": [
+        "概念混淆",
+        "逻辑跳跃"
+      ],
+      "adaptation": "保留神经网络概念对比与分步论证，避免从前一章直接跳到复杂 CNN。"
+    }
+  },
+  "visual_assets": {
+    "01_nchw_tensor_layout.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"900\" height=\"280\" viewBox=\"0 0 900 280\">\n<rect width=\"900\" height=\"280\" fill=\"#f8fafc\"/><text x=\"40\" y=\"48\" font-size=\"28\" fill=\"#0f172a\">PyTorch 图像张量：NCHW</text>\n<g font-family=\"Microsoft YaHei, sans-serif\" text-anchor=\"middle\"><rect x=\"45\" y=\"95\" width=\"180\" height=\"110\" rx=\"14\" fill=\"#dbeafe\"/><text x=\"135\" y=\"140\" font-size=\"24\">N</text><text x=\"135\" y=\"174\" font-size=\"17\">batch：2 张图片</text>\n<rect x=\"255\" y=\"95\" width=\"180\" height=\"110\" rx=\"14\" fill=\"#dcfce7\"/><text x=\"345\" y=\"140\" font-size=\"24\">C</text><text x=\"345\" y=\"174\" font-size=\"17\">channel：RGB = 3</text>\n<rect x=\"465\" y=\"95\" width=\"180\" height=\"110\" rx=\"14\" fill=\"#fef3c7\"/><text x=\"555\" y=\"140\" font-size=\"24\">H</text><text x=\"555\" y=\"174\" font-size=\"17\">height：32</text>\n<rect x=\"675\" y=\"95\" width=\"180\" height=\"110\" rx=\"14\" fill=\"#fce7f3\"/><text x=\"765\" y=\"140\" font-size=\"24\">W</text><text x=\"765\" y=\"174\" font-size=\"17\">width：32</text></g>\n<text x=\"450\" y=\"250\" text-anchor=\"middle\" font-size=\"20\" fill=\"#334155\">输入 x.shape = (2, 3, 32, 32)，Conv2d 的 in_channels 必须等于第二维 3</text></svg>",
+    "02_convolution_window.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"900\" height=\"330\" viewBox=\"0 0 900 330\">\n<rect width=\"900\" height=\"330\" fill=\"#f8fafc\"/><text x=\"35\" y=\"43\" font-size=\"27\" fill=\"#0f172a\">卷积窗口：局部连接 + 参数共享</text>\n<g stroke=\"#64748b\" fill=\"#fff\"><rect x=\"60\" y=\"80\" width=\"220\" height=\"220\"/><path d=\"M115 80v220M170 80v220M225 80v220M60 135h220M60 190h220M60 245h220\"/></g>\n<rect x=\"115\" y=\"135\" width=\"110\" height=\"110\" fill=\"#bfdbfe\" fill-opacity=\".75\" stroke=\"#2563eb\" stroke-width=\"4\"/>\n<path d=\"M325 185h155\" stroke=\"#2563eb\" stroke-width=\"5\" marker-end=\"url(#a)\"/><defs><marker id=\"a\" markerWidth=\"10\" markerHeight=\"10\" refX=\"8\" refY=\"3\" orient=\"auto\"><path d=\"M0,0 L0,6 L9,3 z\" fill=\"#2563eb\"/></marker></defs>\n<g stroke=\"#64748b\" fill=\"#fff\"><rect x=\"525\" y=\"105\" width=\"135\" height=\"135\"/><path d=\"M570 105v135M615 105v135M525 150h135M525 195h135\"/></g>\n<text x=\"170\" y=\"320\" text-anchor=\"middle\" font-size=\"18\" fill=\"#334155\">输入特征图：窗口只看局部 3×3 区域</text><text x=\"592\" y=\"270\" text-anchor=\"middle\" font-size=\"18\" fill=\"#334155\">同一卷积核滑动后形成输出特征图</text>\n<text x=\"740\" y=\"145\" font-size=\"19\" fill=\"#0f172a\">先预测：</text><text x=\"740\" y=\"178\" font-size=\"18\" fill=\"#334155\">kernel=3</text><text x=\"740\" y=\"207\" font-size=\"18\" fill=\"#334155\">padding=1</text><text x=\"740\" y=\"236\" font-size=\"18\" fill=\"#334155\">stride=2</text></svg>",
+    "03_shape_reasoning_flow.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"900\" height=\"250\" viewBox=\"0 0 900 250\">\n<rect width=\"900\" height=\"250\" fill=\"#f8fafc\"/><text x=\"35\" y=\"42\" font-size=\"27\" fill=\"#0f172a\">输出 shape 推理流程</text>\n<g font-family=\"Microsoft YaHei, sans-serif\" text-anchor=\"middle\"><rect x=\"35\" y=\"95\" width=\"170\" height=\"80\" rx=\"12\" fill=\"#dbeafe\"/><text x=\"120\" y=\"128\" font-size=\"19\">输入</text><text x=\"120\" y=\"155\" font-size=\"16\">(2, 3, 32, 32)</text>\n<rect x=\"270\" y=\"95\" width=\"210\" height=\"80\" rx=\"12\" fill=\"#fef3c7\"/><text x=\"375\" y=\"128\" font-size=\"17\">代入公式</text><text x=\"375\" y=\"155\" font-size=\"14\">floor((32+2P-K)/S)+1</text>\n<rect x=\"545\" y=\"95\" width=\"150\" height=\"80\" rx=\"12\" fill=\"#dcfce7\"/><text x=\"620\" y=\"128\" font-size=\"17\">空间尺寸</text><text x=\"620\" y=\"155\" font-size=\"16\">32 → 16</text>\n<rect x=\"760\" y=\"95\" width=\"110\" height=\"80\" rx=\"12\" fill=\"#fce7f3\"/><text x=\"815\" y=\"128\" font-size=\"17\">输出</text><text x=\"815\" y=\"155\" font-size=\"14\">(2,8,16,16)</text></g>\n<path d=\"M205 135h65M480 135h65M695 135h65\" stroke=\"#2563eb\" stroke-width=\"5\" marker-end=\"url(#a)\"/><defs><marker id=\"a\" markerWidth=\"10\" markerHeight=\"10\" refX=\"8\" refY=\"3\" orient=\"auto\"><path d=\"M0,0 L0,6 L9,3 z\" fill=\"#2563eb\"/></marker></defs>\n<text x=\"450\" y=\"220\" text-anchor=\"middle\" font-size=\"18\" fill=\"#334155\">每次先手算，再运行 assert；不一致时依次检查 NCHW、padding、stride。</text></svg>"
+  },
+  "claim_evidence_ledger": [
+    {
+      "claim_id": "lecture.local_connection",
+      "resource_type": "lecture_notes",
+      "section": "第 3 节：为什么图像适合卷积",
+      "claim": "局部连接与参数共享解释 CNN 相对全连接层的参数优势。",
+      "required_evidence_kind": "definition",
+      "evidence_ids": [
+        "dl_ch09_cnn_a3dde521400f",
+        "dl_ch09_cnn_5e2a9735ace2"
+      ],
+      "citation_status": "candidate_only",
+      "publishable": false
+    },
+    {
+      "claim_id": "lecture.correlation_boundary",
+      "resource_type": "lecture_notes",
+      "section": "第 4 节：卷积、互相关与特征图",
+      "claim": "数学卷积与深度学习常用互相关需在卷积核翻转上明确区分。",
+      "required_evidence_kind": "definition",
+      "evidence_ids": [
+        "dl_ch09_cnn_a3dde521400f",
+        "dl_ch09_cnn_5e2a9735ace2"
+      ],
+      "citation_status": "candidate_only",
+      "publishable": false
+    },
+    {
+      "claim_id": "lecture.shape_formula",
+      "resource_type": "lecture_notes",
+      "section": "第 5 节：输出尺寸",
+      "claim": "输出尺寸计算使用 kernel、padding 和 stride 的标准公式。",
+      "required_evidence_kind": "definition",
+      "evidence_ids": [
+        "dl_ch09_cnn_a3dde521400f",
+        "dl_ch09_cnn_5e2a9735ace2"
+      ],
+      "citation_status": "candidate_only",
+      "publishable": false
+    },
+    {
+      "claim_id": "practical.conv2d_mapping",
+      "resource_type": "pytorch_practical_guide",
+      "section": "第 2–5 节：Conv2d 工作示例",
+      "claim": "PyTorch Conv2d 参数与输入输出 shape 的映射。",
+      "required_evidence_kind": "code",
+      "evidence_ids": [
+        "dl_ch09_cnn_51551ccb3ced",
+        "derived_dl_ch09_cnn_pytorch_conv2d_0804"
+      ],
+      "citation_status": "candidate_only",
+      "publishable": false
+    },
+    {
+      "claim_id": "assessment.shape_items",
+      "resource_type": "layered_assessment",
+      "section": "Q4–Q6：尺寸与参数量",
+      "claim": "输出尺寸和参数量题目及逐步解析。",
+      "required_evidence_kind": "exercise",
+      "evidence_ids": [
+        "derived_dl_ch09_cnn_exercise_0804"
+      ],
+      "citation_status": "candidate_only",
+      "publishable": false
+    },
+    {
+      "claim_id": "assessment.code_items",
+      "resource_type": "layered_assessment",
+      "section": "Q7–Q8：代码阅读",
+      "claim": "NCHW 与 Conv2d 参数纠错题。",
+      "required_evidence_kind": "exercise",
+      "evidence_ids": [
+        "derived_dl_ch09_cnn_exercise_0804"
+      ],
+      "citation_status": "candidate_only",
+      "publishable": false
+    }
+  ],
+  "personalization_trace": [
+    {
+      "input_field": "knowledge_mastery.target_cnn",
+      "observed_value": 0.18,
+      "decision": "掌握度较低：采用补救型入门路径，先给完整示例，再给带提示练习。",
+      "output_locations": [
+        "讲义第 0、2 节",
+        "测验 Q1–Q8",
+        "session_plan"
+      ]
+    },
+    {
+      "input_field": "ability_level.coding_ability",
+      "observed_value": 0.7,
+      "decision": "代码能力可用但框架经验有限：提供可运行最小示例，要求一次只修改一个参数并用断言验证。",
+      "output_locations": [
+        "实操指南第 1–7 节",
+        "Notebook 代码单元",
+        "测验 Q7–Q8"
+      ]
+    },
+    {
+      "input_field": "ability_level.mathematical_foundation",
+      "observed_value": 0.62,
+      "decision": "数学基础可支持推导：保留两道完整尺寸例题与参数量核对，要求写出中间步骤。",
+      "output_locations": [
+        "讲义第 5、6 节",
+        "Notebook 公式单元",
+        "测验 Q4–Q6"
+      ]
+    },
+    {
+      "input_field": "learning_preferences.pace",
+      "observed_value": {
+        "weekly_hours": 10,
+        "session_attention_minutes": 50
+      },
+      "decision": "按注意力时长拆为两次学习，并保留每周剩余时间用于先修与错题复盘。",
+      "output_locations": [
+        "个性化学习计划.session_plan",
+        "讲义第 0 节"
+      ]
+    },
+    {
+      "input_field": "learning_preferences.style",
+      "observed_value": {
+        "visual_learner": true,
+        "prefers_step_by_step": true,
+        "prefers_comparison_tables": true,
+        "prefers_diagrams": true,
+        "prefers_math_formulas": true
+      },
+      "decision": "生成 NCHW、卷积滑窗和 shape 推理图，并以表格和逐步验证组织内容。",
+      "output_locations": [
+        "01_nchw_tensor_layout.svg",
+        "02_convolution_window.svg",
+        "03_shape_reasoning_flow.svg",
+        "讲义第 3、5、7 节",
+        "实操指南第 4.5 节"
+      ]
+    },
+    {
+      "input_field": "prior_chapters",
+      "observed_value": {
+        "chapter_name": "机器学习核心回顾+神经网络入门",
+        "accuracy": 0.71,
+        "observed_errors": [
+          "概念混淆",
+          "逻辑跳跃"
+        ],
+        "adaptation": "保留神经网络概念对比与分步论证，避免从前一章直接跳到复杂 CNN。"
+      },
+      "decision": "保留神经网络概念对比与分步论证，不从前章直接跳到完整 CNN。",
+      "output_locations": [
+        "讲义第 0、4、9 节",
+        "测验 Q1–Q3"
+      ]
+    },
+    {
+      "input_field": "learning_preferences.motivation.target_project",
+      "observed_value": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务",
+      "decision": "用 CIFAR-10 图像张量建立当前项目连接，并将后续图像分类/检测设为解锁后任务。",
+      "output_locations": [
+        "讲义第 10 节",
+        "实操指南第 8 节"
+      ]
+    },
+    {
+      "input_field": "planning_handoff",
+      "observed_value": {
+        "depth": "intro",
+        "gate": "blocked_prerequisite_and_evidence"
+      },
+      "decision": "规划交接优先，禁止画像中的进阶需求越过先修和证据门禁。",
+      "output_locations": [
+        "决策卡",
+        "讲义第 0、10 节",
+        "质量报告"
+      ]
+    }
+  ]
+}

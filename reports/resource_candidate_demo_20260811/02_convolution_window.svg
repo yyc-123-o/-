@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="330" viewBox="0 0 900 330">
+<rect width="900" height="330" fill="#f8fafc"/><text x="35" y="43" font-size="27" fill="#0f172a">卷积窗口：局部连接 + 参数共享</text>
+<g stroke="#64748b" fill="#fff"><rect x="60" y="80" width="220" height="220"/><path d="M115 80v220M170 80v220M225 80v220M60 135h220M60 190h220M60 245h220"/></g>
+<rect x="115" y="135" width="110" height="110" fill="#bfdbfe" fill-opacity=".75" stroke="#2563eb" stroke-width="4"/>
+<path d="M325 185h155" stroke="#2563eb" stroke-width="5" marker-end="url(#a)"/><defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker></defs>
+<g stroke="#64748b" fill="#fff"><rect x="525" y="105" width="135" height="135"/><path d="M570 105v135M615 105v135M525 150h135M525 195h135"/></g>
+<text x="170" y="320" text-anchor="middle" font-size="18" fill="#334155">输入特征图：窗口只看局部 3×3 区域</text><text x="592" y="270" text-anchor="middle" font-size="18" fill="#334155">同一卷积核滑动后形成输出特征图</text>
+<text x="740" y="145" font-size="19" fill="#0f172a">先预测：</text><text x="740" y="178" font-size="18" fill="#334155">kernel=3</text><text x="740" y="207" font-size="18" fill="#334155">padding=1</text><text x="740" y="236" font-size="18" fill="#334155">stride=2</text></svg>

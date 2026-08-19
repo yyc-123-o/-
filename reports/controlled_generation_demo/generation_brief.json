@@ -1,0 +1,135 @@
+{
+  "brief_id": "generation_brief_3210ca5e7c4fed2263885fe1c1f08a3d5c3ab39cfe3368b132f13a5d86d61433",
+  "profile_id": "PROFILE-2026-0001-DEMO",
+  "policy": {
+    "policy_version": "generation-policy.v1",
+    "concept_id": "dl.cnn.convolution",
+    "knowledge_scope": [
+      "dl.cnn.convolution"
+    ],
+    "forbidden_scope": [
+      "resnet",
+      "vgg",
+      "transfer learning",
+      "transposed convolution",
+      "dcgan",
+      "u-net"
+    ],
+    "learning_objectives": [
+      "解释卷积运算的核心含义并识别其基本场景。",
+      "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+      "在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。"
+    ],
+    "delivery_depth": "intro",
+    "prerequisite_gate_passed": false,
+    "unresolved_prerequisites": [
+      "dl.vision.image-tensor"
+    ],
+    "allowed_evidence": [
+      {
+        "evidence_id": "dl_ch09_cnn_a3dde521400f",
+        "source_id": "dl_ch09_cnn",
+        "span_id": "dl_ch09_cnn_a3dde521400f",
+        "text": "卷积操作将图像数据窗口与固定权重滤波矩阵逐元素相乘后求和；输入记为 Input，核记为 Kernel 或 Filter，输出为特征图。卷积层通常使用二维互相关（Cross-correlation）：输入数组与卷积核窗口在空间位置上滑动并计算内积。该片段还给出 3×3 输入与 2×2 核的逐位置计算示例，并说明卷积核参数在不同输入位置共享。",
+        "approval_status": "candidate"
+      },
+      {
+        "evidence_id": "dl_ch09_cnn_5e2a9735ace2",
+        "source_id": "dl_ch09_cnn",
+        "span_id": "dl_ch09_cnn_5e2a9735ace2",
+        "text": "彩色图像的卷积输入和输出可以看作带通道的张量；输入通道数为 c_in、卷积核空间尺寸为 K×K、输出通道数为 c_out 时，每组卷积核覆盖全部输入通道。无填充时，二维输出尺寸为 (m−f+1, n−f+1)；加入每侧 p 个零填充后，输出尺寸为 (m+2p−f+1, n+2p−f+1)。",
+        "approval_status": "candidate"
+      },
+      {
+        "evidence_id": "dl_ch09_cnn_51551ccb3ced",
+        "source_id": "dl_ch09_cnn",
+        "span_id": "dl_ch09_cnn_51551ccb3ced",
+        "text": "二维卷积实现的输入数组 X 形状为 (n_samples, in_rows, in_cols, in_ch)，卷积核 W 形状为 (kernel_rows, kernel_cols, in_ch, out_ch)，stride 表示卷积步幅，pad 表示零填充；输出 Z 形状为 (n_samples, out_rows, out_cols, out_ch)。",
+        "approval_status": "candidate"
+      },
+      {
+        "evidence_id": "derived_dl_ch09_cnn_pytorch_conv2d_0804",
+        "source_id": "derived:dl_ch09_cnn_pytorch_candidate",
+        "span_id": "derived_dl_ch09_cnn_pytorch_conv2d_0804",
+        "text": "【待审核改写候选，非原文引文】根据 dl_ch09_cnn 的卷积核、padding、stride 和输出尺寸定义改写为 PyTorch 最小示例：\nimport torch\nfrom torch import nn\nx = torch.randn(2, 3, 32, 32)\nlayer = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=1)\ny = layer(x)\nassert x.shape == (2, 3, 32, 32)\nassert y.shape == (2, 8, 16, 16)\n参数含义：in_channels 对应输入通道，out_channels 对应卷积核组数，kernel_size 对应窗口，stride 对应步幅，padding 对应每侧填充。该候选必须经过来源绑定、代码运行和许可证审查。",
+        "approval_status": "candidate"
+      },
+      {
+        "evidence_id": "derived_dl_ch09_cnn_exercise_0804",
+        "source_id": "derived:dl_ch09_cnn_exercise_candidate",
+        "span_id": "derived_dl_ch09_cnn_exercise_0804",
+        "text": "【待审核改写候选，非原文引文】题 1：输入空间尺寸 32×32，kernel_size=3，padding=1，stride=2，输出空间尺寸是多少？答案：16×16。解析：floor((32+2×1−3)/2)+1=floor(31/2)+1=16。题 2：Conv2d 的 in_channels=3、out_channels=8、kernel_size=3，忽略 bias 时卷积核参数量是多少？答案：216。解析：3×8×3×3=216；若包含 bias，再加 8。题 3：固定输入和 kernel_size，增大 padding 或 stride 分别会怎样影响输出尺寸？答案：padding 通常增大输出空间尺寸，stride 增大通常减少输出空间尺寸；应分别代入公式验证。以上题目由 dl_ch09_cnn 的 padding、stride、输出公式和通道参数定义派生，必须经过人工审核后才能作为练习资源。",
+        "approval_status": "candidate"
+      }
+    ],
+    "quiz_structure": [
+      [
+        "concept",
+        2
+      ],
+      [
+        "shape_reasoning",
+        2
+      ],
+      [
+        "code",
+        2
+      ],
+      [
+        "debugging",
+        1
+      ],
+      [
+        "synthesis",
+        1
+      ]
+    ],
+    "notebook_core_system_owned": true,
+    "notebook_execution_required": true,
+    "personalization": {
+      "scaffolding_level": 3,
+      "explanation_order_hint": [
+        "概念直觉理解",
+        "数学推导",
+        "代码实战",
+        "面试考点"
+      ],
+      "exercise_difficulty_distribution": [
+        5,
+        2,
+        1
+      ],
+      "review_intensity": 3,
+      "debugging_emphasis": 3,
+      "presentation_preferences": [
+        "visual",
+        "diagrams",
+        "step_by_step",
+        "comparison_tables",
+        "math_formulas",
+        "jupyter_notebook"
+      ]
+    },
+    "policy_id": "policy_c96a73d8a70642edf3e501cfe44bc98b8e31b766c04f3f7cf3eddfc5dcd27b7a",
+    "policy_hash": "c96a73d8a70642edf3e501cfe44bc98b8e31b766c04f3f7cf3eddfc5dcd27b7a"
+  },
+  "learner_context": {
+    "mastery": 0.18,
+    "coding_level": 0.7,
+    "math_level": 0.62,
+    "error_patterns": [
+      "calculation_error",
+      "logic_jump",
+      "concept_confusion"
+    ],
+    "pace_hours_per_week": 10.0,
+    "presentation": [
+      "visual",
+      "diagrams",
+      "step_by_step",
+      "comparison_tables",
+      "math_formulas",
+      "jupyter_notebook"
+    ]
+  }
+}
