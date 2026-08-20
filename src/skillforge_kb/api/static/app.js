@@ -2,6 +2,7 @@ const state = {
   profile: null,
   profileWarnings: [],
   targetConceptId: "",
+  selectedConceptId: "",
   result: null,
 };
 
@@ -282,29 +283,130 @@ function renderPath(result) {
     textElement("span", `${nodes.length} 个节点 · 当前节点高亮显示`),
   );
   target.append(summary);
-  const table = document.createElement("table");
-  table.className = "data-table";
-  const head = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-  ["顺序", "知识点", "章节 / 小节", "深度", "状态"].forEach((label) => {
-    headerRow.append(textElement("th", label));
+  const explorer = document.createElement("div");
+  explorer.className = "path-explorer";
+  const tree = document.createElement("nav");
+  tree.className = "chapter-tree";
+  tree.setAttribute("aria-label", "课程章节");
+  const groups = groupPathNodes(nodes);
+  groups.forEach((chapter) => {
+    const chapterBlock = document.createElement("section");
+    chapterBlock.className = "chapter-group";
+    chapterBlock.append(textElement("h3", chapterLabel(chapter.id)));
+    chapter.sections.forEach((section) => {
+      const sectionBlock = document.createElement("div");
+      sectionBlock.className = "section-group";
+      sectionBlock.append(textElement("h4", sectionLabel(section.id)));
+      section.nodes.forEach((node) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "node-link";
+        button.dataset.status = node.status;
+        button.dataset.conceptId = node.concept_id;
+        if (node.concept_id === result.planning?.path?.target_concept_id) {
+          button.classList.add("target-node");
+        }
+        button.setAttribute("aria-pressed", "false");
+        button.append(
+          textElement("span", String(node.sequence).padStart(2, "0"), "node-sequence"),
+          textElement("span", node.concept_id, "node-name"),
+          textElement("span", nodeStatusLabel(node.status), "node-status"),
+        );
+        button.addEventListener("click", () => selectPathNode(result, node));
+        sectionBlock.append(button);
+      });
+      chapterBlock.append(sectionBlock);
+    });
+    tree.append(chapterBlock);
   });
-  head.append(headerRow);
-  const body = document.createElement("tbody");
+  const detail = document.createElement("section");
+  detail.className = "node-detail";
+  detail.id = "node-detail";
+  explorer.append(tree, detail);
+  target.append(explorer);
+  const initial = nodes.find((node) => node.concept_id === result.planning?.path?.target_concept_id)
+    || nodes.find((node) => node.concept_id === result.handoff?.concept_id)
+    || nodes.find((node) => node.status === "available")
+    || nodes[0];
+  selectPathNode(result, initial);
+}
+
+function groupPathNodes(nodes) {
+  const chapters = [];
+  const chapterMap = new Map();
   nodes.forEach((node) => {
-    const row = document.createElement("tr");
-    if (node.concept_id === result.handoff?.concept_id) row.className = "current-row";
-    [
-      String(node.sequence).padStart(2, "0"),
-      node.concept_id,
-      `${node.chapter_id} / ${node.section_id}`,
-      node.delivery_depth || "-",
-      node.status,
-    ].forEach((value) => row.append(textElement("td", value)));
-    body.append(row);
+    let chapter = chapterMap.get(node.chapter_id);
+    if (!chapter) {
+      chapter = { id: node.chapter_id, sections: [], sectionMap: new Map() };
+      chapterMap.set(node.chapter_id, chapter);
+      chapters.push(chapter);
+    }
+    let section = chapter.sectionMap.get(node.section_id);
+    if (!section) {
+      section = { id: node.section_id, nodes: [] };
+      chapter.sectionMap.set(node.section_id, section);
+      chapter.sections.push(section);
+    }
+    section.nodes.push(node);
   });
-  table.append(head, body);
-  target.append(table);
+  return chapters;
+}
+
+function selectPathNode(result, node) {
+  state.selectedConceptId = node.concept_id;
+  document.querySelectorAll(".node-link").forEach((button) => {
+    const selected = button.dataset.conceptId === node.concept_id;
+    button.classList.toggle("selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+  const detail = document.getElementById("node-detail");
+  if (!detail) return;
+  detail.replaceChildren(
+    textElement("span", `节点 ${String(node.sequence).padStart(2, "0")}`, "detail-index"),
+    textElement("h2", node.concept_id),
+    textElement("p", `${chapterLabel(node.chapter_id)} / ${sectionLabel(node.section_id)}`),
+    detailFacts(node),
+    textElement("h3", "前置知识"),
+    textElement(
+      "p",
+      node.hard_prerequisite_ids.length
+        ? node.hard_prerequisite_ids.join("、")
+        : "无硬性前置知识",
+    ),
+  );
+  const actions = document.createElement("div");
+  actions.className = "node-actions";
+  const enter = document.createElement("button");
+  enter.type = "button";
+  enter.className = "primary-action compact-action";
+  enter.textContent = node.status === "available" ? "进入学习" : "查看学习条件";
+  enter.disabled = node.status === "blocked" || node.status === "pending";
+  enter.addEventListener("click", () => {
+    if (node.status === "available") activateTab("resource-view");
+  });
+  actions.append(enter);
+  detail.append(actions);
+}
+
+function detailFacts(node) {
+  const facts = document.createElement("dl");
+  facts.className = "detail-facts";
+  [["状态", nodeStatusLabel(node.status)], ["交付深度", node.delivery_depth || "已掌握"], ["目标顺序", String(node.sequence)]].forEach(([label, value]) => {
+    facts.append(textElement("dt", label), textElement("dd", value));
+  });
+  return facts;
+}
+
+function chapterLabel(id) {
+  return id.replace(/^chapter\.(\d+)\./, "第 $1 章 · ").replaceAll("-", " ");
+}
+
+function sectionLabel(id) {
+  return id.replace(/^section\.\d+\./, "").replaceAll("-", " ");
+}
+
+function nodeStatusLabel(status) {
+  return { skipped: "已掌握", available: "当前", blocked: "受阻", pending: "待学习", completed: "已完成" }[status] || status;
 }
 
 function renderEvidence(result) {
@@ -324,7 +426,7 @@ function renderEvidence(result) {
   summary.append(
     textElement("strong", `${retrieval.evidence_summary.formal_count} 正式`),
     textElement("span", `${retrieval.evidence_summary.candidate_count} 候选`),
-    textElement("span", retrieval.evidence_summary.missing_content_kinds.length ? `缺失：${retrieval.evidence_summary.missing_content_kinds.join("、")}` : "三类内容齐全"),
+    textElement("span", retrieval.evidence_summary.missing_content_kinds.length ? `缺失正式证据：${retrieval.evidence_summary.missing_content_kinds.join("、")}` : "正式证据类型齐全"),
   );
   target.prepend(summary);
   if (retrieval.evidence_gap) {
@@ -396,6 +498,15 @@ function renderResources(result) {
   }
   const stack = document.createElement("div");
   stack.className = "resource-stack";
+  if (result.resources.publication_status === "candidate_draft") {
+    const notice = document.createElement("div");
+    notice.className = "candidate-notice";
+    notice.append(
+      textElement("strong", "候选结构草稿"),
+      textElement("span", "可用于查看课程结构；正式发布仍需补齐并审核证据。"),
+    );
+    stack.append(notice);
+  }
   if (result.resources.formal_package) {
     result.resources.formal_package.artifacts.forEach((artifact) => {
       stack.append(resourceCard(artifact.resource_type, artifact.items.map((item) => item.text)));

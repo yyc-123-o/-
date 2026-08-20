@@ -175,7 +175,7 @@ def test_repeated_planning_is_semantically_identical(catalog) -> None:
     assert planner.plan(profile) == planner.plan(profile)
 
 
-def test_targeted_planning_keeps_only_target_prerequisite_closure(catalog) -> None:
+def test_targeted_planning_keeps_complete_path_and_marks_focus(catalog) -> None:
     profile = make_profile(
         catalog,
         mastery=[
@@ -200,7 +200,8 @@ def test_targeted_planning_keeps_only_target_prerequisite_closure(catalog) -> No
     assert decision.target_concept_id == "dl.cnn.convolution"
     assert "dl.cnn.convolution" in concept_ids
     assert "dl.vision.image-tensor" in concept_ids
-    assert "nlp.rnn" not in concept_ids
+    assert len(decision.nodes) == len(CoursePlanner(catalog).plan(profile).nodes)
+    assert "nlp.rnn" in concept_ids
 
 
 def test_targeted_planning_rejects_unknown_concept(catalog) -> None:

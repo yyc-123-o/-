@@ -72,11 +72,11 @@
             <fieldset class="mode-control">
               <legend>生成模式</legend>
               <label>
-                <input type="radio" name="execution-mode" value="strict" checked>
+                <input type="radio" name="execution-mode" value="strict">
                 <span>严格模式</span>
               </label>
               <label>
-                <input type="radio" name="execution-mode" value="candidate_preview">
+                <input type="radio" name="execution-mode" value="candidate_preview" checked>
                 <span>候选预览</span>
               </label>
             </fieldset>
@@ -89,7 +89,7 @@
           <button id="run-platform" class="primary-action" type="button" disabled>
             运行课程流程
           </button>
-          <p class="control-footnote">严格模式只使用已审核证据；候选预览不可直接发布。</p>
+          <p class="control-footnote">默认生成候选结构草稿；切换严格模式后，只使用已审核证据。</p>
         </aside>
 
         <main class="results-panel">

@@ -84,3 +84,17 @@ def test_query_rejects_invalid_bounds() -> None:
         KnowledgeQuery(query="RAG", top_k=21)
     with pytest.raises(ValueError):
         KnowledgeQuery(query="   ")
+
+
+def test_load_many_merges_curated_candidate_corpora(tmp_path: Path) -> None:
+    first = tmp_path / "first.jsonl"
+    second = tmp_path / "second.jsonl"
+    write_rows(first, [valid_row("first")])
+    row = valid_row("second")
+    row["content_kind"] = "code"
+    write_rows(second, [row])
+
+    corpus = KnowledgeCorpus.load_many((first, second))
+
+    assert [chunk.chunk_id for chunk in corpus.chunks] == ["first", "second"]
+    assert corpus.digest == KnowledgeCorpus.load_many((first, second)).digest

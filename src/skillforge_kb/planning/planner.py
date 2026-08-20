@@ -98,15 +98,11 @@ class CoursePlanner:
             raise PlanningError(f"unknown target concept: {target_concept_id}")
         if target_concept_id not in self._ordered_ids:
             raise PlanningError(f"target concept is not required: {target_concept_id}")
-        closure = {target_concept_id}
-        pending = [target_concept_id]
-        while pending:
-            concept_id = pending.pop()
-            for relation in self._hard_relations[concept_id]:
-                if relation.source not in closure:
-                    closure.add(relation.source)
-                    pending.append(relation.source)
-        return [concept_id for concept_id in self._ordered_ids if concept_id in closure]
+        # A target selects the learner's focus; it must not truncate the course
+        # path. Keeping the complete ordered path preserves chapter context and
+        # lets the UI expose every node while the planner still chooses the
+        # earliest available prerequisite-safe node as the handoff.
+        return list(self._ordered_ids)
 
     def _mastery_index(
         self,

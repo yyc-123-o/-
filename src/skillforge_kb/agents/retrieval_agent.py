@@ -148,7 +148,11 @@ class DomainRetrievalAgent:
             result = self._retrieval_tool.invoke(query)
             for hit in result.hits:
                 chunk = self._chunks_by_id.get(hit.chunk_id)
-                if chunk is not None and _infer_content_kind(chunk) is not content_kind:
+                if chunk is None:
+                    continue
+                if _infer_content_kind(chunk) is not content_kind:
+                    continue
+                if not _is_relevant_chunk(chunk, request.concept_id):
                     continue
                 rows.append(self._candidate_from_hit(hit, request, content_kind))
         deduplicated: dict[tuple[str, ContentKind], RetrievedEvidence] = {}
@@ -224,6 +228,14 @@ _EXERCISE_MARKERS = re.compile(
     r"(?:练习|习题|题目|请计算|答案|解析|作答|选择题|填空题|exercise|question|solution)",
     re.IGNORECASE,
 )
+_CNN_EXCLUDED_MARKERS = re.compile(
+    r"(?:GAN|DCGAN|TextCNN|ConvTranspose|转置卷积|生成器|判别器)",
+    re.IGNORECASE,
+)
+_CNN_RELEVANT_MARKERS = re.compile(
+    r"(?:卷积|互相关|卷积核|convolution|conv2d|padding|stride|输出尺寸)",
+    re.IGNORECASE,
+)
 
 
 def _infer_content_kind(chunk: KnowledgeChunk) -> ContentKind:
@@ -236,3 +248,13 @@ def _infer_content_kind(chunk: KnowledgeChunk) -> ContentKind:
     if _CODE_MARKERS.search(searchable):
         return ContentKind.CODE
     return ContentKind.DEFINITION
+
+
+def _is_relevant_chunk(chunk: KnowledgeChunk, concept_id: str) -> bool:
+    """Reject lexical false positives before they become typed evidence."""
+    if concept_id != "dl.cnn.convolution":
+        return True
+    searchable = " ".join((*chunk.heading_path, chunk.source_title, chunk.text))
+    if _CNN_EXCLUDED_MARKERS.search(searchable):
+        return False
+    return bool(_CNN_RELEVANT_MARKERS.search(searchable))

@@ -73,9 +73,13 @@ cleared when the process restarts. Real model calls, authentication, and
 production persistence remain outside this release.
 
 The console also accepts an optional target concept ID, for example
-`dl.cnn.convolution`. Targeted planning keeps that node and its hard
-prerequisite closure, records the target in the path identity, and prevents
-unrelated later chapters from being selected for the resource handoff.
+`dl.cnn.convolution`. The target is recorded as the learner's focus while the
+full required course path remains available for chapter navigation; the
+planner still selects the earliest prerequisite-safe current node. Candidate
+preview is selected by default in the console so the complete resource flow
+can be inspected before formal evidence is published. CNN candidate retrieval
+uses a small curated definition/code/exercise supplement and explicitly
+filters GAN, DCGAN, TextCNN, and transposed-convolution material.
 
 The fusion CLI is read-only with respect to source directories:
 

@@ -171,7 +171,7 @@ def _select_candidate_evidence(
             item for item in retrieval.candidate_evidence if item.content_kind is kind
         ]
         if not matching:
-            raise ValueError(f"candidate preview is missing {kind.value} evidence")
+            continue
         selected[kind] = min(
             matching,
             key=lambda item: (-item.score, item.evidence_key),
@@ -184,6 +184,19 @@ def _preview_policy(
     handoff: ResourceHandoffContract,
     selected: dict[ContentKind, RetrievedEvidence],
 ) -> GenerationPolicy:
+    allowed = [
+        AllowedEvidence(
+            evidence_id=item.evidence_key,
+            source_id=item.source_id,
+            span_id=item.chunk_id,
+            text=item.excerpt,
+            approval_status=EvidenceApprovalStatus.CANDIDATE,
+        )
+        for item in selected.values()
+    ]
+    for kind in handoff.evidence_filters.content_kinds:
+        if kind not in selected:
+            allowed.append(_evidence_gap(handoff, kind))
     return GenerationPolicy.create(
         concept_id=handoff.concept_id,
         knowledge_scope=(handoff.concept_id,),
@@ -197,16 +210,7 @@ def _preview_policy(
         delivery_depth=handoff.delivery_depth.value,
         prerequisite_gate_passed=True,
         unresolved_prerequisites=(),
-        allowed_evidence=tuple(
-            AllowedEvidence(
-                evidence_id=item.evidence_key,
-                source_id=item.source_id,
-                span_id=item.chunk_id,
-                text=item.excerpt,
-                approval_status=EvidenceApprovalStatus.CANDIDATE,
-            )
-            for item in selected.values()
-        ),
+        allowed_evidence=tuple(allowed),
         notebook_execution_required=False,
         personalization=_personalization(profile, handoff.concept_id),
     )
@@ -278,20 +282,23 @@ def _preview_draft(
     policy: GenerationPolicy,
     selected: dict[ContentKind, RetrievedEvidence],
 ) -> StructuredResourceDraft:
-    definition = selected[ContentKind.DEFINITION]
-    code = selected[ContentKind.CODE]
-    exercise = selected[ContentKind.EXERCISE]
+    definition = selected.get(ContentKind.DEFINITION)
+    code = selected.get(ContentKind.CODE)
+    exercise = selected.get(ContentKind.EXERCISE)
+    definition_text, definition_id = _evidence_text(definition, handoff, ContentKind.DEFINITION)
+    code_text, code_id = _evidence_text(code, handoff, ContentKind.CODE)
+    exercise_text, _ = _evidence_text(exercise, handoff, ContentKind.EXERCISE)
     lecture_claim = TechnicalClaim(
         claim_id="preview-lecture-claim",
-        text=definition.excerpt,
+        text=definition_text,
         scope_id=handoff.concept_id,
-        evidence_ids=(definition.evidence_key,),
+        evidence_ids=(definition_id,),
     )
     practical_claim = TechnicalClaim(
         claim_id="preview-practical-claim",
-        text=code.excerpt,
+        text=code_text,
         scope_id=handoff.concept_id,
-        evidence_ids=(code.evidence_key,),
+        evidence_ids=(code_id,),
     )
     difficulty_levels = tuple(
         chain.from_iterable(
@@ -318,7 +325,7 @@ def _preview_draft(
     teacher_answers = tuple(
         TeacherAnswerItem(
             question_id=question.question_id,
-            answer=exercise.excerpt,
+            answer=exercise_text,
             scoring_points=handoff.assessment_kinds,
             error_diagnosis="Check the learner's reasoning against the cited exercise.",
             teaching_action="Return to the related learning outcome before retrying.",
@@ -336,7 +343,7 @@ def _preview_draft(
             title=f"{handoff.concept_id} practical guide",
             learning_steps=handoff.learning_outcomes,
             claims=(practical_claim,),
-            notebook_tasks=(code.excerpt,),
+            notebook_tasks=(code_text,),
             debug_hint_depth=policy.personalization.debugging_emphasis,
         ),
         student_quiz=StudentQuizDraft(
@@ -349,3 +356,29 @@ def _preview_draft(
             feedback_strategy=("diagnose", "review", "retry"),
         ),
     )
+
+
+def _evidence_gap(
+    handoff: ResourceHandoffContract,
+    kind: ContentKind,
+) -> AllowedEvidence:
+    key = f"evidence_gap_{handoff.concept_id}_{kind.value}"
+    text = f"未检索到已审核的{kind.value}证据；本次仅生成候选结构草稿。"
+    return AllowedEvidence(
+        evidence_id=key,
+        source_id="evidence-gap",
+        span_id=key,
+        text=text,
+        approval_status=EvidenceApprovalStatus.CANDIDATE,
+    )
+
+
+def _evidence_text(
+    item: RetrievedEvidence | None,
+    handoff: ResourceHandoffContract,
+    kind: ContentKind,
+) -> tuple[str, str]:
+    if item is not None:
+        return item.excerpt, item.evidence_key
+    gap = _evidence_gap(handoff, kind)
+    return gap.text, gap.evidence_id

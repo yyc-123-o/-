@@ -14,7 +14,8 @@ The planning contract now accepts an optional `target_concept_id`:
 
 - v2.1 profile adaptation returns a mapped `suggested_target_concept_id`;
 - the run request and planning event can carry an explicit target;
-- the planner keeps the target and its hard-prerequisite closure only;
+- the planner keeps the full required path and records the target as the
+  learner's focus;
 - the target is persisted in `PathDecision` and included in targeted path IDs;
 - path updates preserve the target and reject target changes mid-session;
 - resource handoff validation recomputes targeted path identity;

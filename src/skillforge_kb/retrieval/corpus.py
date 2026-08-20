@@ -22,13 +22,32 @@ class KnowledgeCorpus(BaseModel):
 
     @classmethod
     def load(cls, path: Path) -> "KnowledgeCorpus":
+        chunks: list[KnowledgeChunk] = []
+        seen_ids: set[str] = set()
+        cls._append_file(path, chunks, seen_ids)
+        return cls(chunks=tuple(chunks), digest=build_corpus_digest(tuple(chunks)))
+
+    @classmethod
+    def load_many(cls, paths: tuple[Path, ...]) -> "KnowledgeCorpus":
+        if not paths:
+            raise ValueError("knowledge corpus requires at least one file")
+        chunks: list[KnowledgeChunk] = []
+        seen_ids: set[str] = set()
+        for path in paths:
+            cls._append_file(path, chunks, seen_ids)
+        frozen_chunks = tuple(chunks)
+        return cls(chunks=frozen_chunks, digest=build_corpus_digest(frozen_chunks))
+
+    @staticmethod
+    def _append_file(
+        path: Path,
+        chunks: list[KnowledgeChunk],
+        seen_ids: set[str],
+    ) -> None:
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
         except OSError as exc:
             raise ValueError(f"knowledge corpus file unavailable: {path}") from exc
-
-        chunks: list[KnowledgeChunk] = []
-        seen_ids: set[str] = set()
         for line_number, line in enumerate(lines, start=1):
             if not line.strip():
                 continue
@@ -37,17 +56,14 @@ class KnowledgeCorpus(BaseModel):
                 chunk = KnowledgeChunk.model_validate(raw)
             except (json.JSONDecodeError, TypeError, ValidationError, ValueError) as exc:
                 raise ValueError(
-                    f"invalid knowledge chunk at line {line_number}: {exc}"
+                    f"invalid knowledge chunk at {path} line {line_number}: {exc}"
                 ) from exc
             if chunk.chunk_id in seen_ids:
                 raise ValueError(
-                    f"duplicate chunk_id at line {line_number}: {chunk.chunk_id}"
+                    f"duplicate chunk_id at {path} line {line_number}: {chunk.chunk_id}"
                 )
             seen_ids.add(chunk.chunk_id)
             chunks.append(chunk)
-
-        frozen_chunks = tuple(chunks)
-        return cls(chunks=frozen_chunks, digest=build_corpus_digest(frozen_chunks))
 
 
 def build_corpus_digest(chunks: tuple[KnowledgeChunk, ...]) -> str:

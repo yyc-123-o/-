@@ -18,6 +18,9 @@ def test_default_paths_are_resolved_from_project_root(tmp_path: Path) -> None:
         tmp_path / "resources" / "evidence" / "evidence_manifest_v1.yaml"
     )
     assert paths.knowledge_file == tmp_path / "data" / "index_chunks.jsonl"
+    assert paths.candidate_knowledge_file == (
+        tmp_path / "resources" / "knowledge" / "cnn_convolution_candidates.jsonl"
+    )
 
 
 def test_runtime_builds_without_network_or_services(profile) -> None:

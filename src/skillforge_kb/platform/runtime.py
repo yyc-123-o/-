@@ -35,6 +35,7 @@ class DefaultPlatformPaths:
     evidence_file: Path
     profile_agent_map_file: Path
     knowledge_file: Path
+    candidate_knowledge_file: Path
 
     @classmethod
     def from_project_root(cls, root: Path) -> "DefaultPlatformPaths":
@@ -51,6 +52,9 @@ class DefaultPlatformPaths:
                 root / "resources" / "ontology" / "profile_agent_kp_map_v1.yaml"
             ),
             knowledge_file=root / "data" / "index_chunks.jsonl",
+            candidate_knowledge_file=(
+                root / "resources" / "knowledge" / "cnn_convolution_candidates.jsonl"
+            ),
         )
 
 
@@ -107,7 +111,10 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
     attributes = load_concept_attributes(catalog, paths.attributes_file)
     blueprints = load_resource_blueprints(catalog, paths.blueprints_file)
     evidence_index = load_evidence_index(catalog, paths.evidence_file)
-    corpus = KnowledgeCorpus.load(paths.knowledge_file)
+    corpus_paths: tuple[Path, ...] = (paths.knowledge_file,)
+    if paths.candidate_knowledge_file.is_file():
+        corpus_paths = (*corpus_paths, paths.candidate_knowledge_file)
+    corpus = KnowledgeCorpus.load_many(corpus_paths)
     planning_agent = CoursePlanningAgent.create(catalog, attributes)
     retrieval_agent = DomainRetrievalAgent(
         corpus,

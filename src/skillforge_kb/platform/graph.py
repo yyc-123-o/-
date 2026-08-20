@@ -225,8 +225,6 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
         handoff = state["handoff"]
         retrieval = state["retrieval"]
         request = state["request"]
-        required = set(handoff.evidence_filters.content_kinds)
-        candidate_kinds = {item.content_kind for item in retrieval.candidate_evidence}
         if handoff.generation_gate.allowed and retrieval.evidence_gap is None:
             route = "strict"
             status = PlatformRunStatus.GENERATING
@@ -234,7 +232,6 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
             request.execution_mode is ExecutionMode.CANDIDATE_PREVIEW
             and set(handoff.generation_gate.blocking_codes)
             == {"blocked_missing_published_evidence"}
-            and required.issubset(candidate_kinds)
         ):
             route = "preview"
             status = PlatformRunStatus.GENERATING

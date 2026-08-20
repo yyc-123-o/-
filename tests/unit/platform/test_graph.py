@@ -114,6 +114,36 @@ def test_candidate_preview_runs_only_without_hard_blockers(platform_case, profil
     assert len(resource.preview_calls) == 1
 
 
+def test_candidate_preview_can_show_evidence_gap_draft(platform_case, profile) -> None:
+    service, _, resource = _service(platform_case)
+    retrieval = platform_case["retrieval"]
+    partial = retrieval.model_copy(
+        update={
+            "candidate_evidence": (),
+            "concept_evidence": {retrieval.request.concept_id: ()},
+            "evidence_summary": retrieval.evidence_summary.model_copy(
+                update={"candidate_count": 0, "available_content_kinds": ()}
+            ),
+        }
+    )
+    service, _, resource = _service(
+        platform_case | {"retrieval": partial}
+    )
+
+    result = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="candidate-partial-evidence",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    assert result.status is PlatformRunStatus.COMPLETED
+    assert result.resources is not None
+    assert result.resources.publication_status == "candidate_draft"
+    assert len(resource.preview_calls) == 1
+
+
 def test_retrieval_contract_failure_stops_generation(platform_case, profile) -> None:
     service, _, resource = _service(platform_case, retrieval_fails=True)
     result = service.run(
