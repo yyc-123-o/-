@@ -33,6 +33,23 @@ def test_path_id_is_stable_and_order_sensitive() -> None:
     assert first.startswith("path_")
 
 
+def test_targeted_path_id_is_distinct_from_full_path() -> None:
+    policy_digest = build_policy_digest(PlannerPolicy())
+    full = build_path_id(
+        "profile-1", "ai-course-v1", "planner-policy.v1", ["a", "b"], policy_digest
+    )
+    targeted = build_path_id(
+        "profile-1",
+        "ai-course-v1",
+        "planner-policy.v1",
+        ["a"],
+        policy_digest,
+        "a",
+    )
+
+    assert full != targeted
+
+
 def test_policy_digest_is_stable_and_rule_sensitive() -> None:
     default = build_policy_digest(PlannerPolicy())
     repeated = build_policy_digest(PlannerPolicy())

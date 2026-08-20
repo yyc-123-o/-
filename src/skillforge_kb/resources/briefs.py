@@ -230,6 +230,7 @@ class ResourceBriefBuilder(BaseModel):
             decision.policy_version,
             [node.concept_id for node in decision.nodes],
             decision.policy_digest,
+            decision.target_concept_id,
         )
         if decision.path_id != expected_path_id:
             raise ValueError("path ID does not match structural path content")

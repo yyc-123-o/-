@@ -131,6 +131,7 @@ def test_profile_agent_output_can_be_adapted(client, service) -> None:
                 }
             }
         },
+        "learning_scope": {"primary_kp_id": "kp_012"},
     }
 
     app = create_app(service, profile_adapter=adapter)
@@ -141,3 +142,4 @@ def test_profile_agent_output_can_be_adapted(client, service) -> None:
     payload = response.json()
     assert payload["snapshot"]["profile_id"] == "PROFILE-LEARNER_TEST_001"
     assert payload["snapshot"]["knowledge_mastery"][0]["concept_id"] == "dl.cnn.convolution"
+    assert payload["suggested_target_concept_id"] == "dl.cnn.convolution"

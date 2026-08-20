@@ -30,3 +30,5 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert "/api/v1/profiles/adapt" in javascript.text
     assert "profileWarnings" in javascript.text
     assert "适配警告" in javascript.text
+    assert "target_concept_id" in javascript.text
+    assert "run-overview" in javascript.text

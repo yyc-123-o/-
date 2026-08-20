@@ -23,6 +23,13 @@ def test_request_builds_stable_digest_and_run_id(profile) -> None:
     assert build_request_digest(request).startswith("request_")
 
 
+def test_target_concept_changes_request_digest(profile) -> None:
+    base = PlatformRunRequest(profile=profile, idempotency_key="target-digest")
+    targeted = base.model_copy(update={"target_concept_id": "dl.cnn.convolution"})
+
+    assert build_request_digest(base) != build_request_digest(targeted)
+
+
 def test_completed_result_requires_resources(profile) -> None:
     request = PlatformRunRequest(profile=profile, idempotency_key="complete-run")
     with pytest.raises(ValueError, match="completed run requires resources"):

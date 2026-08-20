@@ -173,3 +173,39 @@ def test_repeated_planning_is_semantically_identical(catalog) -> None:
     planner = CoursePlanner(catalog)
 
     assert planner.plan(profile) == planner.plan(profile)
+
+
+def test_targeted_planning_keeps_only_target_prerequisite_closure(catalog) -> None:
+    profile = make_profile(
+        catalog,
+        mastery=[
+            assessed("math.linear-algebra.scalar", 0.95),
+            assessed("math.linear-algebra.vector", 0.95),
+            assessed("math.linear-algebra.matrix", 0.95),
+            assessed("math.linear-algebra.tensor", 0.95),
+            assessed("math.linear-algebra.matrix-operations", 0.95),
+            assessed("math.calculus.derivative-gradient", 0.95),
+            assessed("dl.feedforward.mlp", 0.95),
+            assessed("dl.vision.image-tensor", 0.95),
+        ],
+        ability=0.90,
+    )
+
+    decision = CoursePlanner(catalog).plan(
+        profile,
+        target_concept_id="dl.cnn.convolution",
+    )
+
+    concept_ids = {node.concept_id for node in decision.nodes}
+    assert decision.target_concept_id == "dl.cnn.convolution"
+    assert "dl.cnn.convolution" in concept_ids
+    assert "dl.vision.image-tensor" in concept_ids
+    assert "nlp.rnn" not in concept_ids
+
+
+def test_targeted_planning_rejects_unknown_concept(catalog) -> None:
+    with pytest.raises(PlanningError, match="unknown target concept"):
+        CoursePlanner(catalog).plan(
+            make_profile(catalog),
+            target_concept_id="nonexistent.concept",
+        )

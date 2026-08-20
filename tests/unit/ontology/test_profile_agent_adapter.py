@@ -160,3 +160,16 @@ def test_discards_numeric_mastery_for_unexplored_status(catalog) -> None:
         warning.legacy_id == "kp_012" and "discarded" in warning.reason
         for warning in adapted.warnings
     )
+
+
+def test_exposes_explicit_target_hint_without_copying_it_to_snapshot(catalog) -> None:
+    raw = _raw_profile()
+    raw["learning_scope"] = {"primary_kp_id": "kp_012"}
+
+    adapted = LearnerProfileAgentAdapter(
+        catalog,
+        mappings={"kp_012": "dl.cnn.convolution"},
+    ).adapt(raw)
+
+    assert adapted.suggested_target_concept_id == "dl.cnn.convolution"
+    assert not hasattr(adapted.snapshot, "learning_scope")

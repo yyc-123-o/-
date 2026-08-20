@@ -136,6 +136,7 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
                 event_id=f"event_{sha256(digest.encode('utf-8')).hexdigest()}",
                 kind=PlanningEventKind.INITIALIZE,
                 profile=request.profile,
+                target_concept_id=request.target_concept_id,
             )
             planning = dependencies.planning_agent.invoke(event, state["run_id"])
             if (

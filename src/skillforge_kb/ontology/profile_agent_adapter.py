@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .catalog import OntologyCatalog
 from .models import (
+    CONCEPT_ID_PATTERN,
     AbilityScore,
     AssessmentStatus,
     ErrorPattern,
@@ -43,6 +44,10 @@ class AdaptedLearnerProfile(BaseModel):
     snapshot: LearnerProfileSnapshot
     source_profile_version: str = Field(min_length=1)
     adapter_version: str = Field(min_length=1)
+    suggested_target_concept_id: str | None = Field(
+        default=None,
+        pattern=CONCEPT_ID_PATTERN,
+    )
     warnings: tuple[ProfileAgentAdaptationWarning, ...] = ()
 
 
@@ -135,6 +140,7 @@ class LearnerProfileAgentAdapter:
         abilities = self._adapt_abilities(payload.get("ability_level"), runs[0])
         errors = self._adapt_errors(payload.get("error_patterns"), warnings)
         preferences = self._adapt_preferences(payload.get("learning_preferences"))
+        suggested_target = self._adapt_target_hint(payload.get("learning_scope"), warnings)
         snapshot = LearnerProfileSnapshot(
             schema_version="learner-profile.v1",
             profile_id=profile_id,
@@ -151,8 +157,32 @@ class LearnerProfileAgentAdapter:
             snapshot=snapshot,
             source_profile_version=profile_version,
             adapter_version=self._adapter_version,
+            suggested_target_concept_id=suggested_target,
             warnings=tuple(warnings),
         )
+
+    def _adapt_target_hint(
+        self,
+        value: object,
+        warnings: list[ProfileAgentAdaptationWarning],
+    ) -> str | None:
+        if value is None:
+            return None
+        scope = _mapping(value, "learning_scope")
+        legacy_id = scope.get("primary_kp_id")
+        if legacy_id is None:
+            return None
+        legacy_id = _string(legacy_id, "learning_scope.primary_kp_id")
+        concept_id = self._mappings.get(legacy_id)
+        if concept_id is None:
+            warnings.append(
+                ProfileAgentAdaptationWarning(
+                    legacy_id=legacy_id,
+                    reason="target hint is unmapped or composite and was ignored",
+                )
+            )
+            return None
+        return concept_id
 
     def _adapt_mastery(
         self,

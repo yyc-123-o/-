@@ -72,6 +72,11 @@ from correctly typed candidate material. Run history is in memory and is
 cleared when the process restarts. Real model calls, authentication, and
 production persistence remain outside this release.
 
+The console also accepts an optional target concept ID, for example
+`dl.cnn.convolution`. Targeted planning keeps that node and its hard
+prerequisite closure, records the target in the path identity, and prevents
+unrelated later chapters from being selected for the resource handoff.
+
 The fusion CLI is read-only with respect to source directories:
 
 ```powershell

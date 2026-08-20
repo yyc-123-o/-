@@ -13,11 +13,11 @@
         <div class="brand-block">
           <span class="brand-index">SF/01</span>
           <h1>SkillForge</h1>
-          <p>课程规划平台</p>
+          <p>个性化课程工作台</p>
         </div>
         <div class="run-state" aria-live="polite">
           <span>运行状态</span>
-          <strong id="run-status">未开始</strong>
+          <strong id="run-status">待输入</strong>
         </div>
       </header>
 
@@ -44,8 +44,9 @@
           <section class="control-section">
             <div class="section-number">01</div>
             <h2>学情画像</h2>
+            <p class="section-note">上传 v1 标准快照或学情 Agent v2.1 输出。</p>
             <label class="file-control" for="profile-file">
-              <span>选择 JSON 文件</span>
+              <span>选择画像 JSON</span>
               <input id="profile-file" type="file" accept="application/json,.json">
             </label>
             <div id="profile-summary" class="profile-summary" aria-live="polite">
@@ -56,6 +57,17 @@
 
           <section class="control-section">
             <div class="section-number">02</div>
+            <h2>规划目标</h2>
+            <p class="section-note">可选。填写知识点 ID 后，只规划该节点及必要先修节点。</p>
+            <label class="text-control" for="target-concept">
+              <span>目标知识点 ID</span>
+              <input id="target-concept" type="text" inputmode="text" autocomplete="off" placeholder="例如 dl.cnn.convolution">
+            </label>
+            <p id="target-hint" class="field-hint">未指定时运行完整课程路径。</p>
+          </section>
+
+          <section class="control-section">
+            <div class="section-number">03</div>
             <h2>执行设置</h2>
             <fieldset class="mode-control">
               <legend>生成模式</legend>
@@ -77,6 +89,7 @@
           <button id="run-platform" class="primary-action" type="button" disabled>
             运行课程流程
           </button>
+          <p class="control-footnote">严格模式只使用已审核证据；候选预览不可直接发布。</p>
         </aside>
 
         <main class="results-panel">
@@ -88,21 +101,25 @@
             <div id="publication-status" class="publication-status" hidden></div>
           </div>
 
+          <section id="run-overview" class="run-overview" aria-live="polite">
+            <div class="overview-empty">上传画像后，这里会显示当前交接节点和证据状态。</div>
+          </section>
+
           <div class="tabs" role="tablist" aria-label="运行结果">
             <button type="button" role="tab" aria-selected="true" data-tab="path-view">学习路径</button>
-            <button type="button" role="tab" aria-selected="false" data-tab="evidence-view">检索证据</button>
-            <button type="button" role="tab" aria-selected="false" data-tab="resource-view">生成资源</button>
-            <button type="button" role="tab" aria-selected="false" data-tab="raw-view">原始结果</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="evidence-view">证据检索</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="resource-view">资源结果</button>
+            <button type="button" role="tab" aria-selected="false" data-tab="raw-view">原始 JSON</button>
           </div>
 
           <section id="path-view" class="tab-panel" role="tabpanel">
-            <div class="empty-state">运行后显示学习路径</div>
+            <div class="empty-state"><strong>等待一次运行</strong><span>路径节点、先修关系和当前交接会显示在这里。</span></div>
           </section>
           <section id="evidence-view" class="tab-panel" role="tabpanel" hidden>
-            <div class="empty-state">运行后显示正式证据、候选证据与缺口</div>
+            <div class="empty-state"><strong>等待证据检索</strong><span>正式证据与候选片段会按内容类型分组。</span></div>
           </section>
           <section id="resource-view" class="tab-panel" role="tabpanel" hidden>
-            <div class="empty-state">满足门禁后显示资源结果</div>
+            <div class="empty-state"><strong>等待资源结果</strong><span>严格模式通过证据门禁后生成正式资源。</span></div>
           </section>
           <section id="raw-view" class="tab-panel" role="tabpanel" hidden>
             <pre id="raw-json">{}</pre>

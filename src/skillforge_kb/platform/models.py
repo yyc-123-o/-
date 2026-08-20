@@ -11,7 +11,7 @@ from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalResult,
     EvidenceGap,
 )
-from skillforge_kb.ontology.models import LearnerProfileSnapshot
+from skillforge_kb.ontology.models import CONCEPT_ID_PATTERN, LearnerProfileSnapshot
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 
 
@@ -54,6 +54,7 @@ class PlatformRunRequest(BaseModel):
     idempotency_key: str = Field(min_length=1, max_length=128)
     execution_mode: ExecutionMode = ExecutionMode.STRICT
     top_k: int = Field(default=5, ge=1, le=20)
+    target_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
 
 
 class PlatformFailure(BaseModel):

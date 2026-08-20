@@ -2,7 +2,7 @@ from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import LearnerProfileSnapshot, RelationKind
 
 from .models import PathDecision, PathNode, PathStatus, PlannerPolicy
-from .ordering import PlanningError, course_positions, stable_required_concept_ids
+from .ordering import PlanningError, course_positions
 from .planner import CoursePlanner, assign_execution_statuses
 from .serialization import build_path_id
 
@@ -39,7 +39,12 @@ class DepthUpdater:
             if node.status is PathStatus.COMPLETED
         }
         all_completed = historical_completed | completed_concept_ids
-        fresh = self._planner.plan(profile, all_completed, allow_skips=False)
+        fresh = self._planner.plan(
+            profile,
+            all_completed,
+            allow_skips=False,
+            target_concept_id=existing.target_concept_id,
+        )
         if [node.concept_id for node in fresh.nodes] != existing_ids:
             raise PlanningError("path no longer matches catalog")
         fresh_by_id = {node.concept_id: node for node in fresh.nodes}
@@ -76,7 +81,7 @@ class DepthUpdater:
             raise PlanningError("policy digest does not match existing path")
 
     def _validate_existing_path(self, existing: PathDecision) -> None:
-        expected_ids = stable_required_concept_ids(self._catalog)
+        expected_ids = self._planner._ordered_ids_for_target(existing.target_concept_id)
         if [node.concept_id for node in existing.nodes] != expected_ids:
             raise PlanningError("path no longer matches catalog")
         positions = course_positions(self._catalog)
@@ -89,6 +94,7 @@ class DepthUpdater:
             existing.policy_version,
             expected_ids,
             existing.policy_digest,
+            existing.target_concept_id,
         )
         if existing.path_id != expected_path_id:
             raise PlanningError("path ID does not match path content")

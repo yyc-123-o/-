@@ -279,6 +279,7 @@ def build_course_planning_graph(
                         "profile": event.profile.model_dump(mode="json"),
                         "completed_concept_ids": [],
                         "allow_skips": True,
+                        "target_concept_id": event.target_concept_id,
                     }
                 )
             )
@@ -299,6 +300,15 @@ def build_course_planning_graph(
         existing_path = state.get("path")
         existing_profile = state.get("profile")
         assert existing_path is not None and existing_profile is not None
+        if (
+            event.target_concept_id is not None
+            and event.target_concept_id != existing_path.target_concept_id
+        ):
+            return _failure_update(
+                event,
+                PlanningAgentFailureCode.INVALID_TRANSITION,
+                "target concept cannot change after initialization",
+            )
         candidate_profile = event.profile or existing_profile
         try:
             result = PlanningToolResult.model_validate(

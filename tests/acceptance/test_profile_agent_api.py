@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -25,6 +26,7 @@ def _raw_profile() -> dict[str, object]:
                 }
             }
         },
+        "learning_scope": {"scope_type": "chapter", "primary_kp_id": "kp_012"},
         "ability_level": {
             "sub_dimensions": {
                 "coding_ability": {"score": 0.7, "confidence": 0.8},
@@ -53,6 +55,7 @@ def test_default_platform_adapts_cnn_profile_agent_output() -> None:
     assert payload["snapshot"]["knowledge_mastery"][0]["concept_id"] == (
         "dl.cnn.convolution"
     )
+    assert payload["suggested_target_concept_id"] == "dl.cnn.convolution"
     assert any(
         "inferred" in warning["reason"] for warning in payload["warnings"]
     )
@@ -107,3 +110,35 @@ def test_adapted_profile_enters_platform_and_respects_evidence_gate() -> None:
         "code",
         "exercise",
     ]
+
+
+def test_target_concept_is_forwarded_to_planner() -> None:
+    root = Path(__file__).parents[2]
+    profile = json.loads(
+        (root / "tests" / "fixtures" / "profile-2026-0001-demo.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    profile["profile_id"] = "PROFILE-TARGET-TEST"
+    app = create_app(build_default_platform_service(root))
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/runs",
+            json={
+                "profile": profile,
+                "target_concept_id": "dl.cnn.convolution",
+                "idempotency_key": "target-concept-acceptance",
+                "execution_mode": "candidate_preview",
+                "top_k": 5,
+            },
+        )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["planning"]["path"]["target_concept_id"] == "dl.cnn.convolution"
+    assert payload["handoff"]["concept_id"] == "dl.cnn.convolution"
+    assert all(
+        node["concept_id"] not in {"nlp.rnn", "llm.transformer.encoder"}
+        for node in payload["planning"]["path"]["nodes"]
+    )

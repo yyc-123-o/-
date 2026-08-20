@@ -44,6 +44,7 @@ class CreateCoursePlanInput(BaseModel):
     profile: LearnerProfileSnapshot
     completed_concept_ids: tuple[str, ...] = ()
     allow_skips: bool = True
+    target_concept_id: str | None = None
 
     @field_validator("completed_concept_ids")
     @classmethod
@@ -168,16 +169,19 @@ def create_course_plan_tool(
         profile: LearnerProfileSnapshot,
         completed_concept_ids: tuple[str, ...] = (),
         allow_skips: bool = True,
+        target_concept_id: str | None = None,
     ) -> dict[str, object]:
         request = CreateCoursePlanInput(
             profile=profile,
             completed_concept_ids=completed_concept_ids,
             allow_skips=allow_skips,
+            target_concept_id=target_concept_id,
         )
         path = planner.plan(
             request.profile,
             set(request.completed_concept_ids),
             allow_skips=request.allow_skips,
+            target_concept_id=request.target_concept_id,
         )
         return _build_result(
             PlanningOperation.CREATE,

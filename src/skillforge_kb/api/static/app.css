@@ -11,6 +11,8 @@
   --rule: #d8d8dc;
   --accent: #002fa7;
   --danger: #b42318;
+  --success: #176b4d;
+  --wash: #eef3ff;
 }
 
 * {
@@ -143,6 +145,11 @@ input:focus-visible {
   box-shadow: inset 0 -4px 0 var(--danger);
 }
 
+.pipeline-step[data-state="blocked"] {
+  box-shadow: inset 0 -4px 0 #a15c00;
+  background: #fff8eb;
+}
+
 .pipeline-step[data-state="active"] {
   background: rgba(0, 47, 167, 0.06);
 }
@@ -171,6 +178,13 @@ input:focus-visible {
   font-weight: 500;
 }
 
+.section-note {
+  margin: -8px 0 16px 42px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .section-number {
   position: absolute;
   top: 25px;
@@ -196,6 +210,38 @@ input:focus-visible {
   border: 0;
   border-top: 1px solid var(--rule);
   background: var(--ground);
+}
+
+.text-control {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.text-control input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.text-control input::placeholder {
+  color: #9a9aa0;
+}
+
+.field-hint,
+.control-footnote {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.field-hint {
+  min-height: 18px;
+  margin: 9px 0 0;
 }
 
 .profile-summary {
@@ -303,6 +349,10 @@ input:focus-visible {
   cursor: pointer;
 }
 
+.control-footnote {
+  margin: 0 24px 24px;
+}
+
 .primary-action:disabled {
   border-color: var(--rule);
   background: var(--ground);
@@ -313,6 +363,53 @@ input:focus-visible {
 .results-panel {
   min-width: 0;
   background: var(--surface);
+}
+
+.run-overview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--rule);
+}
+
+.overview-card,
+.overview-empty {
+  min-width: 0;
+  min-height: 112px;
+  padding: 16px 18px;
+  background: var(--surface);
+}
+
+.overview-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.overview-card strong {
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.overview-card small {
+  color: var(--muted);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.overview-label {
+  color: var(--accent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.overview-empty {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .result-header {
@@ -374,10 +471,45 @@ input:focus-visible {
 
 .empty-state {
   display: grid;
-  min-height: 340px;
+  min-height: 300px;
   place-items: center;
+  align-content: center;
+  gap: 7px;
   border: 1px solid var(--rule);
   color: var(--muted);
+}
+
+.empty-state strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.empty-state span {
+  font-size: 13px;
+}
+
+.path-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--wash);
+}
+
+.path-summary strong {
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.path-summary span {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .data-table {
@@ -446,6 +578,29 @@ input:focus-visible {
   border-radius: 4px;
 }
 
+.kind-tag {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.evidence-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.evidence-summary-strip strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
 .record-card header,
 .resource-card header {
   display: flex;
@@ -479,6 +634,11 @@ input:focus-visible {
   padding: 14px;
   border-left: 4px solid var(--danger);
   background: #ffffff;
+}
+
+.resource-next-step {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .gap-block h3,
@@ -548,6 +708,10 @@ input:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .run-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .control-panel {
     border-right: 0;
     border-bottom: 1px solid var(--rule);
@@ -569,6 +733,15 @@ input:focus-visible {
   .tab-panel {
     min-height: 360px;
     padding: 16px;
+  }
+
+  .path-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .path-summary span {
+    white-space: normal;
   }
 
   .data-table {

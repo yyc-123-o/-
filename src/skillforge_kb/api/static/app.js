@@ -1,12 +1,15 @@
 const state = {
   profile: null,
   profileWarnings: [],
+  targetConceptId: "",
   result: null,
 };
 
 const profileFile = document.getElementById("profile-file");
 const profileSummary = document.getElementById("profile-summary");
 const profileError = document.getElementById("profile-error");
+const targetConceptInput = document.getElementById("target-concept");
+const targetHint = document.getElementById("target-hint");
 const runButton = document.getElementById("run-platform");
 const topKInput = document.getElementById("top-k");
 const runStatus = document.getElementById("run-status");
@@ -15,6 +18,12 @@ const publicationStatus = document.getElementById("publication-status");
 const rawJson = document.getElementById("raw-json");
 
 profileFile.addEventListener("change", handleProfileFile);
+targetConceptInput.addEventListener("input", () => {
+  state.targetConceptId = targetConceptInput.value.trim();
+  targetHint.textContent = state.targetConceptId
+    ? `本次将规划 ${state.targetConceptId} 及其必要先修节点。`
+    : "未指定时运行完整课程路径。";
+});
 runButton.addEventListener("click", runPlatform);
 document.querySelectorAll('[role="tab"]').forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tab));
@@ -26,6 +35,9 @@ async function handleProfileFile(event) {
   if (!file) {
     state.profile = null;
     state.profileWarnings = [];
+    state.targetConceptId = "";
+    targetConceptInput.value = "";
+    targetHint.textContent = "未指定时运行完整课程路径。";
     runButton.disabled = true;
     renderProfileSummary();
     return;
@@ -35,12 +47,20 @@ async function handleProfileFile(event) {
     const normalized = await normalizeProfile(uploadedProfile);
     state.profile = normalized.snapshot;
     state.profileWarnings = normalized.warnings;
+    state.targetConceptId = normalized.suggestedTargetConceptId || "";
+    targetConceptInput.value = state.targetConceptId;
+    targetHint.textContent = state.targetConceptId
+      ? `画像建议目标：${state.targetConceptId}。可手动修改。`
+      : "未指定时运行完整课程路径。";
     validateProfile(state.profile);
     runButton.disabled = false;
     renderProfileSummary();
   } catch (error) {
     state.profile = null;
     state.profileWarnings = [];
+    state.targetConceptId = "";
+    targetConceptInput.value = "";
+    targetHint.textContent = "未指定时运行完整课程路径。";
     runButton.disabled = true;
     profileError.textContent = error instanceof Error ? error.message : "画像文件无效";
     renderProfileSummary();
@@ -49,7 +69,11 @@ async function handleProfileFile(event) {
 
 async function normalizeProfile(profile) {
   if (profile?.schema_version && profile?.graph_version) {
-    return { snapshot: profile, warnings: [] };
+    return {
+      snapshot: profile,
+      warnings: [],
+      suggestedTargetConceptId: "",
+    };
   }
   if (profile?.profile_version !== "2.1") {
     throw new Error("画像必须是平台快照或学情诊断 Agent v2.1 输出");
@@ -63,7 +87,11 @@ async function normalizeProfile(profile) {
   if (!response.ok) {
     throw new Error(payload.detail?.message || "学情画像适配失败");
   }
-  return { snapshot: payload.snapshot, warnings: payload.warnings || [] };
+  return {
+    snapshot: payload.snapshot,
+    warnings: payload.warnings || [],
+    suggestedTargetConceptId: payload.suggested_target_concept_id || "",
+  };
 }
 
 function validateProfile(profile) {
@@ -74,6 +102,9 @@ function validateProfile(profile) {
     if (typeof profile[field] !== "string" || profile[field].trim() === "") {
       throw new Error(`画像缺少 ${field}`);
     }
+  }
+  if (state.targetConceptId && !/^[a-z0-9][a-z0-9.-]+$/.test(state.targetConceptId)) {
+    throw new Error("目标知识点 ID 格式无效");
   }
 }
 
@@ -121,6 +152,7 @@ async function runPlatform() {
       state.profile,
       executionMode,
       topK,
+      state.targetConceptId,
     );
     const response = await fetch("/api/v1/runs", {
       method: "POST",
@@ -130,6 +162,7 @@ async function runPlatform() {
         idempotency_key: idempotencyKey,
         execution_mode: executionMode,
         top_k: topK,
+        target_concept_id: state.targetConceptId || null,
       }),
     });
     const payload = await response.json();
@@ -161,6 +194,7 @@ function renderResult(result) {
   runId.textContent = result.run_id;
   renderPipeline(result.steps || [], result.status);
   renderPublicationStatus(result.resources);
+  renderOverview(result);
   renderPath(result);
   renderEvidence(result);
   renderResources(result);
@@ -180,9 +214,36 @@ function renderPipeline(steps, terminalStatus) {
   });
   if (terminalStatus === "blocked") {
     const generation = document.querySelector('[data-stage="generate_resource"]');
-    generation.dataset.state = "failed";
+    generation.dataset.state = "blocked";
     generation.querySelector("small").textContent = "已阻塞";
   }
+}
+
+function renderOverview(result) {
+  const target = document.getElementById("run-overview");
+  target.replaceChildren();
+  const handoff = result.handoff;
+  const retrieval = result.retrieval;
+  if (!handoff) {
+    target.append(textElement("div", "本次运行没有形成资源交接", "overview-empty"));
+    return;
+  }
+  const cards = [
+    overviewCard("当前节点", handoff.concept_id, `${handoff.chapter_id} / ${handoff.section_id}`),
+    overviewCard("交付深度", handoff.delivery_depth, `${handoff.sequence} / ${result.planning?.path?.nodes?.length || 0} 个节点`),
+    overviewCard("证据状态", retrieval?.evidence?.length ? "正式证据可用" : "等待审核证据", `${retrieval?.evidence?.length || 0} 正式 · ${retrieval?.candidate_evidence?.length || 0} 候选`),
+    overviewCard("下一步", result.status === "blocked" ? (result.evidence_gap?.message || "补齐证据") : statusLabel(result.status), result.resources?.publication_status === "candidate_draft" ? "候选草稿，不可发布" : ""),
+  ];
+  const fragment = document.createDocumentFragment();
+  cards.forEach((card) => fragment.append(card));
+  target.append(fragment);
+}
+
+function overviewCard(label, value, detail) {
+  const card = document.createElement("article");
+  card.className = "overview-card";
+  card.append(textElement("span", label, "overview-label"), textElement("strong", value), textElement("small", detail));
+  return card;
 }
 
 function resetPipeline() {
@@ -213,6 +274,14 @@ function renderPath(result) {
     target.append(emptyState("本次运行没有生成学习路径"));
     return;
   }
+  const summary = document.createElement("div");
+  summary.className = "path-summary";
+  const targetConcept = result.planning?.path?.target_concept_id;
+  summary.append(
+    textElement("strong", targetConcept ? `目标路径：${targetConcept}` : "完整课程路径"),
+    textElement("span", `${nodes.length} 个节点 · 当前节点高亮显示`),
+  );
+  target.append(summary);
   const table = document.createElement("table");
   table.className = "data-table";
   const head = document.createElement("thead");
@@ -226,7 +295,7 @@ function renderPath(result) {
     const row = document.createElement("tr");
     if (node.concept_id === result.handoff?.concept_id) row.className = "current-row";
     [
-      String(node.sequence),
+      String(node.sequence).padStart(2, "0"),
       node.concept_id,
       `${node.chapter_id} / ${node.section_id}`,
       node.delivery_depth || "-",
@@ -250,6 +319,14 @@ function renderEvidence(result) {
     evidenceSection("正式证据", retrieval.evidence || []),
     evidenceSection("候选证据", retrieval.candidate_evidence || []),
   );
+  const summary = document.createElement("div");
+  summary.className = "evidence-summary-strip";
+  summary.append(
+    textElement("strong", `${retrieval.evidence_summary.formal_count} 正式`),
+    textElement("span", `${retrieval.evidence_summary.candidate_count} 候选`),
+    textElement("span", retrieval.evidence_summary.missing_content_kinds.length ? `缺失：${retrieval.evidence_summary.missing_content_kinds.join("、")}` : "三类内容齐全"),
+  );
+  target.prepend(summary);
   if (retrieval.evidence_gap) {
     const gap = document.createElement("div");
     gap.className = "gap-block";
@@ -281,7 +358,7 @@ function evidenceSection(title, records) {
       const header = document.createElement("header");
       header.append(
         textElement("h3", record.source_title),
-        textElement("span", record.content_kind),
+        textElement("span", contentKindLabel(record.content_kind), "kind-tag"),
       );
       card.append(
         header,
@@ -299,6 +376,10 @@ function evidenceSection(title, records) {
   return section;
 }
 
+function contentKindLabel(kind) {
+  return { definition: "定义", code: "代码", exercise: "练习" }[kind] || kind;
+}
+
 function renderResources(result) {
   const target = document.getElementById("resource-view");
   target.replaceChildren();
@@ -308,6 +389,7 @@ function renderResources(result) {
     block.append(
       textElement("h3", "资源生成未开放"),
       textElement("p", result.evidence_gap?.message || result.failure?.message || "门禁未通过"),
+      textElement("p", "完成审核后重新运行严格模式。", "resource-next-step"),
     );
     target.append(block);
     return;
@@ -365,8 +447,8 @@ function activateTab(targetId) {
   });
 }
 
-async function buildIdempotencyKey(profile, executionMode, topK) {
-  const canonical = stableStringify({ profile, executionMode, topK });
+async function buildIdempotencyKey(profile, executionMode, topK, targetConceptId) {
+  const canonical = stableStringify({ profile, executionMode, topK, targetConceptId });
   const bytes = new TextEncoder().encode(canonical);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hex = Array.from(new Uint8Array(digest), (byte) =>
