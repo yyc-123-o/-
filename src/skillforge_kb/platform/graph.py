@@ -50,6 +50,7 @@ from .ports import (
 class PlatformGraphState(TypedDict, total=False):
     request: PlatformRunRequest
     run_id: str
+    planning_event: PlanningAgentEvent
     route: str
     status: PlatformRunStatus
     planning: CoursePlanningAgentResult
@@ -95,18 +96,44 @@ class PlatformService:
             existing = self._repository.reserve(request)
             if existing is not None:
                 return existing
-            state = cast(
-                PlatformGraphState,
-                self._graph.invoke(
-                    {
-                        "request": request,
-                        "run_id": build_run_id(request),
-                        "status": PlatformRunStatus.PENDING,
-                        "steps": (),
-                    }
-                ),
+            result = self._execute(
+                request,
+                build_run_id(request),
             )
-            result = _result_from_state(state)
+            self._repository.save(result)
+            return result
+
+    def complete_current_node(
+        self,
+        run_id: str,
+        concept_id: str,
+    ) -> PlatformRunResult:
+        with self._lock:
+            existing = self._repository.get(run_id)
+            request = self._repository.get_request(run_id)
+            if existing is None or request is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            planning = existing.planning
+            if (
+                existing.status is not PlatformRunStatus.COMPLETED
+                or existing.resources is None
+                or planning is None
+                or planning.current_node is None
+            ):
+                raise ValueError("current node cannot be completed before resources are ready")
+            if planning.current_node.concept_id != concept_id:
+                raise ValueError("completion concept does not match the current learning node")
+            event = PlanningAgentEvent(
+                event_id=f"event_{sha256(f'{run_id}:{concept_id}:completed'.encode()).hexdigest()}",
+                kind=PlanningEventKind.CONCEPTS_COMPLETED,
+                completed_concept_ids=(concept_id,),
+            )
+            result = self._execute(
+                request,
+                run_id,
+                planning_event=event,
+                previous_steps=existing.steps,
+            )
             self._repository.save(result)
             return result
 
@@ -115,6 +142,25 @@ class PlatformService:
 
     def get(self, run_id: str) -> PlatformRunResult | None:
         return self._repository.get(run_id)
+
+    def _execute(
+        self,
+        request: PlatformRunRequest,
+        run_id: str,
+        *,
+        planning_event: PlanningAgentEvent | None = None,
+        previous_steps: tuple[PlatformStepRecord, ...] = (),
+    ) -> PlatformRunResult:
+        state_input: PlatformGraphState = {
+            "request": request,
+            "run_id": run_id,
+            "status": PlatformRunStatus.PENDING,
+            "steps": previous_steps,
+        }
+        if planning_event is not None:
+            state_input["planning_event"] = planning_event
+        state = cast(PlatformGraphState, self._graph.invoke(state_input))
+        return _result_from_state(state)
 
 
 def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGraph:
@@ -131,13 +177,15 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
     def plan_course(state: PlatformGraphState) -> PlatformGraphState:
         request = state["request"]
         try:
-            digest = build_request_digest(request)
-            event = PlanningAgentEvent(
-                event_id=f"event_{sha256(digest.encode('utf-8')).hexdigest()}",
-                kind=PlanningEventKind.INITIALIZE,
-                profile=request.profile,
-                target_concept_id=request.target_concept_id,
-            )
+            event = state.get("planning_event")
+            if event is None:
+                digest = build_request_digest(request)
+                event = PlanningAgentEvent(
+                    event_id=f"event_{sha256(digest.encode('utf-8')).hexdigest()}",
+                    kind=PlanningEventKind.INITIALIZE,
+                    profile=request.profile,
+                    target_concept_id=request.target_concept_id,
+                )
             planning = dependencies.planning_agent.invoke(event, state["run_id"])
             if (
                 planning.status is not PlanningAgentStatus.READY
@@ -184,15 +232,27 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
         handoff = state["handoff"]
         request = state["request"]
         try:
+            if handoff.concept_id == "dl.cnn.convolution":
+                rewritten_queries = (
+                    "卷积运算 CNN padding stride 输出尺寸",
+                    "PyTorch nn.Conv2d 输入输出 shape 参数",
+                    "卷积输出尺寸 参数量 padding stride 练习 答案",
+                )
+            else:
+                scope = (
+                    f"{handoff.concept_id} {handoff.chapter_id} "
+                    f"{handoff.section_id} {handoff.delivery_depth.value}"
+                )
+                rewritten_queries = (
+                    f"{scope} definition concept",
+                    f"{scope} implementation code",
+                    f"{scope} exercise assessment",
+                )
             retrieval_request = DomainRetrievalRequest(
                 original_query=(
                     f"{handoff.concept_id} {handoff.delivery_depth.value}"
                 ),
-                rewritten_queries=(
-                    "卷积运算 CNN padding stride 输出尺寸",
-                    "PyTorch nn.Conv2d 输入输出 shape 参数",
-                    "卷积输出尺寸 参数量 padding stride 练习 答案",
-                ),
+                rewritten_queries=rewritten_queries,
                 profile_id=handoff.profile_id,
                 concept_id=handoff.concept_id,
                 depth=handoff.delivery_depth,
@@ -232,6 +292,7 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
             request.execution_mode is ExecutionMode.CANDIDATE_PREVIEW
             and set(handoff.generation_gate.blocking_codes)
             == {"blocked_missing_published_evidence"}
+            and bool(retrieval.candidate_evidence)
         ):
             route = "preview"
             status = PlatformRunStatus.GENERATING

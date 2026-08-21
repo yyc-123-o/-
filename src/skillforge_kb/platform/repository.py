@@ -17,6 +17,7 @@ class InMemoryPlatformRunRepository:
         self._lock = RLock()
         self._reservations: dict[tuple[str, str], tuple[str, str]] = {}
         self._results: dict[str, PlatformRunResult] = {}
+        self._requests: dict[str, PlatformRunRequest] = {}
 
     def reserve(self, request: PlatformRunRequest) -> PlatformRunResult | None:
         request = PlatformRunRequest.model_validate(request.model_dump())
@@ -27,6 +28,7 @@ class InMemoryPlatformRunRepository:
             existing = self._reservations.get(key)
             if existing is None:
                 self._reservations[key] = (digest, run_id)
+                self._requests[run_id] = request
                 return None
             existing_digest, existing_run_id = existing
             if existing_digest != digest:
@@ -64,3 +66,7 @@ class InMemoryPlatformRunRepository:
     def get(self, run_id: str) -> PlatformRunResult | None:
         with self._lock:
             return self._results.get(run_id)
+
+    def get_request(self, run_id: str) -> PlatformRunRequest | None:
+        with self._lock:
+            return self._requests.get(run_id)

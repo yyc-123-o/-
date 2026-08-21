@@ -33,6 +33,7 @@ def test_repository_replays_identical_request(profile) -> None:
     assert repository.reserve(request) == result
     assert repository.peek(request) == result
     assert repository.get(result.run_id) == result
+    assert repository.get_request(result.run_id) == request
 
 
 def test_repository_rejects_key_reuse_with_different_payload(profile) -> None:

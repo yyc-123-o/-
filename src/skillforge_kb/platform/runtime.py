@@ -120,6 +120,7 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         corpus,
         KnowledgeRetrievalTool(Bm25KnowledgeRetriever(corpus)),
         evidence_index,
+        catalog=catalog,
     )
     dependencies = PlatformGraphDependencies(
         planning_agent=planning_agent,

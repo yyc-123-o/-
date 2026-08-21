@@ -173,3 +173,37 @@ def test_exposes_explicit_target_hint_without_copying_it_to_snapshot(catalog) ->
 
     assert adapted.suggested_target_concept_id == "dl.cnn.convolution"
     assert not hasattr(adapted.snapshot, "learning_scope")
+
+
+def test_expands_composite_legacy_point_into_canonical_prerequisites(catalog) -> None:
+    raw = _raw_profile()
+    raw["knowledge_mastery"]["points"]["kp_002"] = {
+        "name": "线性代数",
+        "mastery": 0.72,
+        "status": "familiar",
+        "confidence": 0.85,
+    }
+
+    adapted = LearnerProfileAgentAdapter(
+        catalog,
+        mappings={"kp_012": "dl.cnn.convolution"},
+        expansions={
+            "kp_002": (
+                "math.linear-algebra.scalar",
+                "math.linear-algebra.vector",
+                "math.linear-algebra.matrix",
+                "math.linear-algebra.tensor",
+            )
+        },
+    ).adapt(raw)
+
+    mastery = {
+        item.concept_id: item.mastery_score
+        for item in adapted.snapshot.knowledge_mastery
+    }
+    assert all(mastery[concept_id] == 0.72 for concept_id in (
+        "math.linear-algebra.scalar",
+        "math.linear-algebra.vector",
+        "math.linear-algebra.matrix",
+        "math.linear-algebra.tensor",
+    ))

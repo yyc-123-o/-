@@ -36,4 +36,6 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert "run-overview" in javascript.text
     assert "chapter_id" in javascript.text
     assert "进入学习" in javascript.text
+    assert "/complete-node" in javascript.text
+    assert "完成并进入下一节点" in javascript.text
     assert "candidate_preview" in html.text

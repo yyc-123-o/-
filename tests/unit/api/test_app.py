@@ -69,6 +69,20 @@ def test_get_run_and_events(
     assert client.get(f"/api/v1/runs/{run_id}/events").json() == []
 
 
+def test_complete_node_requires_learning_progress_service(
+    client: TestClient,
+    profile_payload: dict[str, object],
+) -> None:
+    created = client.post("/api/v1/runs", json=_request(profile_payload)).json()
+    response = client.post(
+        f"/api/v1/runs/{created['run_id']}/complete-node",
+        json={"concept_id": "math.linear-algebra.scalar"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "invalid_learning_transition"
+
+
 def test_missing_run_returns_404(client: TestClient) -> None:
     response = client.get(f"/api/v1/runs/run_{'0' * 64}")
 

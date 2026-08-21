@@ -57,6 +57,7 @@ class ProfileAgentMapDocument(BaseModel):
     version: str = Field(min_length=1)
     graph_version: str = Field(min_length=1)
     mappings: dict[str, str] = Field(default_factory=dict)
+    expansions: dict[str, tuple[str, ...]] = Field(default_factory=dict)
 
 
 class LearnerProfileAgentAdapter:
@@ -67,12 +68,17 @@ class LearnerProfileAgentAdapter:
         catalog: OntologyCatalog,
         mappings: Mapping[str, str],
         *,
+        expansions: Mapping[str, tuple[str, ...]] | None = None,
         adapter_version: str = ADAPTER_VERSION,
     ) -> None:
         self._catalog = catalog
         self._adapter_version = adapter_version
         self._mappings = dict(mappings)
-        concept_ids = list(self._mappings.values())
+        self._expansions = {
+            legacy_id: tuple(concept_ids)
+            for legacy_id, concept_ids in (expansions or {}).items()
+        }
+        concept_ids = [*self._mappings.values(), *sum(self._expansions.values(), ())]
         if len(set(concept_ids)) != len(concept_ids):
             raise ProfileAgentAdaptationError("duplicate canonical concept mapping")
         for legacy_id, concept_id in self._mappings.items():
@@ -88,6 +94,20 @@ class LearnerProfileAgentAdapter:
                 raise ProfileAgentAdaptationError(
                     f"mapping targets unknown concept: {concept_id}"
                 ) from exc
+        for legacy_id, expanded_ids in self._expansions.items():
+            if not isinstance(legacy_id, str) or not legacy_id:
+                raise ProfileAgentAdaptationError("expansion legacy ID must be non-empty")
+            if not expanded_ids:
+                raise ProfileAgentAdaptationError(
+                    f"expansion must contain at least one concept: {legacy_id}"
+                )
+            for concept_id in expanded_ids:
+                try:
+                    catalog.get_concept(concept_id)
+                except KeyError as exc:
+                    raise ProfileAgentAdaptationError(
+                        f"expansion targets unknown concept: {concept_id}"
+                    ) from exc
 
     @classmethod
     def load_mappings(
@@ -106,7 +126,7 @@ class LearnerProfileAgentAdapter:
             raise ProfileAgentAdaptationError("profile Agent map version is not supported")
         if document.graph_version != catalog.course_document.version:
             raise ProfileAgentAdaptationError("profile Agent map graph version mismatch")
-        return cls(catalog, document.mappings)
+        return cls(catalog, document.mappings, expansions=document.expansions)
 
     def adapt(self, raw: Mapping[str, object]) -> AdaptedLearnerProfile:
         payload = _mapping(raw, "profile")
@@ -195,7 +215,8 @@ class LearnerProfileAgentAdapter:
         result: list[KnowledgeMastery] = []
         seen: set[str] = set()
         for legacy_id, value in points.items():
-            if legacy_id not in self._mappings:
+            concept_ids = self._canonical_targets(legacy_id)
+            if not concept_ids:
                 warnings.append(
                     ProfileAgentAdaptationWarning(
                         legacy_id=legacy_id,
@@ -204,16 +225,6 @@ class LearnerProfileAgentAdapter:
                 )
                 continue
             point = _mapping(value, f"knowledge_mastery.points.{legacy_id}")
-            concept_id = self._mappings[legacy_id]
-            if concept_id in seen:
-                warnings.append(
-                    ProfileAgentAdaptationWarning(
-                        legacy_id=legacy_id,
-                        reason=f"duplicate canonical concept skipped: {concept_id}",
-                    )
-                )
-                continue
-            seen.add(concept_id)
             status = _string(
                 point.get("status", "unexplored"),
                 f"knowledge_mastery.points.{legacy_id}.status",
@@ -230,48 +241,57 @@ class LearnerProfileAgentAdapter:
                 point.get("confidence", 0.0),
                 f"knowledge_mastery.points.{legacy_id}.confidence",
             )
-            if status == "unexplored":
-                if score is not None:
+            evidence_refs = _string_list(
+                point.get("evidence_refs", []),
+                f"knowledge_mastery.points.{legacy_id}.evidence_refs",
+            )
+            observed_at = None
+            if status != "unexplored":
+                if score is None:
+                    raise ProfileAgentAdaptationError(
+                        f"knowledge_mastery.points.{legacy_id}.mastery is required"
+                    )
+                observed_at = _parse_datetime(
+                    point.get("observed_at") or point.get("last_tested") or fallback_observed_at,
+                    f"knowledge_mastery.points.{legacy_id}.observed_at",
+                )
+            elif score is not None:
+                warnings.append(
+                    ProfileAgentAdaptationWarning(
+                        legacy_id=legacy_id,
+                        reason="numeric mastery discarded for unexplored status",
+                    )
+                )
+            for concept_id in concept_ids:
+                if concept_id in seen:
                     warnings.append(
                         ProfileAgentAdaptationWarning(
                             legacy_id=legacy_id,
-                            reason="numeric mastery discarded for unexplored status",
+                            reason=f"duplicate canonical concept skipped: {concept_id}",
                         )
                     )
+                    continue
+                seen.add(concept_id)
                 result.append(
                     KnowledgeMastery(
                         concept_id=concept_id,
-                        assessment_status=AssessmentStatus.NOT_ASSESSED,
-                        confidence=confidence,
-                        evidence_refs=_string_list(
-                            point.get("evidence_refs", []),
-                            f"knowledge_mastery.points.{legacy_id}.evidence_refs",
+                        mastery_score=score if status != "unexplored" else None,
+                        assessment_status=(
+                            AssessmentStatus.ASSESSED
+                            if status != "unexplored"
+                            else AssessmentStatus.NOT_ASSESSED
                         ),
+                        confidence=confidence,
+                        observed_at=observed_at,
+                        evidence_refs=evidence_refs,
                     )
                 )
-                continue
-            if score is None:
-                raise ProfileAgentAdaptationError(
-                    f"knowledge_mastery.points.{legacy_id}.mastery is required"
-                )
-            observed_at = _parse_datetime(
-                point.get("observed_at") or point.get("last_tested") or fallback_observed_at,
-                f"knowledge_mastery.points.{legacy_id}.observed_at",
-            )
-            result.append(
-                KnowledgeMastery(
-                    concept_id=concept_id,
-                    mastery_score=score,
-                    assessment_status=AssessmentStatus.ASSESSED,
-                    confidence=confidence,
-                    observed_at=observed_at,
-                    evidence_refs=_string_list(
-                        point.get("evidence_refs", []),
-                        f"knowledge_mastery.points.{legacy_id}.evidence_refs",
-                    ),
-                )
-            )
         return result
+
+    def _canonical_targets(self, legacy_id: str) -> tuple[str, ...]:
+        if legacy_id in self._mappings:
+            return (self._mappings[legacy_id],)
+        return self._expansions.get(legacy_id, ())
 
     def _adapt_abilities(self, value: object, assessment_run_id: str) -> dict[str, AbilityScore]:
         if value is None:

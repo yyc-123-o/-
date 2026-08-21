@@ -24,3 +24,9 @@ mappings:
   kp_028: dl.optimization.batch-normalization
   kp_029: ml.objective.loss-function
   kp_030: dl.regularization.data-augmentation
+expansions:
+  kp_002:
+    - math.linear-algebra.scalar
+    - math.linear-algebra.vector
+    - math.linear-algebra.matrix
+    - math.linear-algebra.tensor

@@ -45,6 +45,9 @@ class StubPlatformService:
     def get(self, run_id: str) -> PlatformRunResult | None:
         return self.repository.get(run_id)
 
+    def complete_current_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
+        raise ValueError("stub service does not support learning progress")
+
 
 @pytest.fixture
 def service() -> StubPlatformService:

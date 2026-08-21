@@ -11,6 +11,7 @@ from skillforge_kb.ontology.models import CONCEPT_ID_PATTERN, DepthLevel
 class RetrievalMethod(StrEnum):
     PUBLISHED_INDEX = "published_index"
     BM25 = "bm25"
+    ONTOLOGY_METADATA = "ontology_metadata"
 
 
 class DomainRetrievalRequest(BaseModel):

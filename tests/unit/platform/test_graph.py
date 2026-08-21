@@ -114,7 +114,7 @@ def test_candidate_preview_runs_only_without_hard_blockers(platform_case, profil
     assert len(resource.preview_calls) == 1
 
 
-def test_candidate_preview_can_show_evidence_gap_draft(platform_case, profile) -> None:
+def test_candidate_preview_blocks_when_no_candidate_evidence(platform_case, profile) -> None:
     service, _, resource = _service(platform_case)
     retrieval = platform_case["retrieval"]
     partial = retrieval.model_copy(
@@ -138,10 +138,9 @@ def test_candidate_preview_can_show_evidence_gap_draft(platform_case, profile) -
         )
     )
 
-    assert result.status is PlatformRunStatus.COMPLETED
-    assert result.resources is not None
-    assert result.resources.publication_status == "candidate_draft"
-    assert len(resource.preview_calls) == 1
+    assert result.status is PlatformRunStatus.BLOCKED
+    assert result.resources is None
+    assert resource.preview_calls == []
 
 
 def test_retrieval_contract_failure_stops_generation(platform_case, profile) -> None:

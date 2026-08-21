@@ -22,6 +22,12 @@ class PlatformApplicationService(Protocol):
 
     def get(self, run_id: str) -> PlatformRunResult | None: ...
 
+    def complete_current_node(
+        self,
+        run_id: str,
+        concept_id: str,
+    ) -> PlatformRunResult: ...
+
 
 class ProfileAdaptationService(Protocol):
     def adapt(self, raw: Mapping[str, object]) -> AdaptedLearnerProfile: ...
@@ -128,6 +134,24 @@ def create_app(
         if result is None:
             raise _run_not_found(run_id)
         return list(result.steps)
+
+    @app.post("/api/v1/runs/{run_id}/complete-node", response_model=PlatformRunResult)
+    def complete_node(run_id: str, payload: dict[str, object]) -> PlatformRunResult:
+        concept_id = payload.get("concept_id")
+        if not isinstance(concept_id, str) or not concept_id.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"code": "invalid_completion", "message": "concept_id is required"},
+            )
+        try:
+            return service.complete_current_node(run_id, concept_id.strip())
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_learning_transition", "message": str(exc)},
+            ) from exc
 
     return app
 

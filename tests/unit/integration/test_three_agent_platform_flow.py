@@ -83,6 +83,45 @@ def test_candidate_preview_completes_without_publish_rights() -> None:
     assert replay == first
 
 
+def test_completing_current_node_advances_the_existing_learning_run() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-LEARNING-PROGRESS-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="learning-progress-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    updated = service.complete_current_node(
+        initial.run_id,
+        "math.linear-algebra.scalar",
+    )
+
+    assert updated.status is PlatformRunStatus.COMPLETED
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.vector"
+    assert updated.handoff is not None
+    assert updated.handoff.concept_id == "math.linear-algebra.vector"
+    assert updated.resources is not None
+    assert updated.resources.publication_status == "candidate_draft"
+    completed = next(
+        node
+        for node in updated.planning.path.nodes
+        if node.concept_id == "math.linear-algebra.scalar"
+    )
+    assert completed.status.value == "completed"
+
+
 def test_published_fixture_completes_formal_run() -> None:
     project_root = Path(__file__).parents[3]
     profile = _cnn_ready_profile(project_root)

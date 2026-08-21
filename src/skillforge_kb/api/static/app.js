@@ -22,8 +22,8 @@ profileFile.addEventListener("change", handleProfileFile);
 targetConceptInput.addEventListener("input", () => {
   state.targetConceptId = targetConceptInput.value.trim();
   targetHint.textContent = state.targetConceptId
-    ? `本次将规划 ${state.targetConceptId} 及其必要先修节点。`
-    : "未指定时运行完整课程路径。";
+    ? `本次高亮 ${state.targetConceptId}；课程路径仍保留完整章节顺序。`
+    : "未指定目标时运行完整课程路径。";
 });
 runButton.addEventListener("click", runPlatform);
 document.querySelectorAll('[role="tab"]').forEach((button) => {
@@ -38,7 +38,7 @@ async function handleProfileFile(event) {
     state.profileWarnings = [];
     state.targetConceptId = "";
     targetConceptInput.value = "";
-    targetHint.textContent = "未指定时运行完整课程路径。";
+    targetHint.textContent = "未指定目标时运行完整课程路径。";
     runButton.disabled = true;
     renderProfileSummary();
     return;
@@ -51,8 +51,8 @@ async function handleProfileFile(event) {
     state.targetConceptId = normalized.suggestedTargetConceptId || "";
     targetConceptInput.value = state.targetConceptId;
     targetHint.textContent = state.targetConceptId
-      ? `画像建议目标：${state.targetConceptId}。可手动修改。`
-      : "未指定时运行完整课程路径。";
+      ? `画像建议目标：${state.targetConceptId}。课程路径仍保留完整章节顺序。`
+      : "未指定目标时运行完整课程路径。";
     validateProfile(state.profile);
     runButton.disabled = false;
     renderProfileSummary();
@@ -61,7 +61,7 @@ async function handleProfileFile(event) {
     state.profileWarnings = [];
     state.targetConceptId = "";
     targetConceptInput.value = "";
-    targetHint.textContent = "未指定时运行完整课程路径。";
+    targetHint.textContent = "未指定目标时运行完整课程路径。";
     runButton.disabled = true;
     profileError.textContent = error instanceof Error ? error.message : "画像文件无效";
     renderProfileSummary();
@@ -385,7 +385,39 @@ function selectPathNode(result, node) {
     if (node.status === "available") activateTab("resource-view");
   });
   actions.append(enter);
+  if (node.status === "available" && result.resources) {
+    const complete = document.createElement("button");
+    complete.type = "button";
+    complete.className = "secondary-action compact-action";
+    complete.textContent = "完成并进入下一节点";
+    complete.addEventListener("click", () => completeCurrentNode(result, node));
+    actions.append(complete);
+  }
   detail.append(actions);
+}
+
+async function completeCurrentNode(result, node) {
+  const button = document.querySelector(".secondary-action");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "正在更新路径";
+  }
+  try {
+    const response = await fetch(`/api/v1/runs/${encodeURIComponent(result.run_id)}/complete-node`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ concept_id: node.concept_id }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail?.message || "节点完成失败");
+    }
+    state.result = payload;
+    renderResult(payload);
+    activateTab("path-view");
+  } catch (error) {
+    renderClientError(error instanceof Error ? error.message : "节点完成失败");
+  }
 }
 
 function detailFacts(node) {
