@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.platform.models import (
+    AssessmentSubmission,
     PlatformRunRequest,
     PlatformRunResult,
     PlatformStepRecord,
@@ -27,6 +28,14 @@ class PlatformApplicationService(Protocol):
         run_id: str,
         concept_id: str,
     ) -> PlatformRunResult: ...
+
+    def submit_assessment(
+        self,
+        run_id: str,
+        submission: AssessmentSubmission | dict[str, object],
+    ) -> PlatformRunResult: ...
+
+    def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult: ...
 
 
 class ProfileAdaptationService(Protocol):
@@ -151,6 +160,39 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "invalid_learning_transition", "message": str(exc)},
+            ) from exc
+
+    @app.post("/api/v1/runs/{run_id}/assessment", response_model=PlatformRunResult)
+    def submit_assessment(
+        run_id: str,
+        submission: AssessmentSubmission,
+    ) -> PlatformRunResult:
+        try:
+            return service.submit_assessment(run_id, submission)
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_assessment", "message": str(exc)},
+            ) from exc
+
+    @app.post("/api/v1/runs/{run_id}/start-node", response_model=PlatformRunResult)
+    def start_node(run_id: str, payload: dict[str, object]) -> PlatformRunResult:
+        concept_id = payload.get("concept_id")
+        if not isinstance(concept_id, str) or not concept_id.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={"code": "invalid_start_node", "message": "concept_id is required"},
+            )
+        try:
+            return service.start_node(run_id, concept_id.strip())
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_start_node", "message": str(exc)},
             ) from exc
 
     return app

@@ -2,6 +2,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from skillforge_kb.agents.planning_agent import CoursePlanningAgent
 from skillforge_kb.agents.resource_agent import ResourceGenerationAgent
 from skillforge_kb.agents.retrieval_agent import DomainRetrievalAgent
@@ -120,6 +122,176 @@ def test_completing_current_node_advances_the_existing_learning_run() -> None:
         if node.concept_id == "math.linear-algebra.scalar"
     )
     assert completed.status.value == "completed"
+
+
+def test_assessment_updates_profile_and_replans_depth_before_advancing() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-ASSESSMENT-PROGRESS-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="assessment-progress-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    updated = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "assessment-progress-1",
+            "concept_id": "math.linear-algebra.scalar",
+            "score": 1.0,
+            "response_time_ms": 40000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.vector"
+    assert updated.handoff is not None
+    assert updated.handoff.concept_id == "math.linear-algebra.vector"
+    assert updated.handoff.path_id == initial.handoff.path_id
+
+
+def test_failed_assessment_keeps_node_open_and_records_error_pattern() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-ASSESSMENT-FAILED-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="assessment-failed-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    updated = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "assessment-failed-1",
+            "concept_id": "math.linear-algebra.scalar",
+            "score": 0.0,
+            "response_time_ms": 150000,
+            "hint_count": 2,
+            "attempt_count": 2,
+        },
+    )
+
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.scalar"
+    assert updated.handoff is not None
+    assert updated.handoff.concept_id == "math.linear-algebra.scalar"
+
+
+def test_duplicate_assessment_is_idempotent_and_conflicting_payload_is_rejected() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-ASSESSMENT-IDEMPOTENCY-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="assessment-idempotency-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    submission = {
+        "assessment_id": "assessment-idempotent-1",
+        "concept_id": "math.linear-algebra.scalar",
+        "score": 0.0,
+        "response_time_ms": 150000,
+        "hint_count": 2,
+        "attempt_count": 2,
+    }
+
+    first = service.submit_assessment(initial.run_id, submission)
+    replay = service.submit_assessment(initial.run_id, submission)
+
+    assert replay == first
+    assert first.planning is not None
+    assert first.planning.current_node is not None
+    assert first.planning.current_node.concept_id == "math.linear-algebra.scalar"
+
+    with pytest.raises(ValueError, match="different payload"):
+        service.submit_assessment(
+            initial.run_id,
+            {**submission, "score": 1.0},
+        )
+
+
+def test_start_node_allows_any_unblocked_path_node() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-START-NODE-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="start-node-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    started = service.start_node(initial.run_id, "dl.vision.image-tensor")
+
+    assert started.planning is not None
+    assert started.planning.current_node is not None
+    assert started.planning.current_node.concept_id == "dl.vision.image-tensor"
+    assert started.handoff is not None
+    assert started.handoff.concept_id == "dl.vision.image-tensor"
+
+
+def test_start_node_preserves_mastered_skips_for_adapted_profile() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = _cnn_ready_profile(project_root)
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="start-node-adapted-profile-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    started = service.start_node(initial.run_id, "dl.cnn.cross-correlation")
+
+    assert started.status is PlatformRunStatus.COMPLETED
+    assert started.planning is not None
+    assert started.planning.current_node is not None
+    assert started.planning.current_node.concept_id == "dl.cnn.cross-correlation"
+    assert started.planning.path is not None
+    assert all(
+        node.status.value == "skipped"
+        for node in started.planning.path.nodes[:57]
+    )
+    assert started.planning.path.nodes[57].concept_id == "dl.cnn.convolution"
+    assert started.planning.path.nodes[57].status.value == "pending"
 
 
 def test_published_fixture_completes_formal_run() -> None:

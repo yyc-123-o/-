@@ -11,6 +11,7 @@ from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalResult,
     EvidenceGap,
 )
+from skillforge_kb.assessment import AssessmentErrorKind
 from skillforge_kb.ontology.models import CONCEPT_ID_PATTERN, LearnerProfileSnapshot
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 
@@ -55,6 +56,27 @@ class PlatformRunRequest(BaseModel):
     execution_mode: ExecutionMode = ExecutionMode.STRICT
     top_k: int = Field(default=5, ge=1, le=20)
     target_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
+    start_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
+
+
+class AssessmentSubmission(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    assessment_id: str = Field(min_length=1, max_length=128)
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    score: float = Field(ge=0, le=1)
+    response_time_ms: int = Field(strict=True, ge=0)
+    hint_count: int = Field(strict=True, ge=0)
+    attempt_count: int = Field(strict=True, ge=1)
+    error_kind: AssessmentErrorKind | None = None
+    evidence_refs: tuple[str, ...] = ()
+    passing_score: float = Field(default=0.60, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_error_kind(self) -> "AssessmentSubmission":
+        if self.score >= self.passing_score and self.error_kind is not None:
+            raise ValueError("passing assessment cannot include an error kind")
+        return self
 
 
 class PlatformFailure(BaseModel):

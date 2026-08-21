@@ -379,6 +379,24 @@ def build_course_planning_graph(
                 next_action=PlanningNextAction.COURSE_COMPLETE,
                 current_node_id=None,
             )
+        requested = None
+        if event.start_concept_id is not None:
+            requested = next(
+                (node for node in unfinished if node.concept_id == event.start_concept_id),
+                None,
+            )
+            if requested is None:
+                return _failure_update(
+                    event,
+                    PlanningAgentFailureCode.PLANNING_ERROR,
+                    "requested start node is not available in the learning path",
+                )
+            if requested.status is PathStatus.BLOCKED:
+                return _failure_update(
+                    event,
+                    PlanningAgentFailureCode.PLANNING_ERROR,
+                    "requested start node has blocking prerequisites",
+                )
         available = tuple(
             node for node in unfinished if node.status is PathStatus.AVAILABLE
         )
@@ -388,6 +406,35 @@ def build_course_planning_graph(
                 PlanningAgentFailureCode.NO_AVAILABLE_NODE,
                 "unfinished path has no available node",
             )
+        if requested is not None and requested.status is PathStatus.PENDING:
+            selected_nodes = tuple(
+                node.model_copy(
+                    update={
+                        "status": (
+                            PathStatus.AVAILABLE
+                            if node.concept_id == requested.concept_id
+                            else PathStatus.PENDING
+                        )
+                    }
+                )
+                for node in path.nodes
+                if node.status is PathStatus.AVAILABLE
+                or node.concept_id == requested.concept_id
+            )
+            selected_nodes = tuple(
+                next(
+                    (
+                        selected
+                        for selected in selected_nodes
+                        if selected.concept_id == node.concept_id
+                    ),
+                    node,
+                )
+                for node in path.nodes
+            )
+            path = path.model_copy(update={"nodes": selected_nodes})
+            state = {**state, "candidate_path": path}
+            available = (requested,)
         if len(available) > 1:
             return _failure_update(
                 event,

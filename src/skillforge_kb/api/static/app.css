@@ -797,6 +797,92 @@ input:focus-visible {
   margin-bottom: 10px;
 }
 
+.assessment-form {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid var(--accent);
+  background: #fbfcff;
+}
+
+.assessment-form header {
+  display: grid;
+  gap: 6px;
+}
+
+.assessment-form h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.assessment-form header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.assessment-questions {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 25px;
+}
+
+.assessment-questions li {
+  padding-left: 4px;
+  line-height: 1.5;
+}
+
+.assessment-questions p {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.question-kind {
+  color: var(--accent);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+}
+
+.assessment-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.assessment-field {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.assessment-field input,
+.assessment-field select {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.assessment-field input[type="range"] {
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+.assessment-field output {
+  color: var(--accent);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
 .record-card h3,
 .resource-card h3 {
   margin: 0;
@@ -934,6 +1020,10 @@ input:focus-visible {
 
   .path-explorer {
     grid-template-columns: 1fr;
+  }
+
+  .assessment-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .chapter-tree {

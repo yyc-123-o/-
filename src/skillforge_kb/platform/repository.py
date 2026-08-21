@@ -18,6 +18,7 @@ class InMemoryPlatformRunRepository:
         self._reservations: dict[tuple[str, str], tuple[str, str]] = {}
         self._results: dict[str, PlatformRunResult] = {}
         self._requests: dict[str, PlatformRunRequest] = {}
+        self._assessments: dict[tuple[str, str], tuple[str, PlatformRunResult]] = {}
 
     def reserve(self, request: PlatformRunRequest) -> PlatformRunResult | None:
         request = PlatformRunRequest.model_validate(request.model_dump())
@@ -70,3 +71,46 @@ class InMemoryPlatformRunRepository:
     def get_request(self, run_id: str) -> PlatformRunRequest | None:
         with self._lock:
             return self._requests.get(run_id)
+
+    def update_request(self, run_id: str, request: PlatformRunRequest) -> None:
+        request = PlatformRunRequest.model_validate(request.model_dump())
+        digest = build_request_digest(request)
+        with self._lock:
+            existing = self._requests.get(run_id)
+            if existing is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            if (
+                existing.profile.profile_id != request.profile.profile_id
+                or existing.idempotency_key != request.idempotency_key
+            ):
+                raise ValueError("updated request must preserve run identity")
+            self._requests[run_id] = request
+            for key, (_, reserved_run_id) in self._reservations.items():
+                if reserved_run_id == run_id:
+                    self._reservations[key] = (digest, run_id)
+                    break
+
+    def get_assessment(
+        self,
+        run_id: str,
+        assessment_id: str,
+    ) -> tuple[str, PlatformRunResult] | None:
+        with self._lock:
+            return self._assessments.get((run_id, assessment_id))
+
+    def save_assessment(
+        self,
+        run_id: str,
+        assessment_id: str,
+        submission_digest: str,
+        result: PlatformRunResult,
+    ) -> None:
+        result = PlatformRunResult.model_validate(result.model_dump())
+        with self._lock:
+            if run_id not in self._requests:
+                raise KeyError(f"platform run not found: {run_id}")
+            key = (run_id, assessment_id)
+            existing = self._assessments.get(key)
+            if existing is not None and existing[0] != submission_digest:
+                raise ValueError("assessment ID was already used with a different payload")
+            self._assessments[key] = (submission_digest, result)

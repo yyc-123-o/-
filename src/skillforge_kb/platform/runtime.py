@@ -129,6 +129,7 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         handoff_factory=ResourceHandoffFactory(catalog, blueprints, evidence_index),
         evidence_index=evidence_index,
         clock=SystemClock(),
+        catalog=catalog,
     )
     return PlatformService(dependencies, InMemoryPlatformRunRepository())
 

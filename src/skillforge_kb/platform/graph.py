@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from hashlib import sha256
 from threading import RLock
 from typing import TypedDict, cast
@@ -19,12 +20,16 @@ from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalResult,
     EvidenceGap,
 )
+from skillforge_kb.assessment import AssessmentEvent, AssessmentLedger, apply_assessment_event
 from skillforge_kb.evidence.manifest import EvidenceIndex
+from skillforge_kb.ontology.catalog import OntologyCatalog
+from skillforge_kb.planning.models import PathStatus
 from skillforge_kb.resources.evidence_bundle import build_evidence_bundle
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import ResourceBrief
 
 from .models import (
+    AssessmentSubmission,
     ExecutionMode,
     PlatformFailure,
     PlatformRunRequest,
@@ -78,6 +83,7 @@ class PlatformGraphDependencies:
     handoff_factory: HandoffFactoryPort
     evidence_index: EvidenceIndex
     clock: Clock
+    catalog: OntologyCatalog | None = None
 
 
 class PlatformService:
@@ -86,6 +92,7 @@ class PlatformService:
         dependencies: PlatformGraphDependencies,
         repository: PlatformRunRepository,
     ) -> None:
+        self._dependencies = dependencies
         self._graph = build_platform_graph(dependencies)
         self._repository = repository
         self._lock = RLock()
@@ -137,6 +144,140 @@ class PlatformService:
             self._repository.save(result)
             return result
 
+    def submit_assessment(
+        self,
+        run_id: str,
+        submission: AssessmentSubmission | dict[str, object],
+    ) -> PlatformRunResult:
+        with self._lock:
+            existing = self._repository.get(run_id)
+            request = self._repository.get_request(run_id)
+            if existing is None or request is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            if self._dependencies.catalog is None:
+                raise ValueError("assessment updates are not configured")
+            submission = AssessmentSubmission.model_validate(submission)
+            submission_digest = build_payload_digest(
+                submission.model_dump(mode="json")
+            )
+            recorded = self._repository.get_assessment(
+                run_id,
+                submission.assessment_id,
+            )
+            if recorded is not None:
+                recorded_digest, recorded_result = recorded
+                if recorded_digest != submission_digest:
+                    raise ValueError(
+                        "assessment ID was already used with a different payload"
+                    )
+                return recorded_result
+            planning = existing.planning
+            if (
+                existing.status is not PlatformRunStatus.COMPLETED
+                or existing.resources is None
+                or planning is None
+                or planning.current_node is None
+            ):
+                raise ValueError("assessment is only available for a ready learning node")
+            if planning.current_node.concept_id != submission.concept_id:
+                raise ValueError("assessment concept does not match the current learning node")
+            event = AssessmentEvent(
+                event_id=submission.assessment_id,
+                profile_id=request.profile.profile_id,
+                graph_version=request.profile.graph_version,
+                concept_ids=(submission.concept_id,),
+                correct=submission.score >= submission.passing_score,
+                response_time_ms=submission.response_time_ms,
+                hint_count=submission.hint_count,
+                attempt_count=submission.attempt_count,
+                timestamp=datetime.now(UTC),
+                error_kind=(
+                    None
+                    if submission.score >= submission.passing_score
+                    else submission.error_kind
+                ),
+                evidence_refs=submission.evidence_refs,
+            )
+            update = apply_assessment_event(
+                self._dependencies.catalog,
+                AssessmentLedger(profile=request.profile),
+                event,
+            )
+            updated_request = request.model_copy(
+                update={"profile": update.ledger.profile}
+            )
+            self._repository.update_request(run_id, updated_request)
+            refreshed_event = PlanningAgentEvent(
+                event_id=f"event_{sha256(f'{run_id}:{submission.assessment_id}:refresh'.encode()).hexdigest()}",
+                kind=PlanningEventKind.PROFILE_REFRESHED,
+                profile=update.ledger.profile,
+                start_concept_id=submission.concept_id,
+            )
+            refreshed = self._execute(
+                updated_request,
+                run_id,
+                planning_event=refreshed_event,
+                previous_steps=existing.steps,
+            )
+            if submission.score < submission.passing_score:
+                self._repository.save(refreshed)
+                self._repository.save_assessment(
+                    run_id,
+                    submission.assessment_id,
+                    submission_digest,
+                    refreshed,
+                )
+                return refreshed
+            completed_event = PlanningAgentEvent(
+                event_id=f"event_{sha256(f'{run_id}:{submission.assessment_id}:complete'.encode()).hexdigest()}",
+                kind=PlanningEventKind.CONCEPTS_COMPLETED,
+                completed_concept_ids=(submission.concept_id,),
+            )
+            result = self._execute(
+                updated_request,
+                run_id,
+                planning_event=completed_event,
+                previous_steps=refreshed.steps,
+            )
+            self._repository.save(result)
+            self._repository.save_assessment(
+                run_id,
+                submission.assessment_id,
+                submission_digest,
+                result,
+            )
+            return result
+
+    def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
+        with self._lock:
+            existing = self._repository.get(run_id)
+            request = self._repository.get_request(run_id)
+            if existing is None or request is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            if existing.planning is None or existing.planning.path is None:
+                raise ValueError("learning path is not ready")
+            node = next(
+                (item for item in existing.planning.path.nodes if item.concept_id == concept_id),
+                None,
+            )
+            if node is None:
+                raise ValueError("requested node is not in the learning path")
+            if node.status in {PathStatus.BLOCKED, PathStatus.SKIPPED, PathStatus.COMPLETED}:
+                raise ValueError(
+                    "requested node cannot be started: "
+                    + (
+                        "blocking prerequisites"
+                        if node.status is PathStatus.BLOCKED
+                        else node.status.value
+                    )
+                )
+            suffix = f":start:{concept_id}"
+            key = f"{request.idempotency_key}{suffix}"[-128:]
+            started_request = request.model_copy(
+                update={"idempotency_key": key, "start_concept_id": concept_id}
+            )
+            return self.run(started_request)
+
     def peek(self, request: PlatformRunRequest) -> PlatformRunResult | None:
         return self._repository.peek(request)
 
@@ -185,6 +326,7 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
                     kind=PlanningEventKind.INITIALIZE,
                     profile=request.profile,
                     target_concept_id=request.target_concept_id,
+                    start_concept_id=request.start_concept_id,
                 )
             planning = dependencies.planning_agent.invoke(event, state["run_id"])
             if (

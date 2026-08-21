@@ -61,6 +61,7 @@ class PlanningAgentEvent(BaseModel):
     profile: LearnerProfileSnapshot | None = None
     completed_concept_ids: tuple[ConceptId, ...] = ()
     target_concept_id: ConceptId | None = None
+    start_concept_id: ConceptId | None = None
 
     @model_validator(mode="after")
     def validate_payload(self) -> "PlanningAgentEvent":
@@ -80,6 +81,11 @@ class PlanningAgentEvent(BaseModel):
             raise ValueError(f"{self.kind.value} event cannot include completed concept IDs")
         if self.kind is PlanningEventKind.RESET and self.profile is not None:
             raise ValueError("reset event cannot include a profile")
+        if self.kind not in {
+            PlanningEventKind.INITIALIZE,
+            PlanningEventKind.PROFILE_REFRESHED,
+        } and self.start_concept_id is not None:
+            raise ValueError(f"{self.kind.value} event cannot include a start concept")
         if self.kind in {
             PlanningEventKind.CONCEPTS_COMPLETED,
             PlanningEventKind.RESET,

@@ -38,4 +38,8 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert "进入学习" in javascript.text
     assert "/complete-node" in javascript.text
     assert "完成并进入下一节点" in javascript.text
+    assert "/start-node" in javascript.text
+    assert "/assessment" in javascript.text
+    assert "提交测验" in javascript.text
+    assert "进入该节点" in javascript.text
     assert "candidate_preview" in html.text

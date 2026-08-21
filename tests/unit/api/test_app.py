@@ -83,6 +83,41 @@ def test_complete_node_requires_learning_progress_service(
     assert response.json()["detail"]["code"] == "invalid_learning_transition"
 
 
+def test_start_node_requires_learning_progress_service(
+    client: TestClient,
+    profile_payload: dict[str, object],
+) -> None:
+    created = client.post("/api/v1/runs", json=_request(profile_payload)).json()
+    response = client.post(
+        f"/api/v1/runs/{created['run_id']}/start-node",
+        json={"concept_id": "math.linear-algebra.scalar"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "invalid_start_node"
+
+
+def test_assessment_requires_learning_progress_service(
+    client: TestClient,
+    profile_payload: dict[str, object],
+) -> None:
+    created = client.post("/api/v1/runs", json=_request(profile_payload)).json()
+    response = client.post(
+        f"/api/v1/runs/{created['run_id']}/assessment",
+        json={
+            "assessment_id": "assessment-api-test",
+            "concept_id": "math.linear-algebra.scalar",
+            "score": 0.5,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "invalid_assessment"
+
+
 def test_missing_run_returns_404(client: TestClient) -> None:
     response = client.get(f"/api/v1/runs/run_{'0' * 64}")
 

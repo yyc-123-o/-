@@ -4,6 +4,7 @@ const state = {
   targetConceptId: "",
   selectedConceptId: "",
   result: null,
+  assessmentId: null,
 };
 
 const profileFile = document.getElementById("profile-file");
@@ -172,6 +173,7 @@ async function runPlatform() {
       throw new Error(message);
     }
     state.result = payload;
+    state.assessmentId = null;
     renderResult(payload);
   } catch (error) {
     renderClientError(error instanceof Error ? error.message : "平台运行失败");
@@ -379,10 +381,21 @@ function selectPathNode(result, node) {
   const enter = document.createElement("button");
   enter.type = "button";
   enter.className = "primary-action compact-action";
-  enter.textContent = node.status === "available" ? "进入学习" : "查看学习条件";
-  enter.disabled = node.status === "blocked" || node.status === "pending";
+  const startable = isStartableNode(node);
+  enter.textContent = node.status === "available"
+    ? "进入学习"
+    : node.status === "pending" && startable
+      ? "进入该节点"
+      : node.status === "blocked"
+        ? "存在前置阻塞"
+        : "查看学习条件";
+  enter.disabled = !startable;
   enter.addEventListener("click", () => {
-    if (node.status === "available") activateTab("resource-view");
+    if (node.status === "available") {
+      activateTab("resource-view");
+    } else if (node.status === "pending") {
+      startNode(result, node);
+    }
   });
   actions.append(enter);
   if (node.status === "available" && result.resources) {
@@ -394,6 +407,39 @@ function selectPathNode(result, node) {
     actions.append(complete);
   }
   detail.append(actions);
+}
+
+function isStartableNode(node) {
+  if (node.status === "blocked") return false;
+  if (node.status === "pending") {
+    return (node.blocking_prerequisite_ids || []).length === 0;
+  }
+  return node.status === "available";
+}
+
+async function startNode(result, node) {
+  const button = document.querySelector(".node-actions .primary-action");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "正在打开节点";
+  }
+  try {
+    const response = await fetch(`/api/v1/runs/${encodeURIComponent(result.run_id)}/start-node`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ concept_id: node.concept_id }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail?.message || "节点暂时无法开始");
+    }
+    state.result = payload;
+    state.assessmentId = null;
+    renderResult(payload);
+    activateTab("resource-view");
+  } catch (error) {
+    renderClientError(error instanceof Error ? error.message : "节点暂时无法开始");
+  }
 }
 
 async function completeCurrentNode(result, node) {
@@ -548,15 +594,171 @@ function renderResources(result) {
     if (draft) {
       stack.append(
         resourceCard("lecture", draft.lecture.sections),
-        resourceCard("practical_guide", draft.practical_guide.learning_steps),
         resourceCard(
-          "assessment",
-          draft.student_quiz.items.map((item) => item.prompt),
+          "practical_guide",
+          [...draft.practical_guide.learning_steps, ...draft.practical_guide.notebook_tasks],
         ),
       );
     }
   }
+  const assessmentItems = assessmentItemsFor(result);
+  if (assessmentItems.length > 0) {
+    stack.append(buildAssessmentForm(result, assessmentItems));
+  }
   target.append(stack);
+}
+
+function assessmentItemsFor(result) {
+  const previewItems = result.resources?.preview_package?.draft?.student_quiz?.items;
+  if (Array.isArray(previewItems)) {
+    return previewItems.map((item) => ({
+      questionId: item.question_id,
+      prompt: item.prompt,
+      difficulty: item.difficulty,
+      kind: item.kind,
+    }));
+  }
+  const artifacts = result.resources?.formal_package?.artifacts || [];
+  const assessment = artifacts.find((artifact) => artifact.resource_type === "assessment");
+  return (assessment?.items || []).map((item, index) => ({
+    questionId: `formal-assessment-${index + 1}`,
+    prompt: item.text,
+    difficulty: null,
+    kind: "assessment",
+  }));
+}
+
+function buildAssessmentForm(result, items) {
+  const form = document.createElement("form");
+  form.className = "assessment-form";
+  form.dataset.startedAt = String(Date.now());
+  form.addEventListener("submit", (event) => submitAssessment(event, result, form));
+  const heading = document.createElement("header");
+  heading.append(
+    textElement("h3", "个性化测验"),
+    textElement("p", `${items.length} 题 · 通过线 60 分；提交后会更新掌握度和后续节点深度`),
+  );
+  form.append(heading);
+  const questions = document.createElement("ol");
+  questions.className = "assessment-questions";
+  items.forEach((item) => {
+    const question = document.createElement("li");
+    question.append(
+      textElement("span", item.kind || "assessment", "question-kind"),
+      textElement("p", item.prompt),
+    );
+    questions.append(question);
+  });
+  form.append(questions);
+
+  const fields = document.createElement("div");
+  fields.className = "assessment-fields";
+  const score = document.createElement("input");
+  score.type = "range";
+  score.min = "0";
+  score.max = "100";
+  score.value = "60";
+  score.name = "score";
+  const scoreOutput = textElement("output", "60 分");
+  score.addEventListener("input", () => {
+    scoreOutput.textContent = `${score.value} 分`;
+  });
+  fields.append(fieldWithLabel("自评得分", score, scoreOutput));
+
+  const hints = document.createElement("input");
+  hints.type = "number";
+  hints.min = "0";
+  hints.max = "20";
+  hints.value = "0";
+  hints.name = "hint_count";
+  fields.append(fieldWithLabel("使用提示次数", hints));
+
+  const attempts = document.createElement("input");
+  attempts.type = "number";
+  attempts.min = "1";
+  attempts.max = "20";
+  attempts.value = "1";
+  attempts.name = "attempt_count";
+  fields.append(fieldWithLabel("尝试次数", attempts));
+
+  const errorKind = document.createElement("select");
+  errorKind.name = "error_kind";
+  [
+    ["", "自动判断"],
+    ["concept_confusion", "概念混淆"],
+    ["logic_gap", "推理缺口"],
+    ["calculation_error", "计算错误"],
+    ["missed_condition", "遗漏条件"],
+  ].forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    errorKind.append(option);
+  });
+  fields.append(fieldWithLabel("错误类型（未通过时）", errorKind));
+  form.append(fields);
+
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.className = "primary-action compact-action";
+  submit.textContent = "提交测验";
+  form.append(submit);
+  return form;
+}
+
+function fieldWithLabel(label, control, output = null) {
+  const wrapper = document.createElement("label");
+  wrapper.className = "assessment-field";
+  wrapper.append(textElement("span", label), control);
+  if (output) wrapper.append(output);
+  return wrapper;
+}
+
+async function submitAssessment(event, result, form) {
+  event.preventDefault();
+  const submit = form.querySelector('button[type="submit"]');
+  if (submit) {
+    submit.disabled = true;
+    submit.textContent = "正在更新画像";
+  }
+  const data = new FormData(form);
+  const score = Number(data.get("score")) / 100;
+  const hintCount = Number(data.get("hint_count"));
+  const attemptCount = Number(data.get("attempt_count"));
+  const errorKind = String(data.get("error_kind") || "");
+  const startedAt = Number(form.dataset.startedAt || Date.now());
+  const responseTimeMs = Math.max(0, Date.now() - startedAt);
+  const assessmentId = state.assessmentId || `web-assessment-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  state.assessmentId = assessmentId;
+  try {
+    const response = await fetch(`/api/v1/runs/${encodeURIComponent(result.run_id)}/assessment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assessment_id: assessmentId,
+        concept_id: result.handoff.concept_id,
+        score,
+        response_time_ms: responseTimeMs,
+        hint_count: hintCount,
+        attempt_count: attemptCount,
+        error_kind: score >= 0.6 ? null : errorKind || null,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail?.message || "测验提交失败");
+    }
+    state.result = payload;
+    state.assessmentId = null;
+    renderResult(payload);
+    activateTab("path-view");
+  } catch (error) {
+    if (submit) {
+      submit.disabled = false;
+      submit.textContent = "提交测验";
+    }
+    renderClientError(error instanceof Error ? error.message : "测验提交失败");
+  }
 }
 
 function resourceCard(title, items) {

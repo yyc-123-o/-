@@ -48,6 +48,12 @@ class StubPlatformService:
     def complete_current_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
         raise ValueError("stub service does not support learning progress")
 
+    def submit_assessment(self, run_id: str, submission) -> PlatformRunResult:
+        raise ValueError("stub service does not support assessment updates")
+
+    def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
+        raise ValueError("stub service does not support learning node selection")
+
 
 @pytest.fixture
 def service() -> StubPlatformService:

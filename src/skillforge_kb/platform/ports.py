@@ -67,6 +67,22 @@ class PlatformRunRepository(Protocol):
 
     def get_request(self, run_id: str) -> PlatformRunRequest | None: ...
 
+    def update_request(self, run_id: str, request: PlatformRunRequest) -> None: ...
+
+    def get_assessment(
+        self,
+        run_id: str,
+        assessment_id: str,
+    ) -> tuple[str, PlatformRunResult] | None: ...
+
+    def save_assessment(
+        self,
+        run_id: str,
+        assessment_id: str,
+        submission_digest: str,
+        result: PlatformRunResult,
+    ) -> None: ...
+
 
 class Clock(Protocol):
     def now(self) -> datetime: ...
