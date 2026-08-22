@@ -113,13 +113,16 @@
           </div>
 
           <section id="path-view" class="tab-panel" role="tabpanel">
+            <div id="path-progress" class="path-progress" aria-live="polite"></div>
             <div class="empty-state"><strong>等待一次运行</strong><span>路径节点、先修关系和当前交接会显示在这里。</span></div>
           </section>
           <section id="evidence-view" class="tab-panel" role="tabpanel" hidden>
             <div class="empty-state"><strong>等待证据检索</strong><span>正式证据与候选片段会按内容类型分组。</span></div>
           </section>
           <section id="resource-view" class="tab-panel" role="tabpanel" hidden>
-            <div class="empty-state"><strong>等待资源结果</strong><span>严格模式通过证据门禁后生成正式资源。</span></div>
+            <div id="learning-workbench" class="learning-workbench" aria-live="polite">
+              <div id="node-resource" class="empty-state"><strong>等待资源结果</strong><span>严格模式通过证据门禁后生成正式资源。</span></div>
+            </div>
           </section>
           <section id="raw-view" class="tab-panel" role="tabpanel" hidden>
             <pre id="raw-json">{}</pre>

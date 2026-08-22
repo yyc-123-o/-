@@ -43,3 +43,9 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert "提交测验" in javascript.text
     assert "进入该节点" in javascript.text
     assert "candidate_preview" in html.text
+    assert 'id="learning-workbench"' in html.text
+    assert 'id="path-progress"' in html.text
+    assert 'id="node-resource"' in html.text
+    assert "resource-requirements" in javascript.text
+    assert "resource-code-line" in javascript.text
+    assert "start-node" in javascript.text

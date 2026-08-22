@@ -277,6 +277,7 @@ function renderPath(result) {
     target.append(emptyState("本次运行没有生成学习路径"));
     return;
   }
+  target.append(buildPathProgress(nodes));
   const summary = document.createElement("div");
   summary.className = "path-summary";
   const targetConcept = result.planning?.path?.target_concept_id;
@@ -333,6 +334,44 @@ function renderPath(result) {
   selectPathNode(result, initial);
 }
 
+function buildPathProgress(nodes) {
+  const counts = nodes.reduce((summary, node) => {
+    summary[node.status] = (summary[node.status] || 0) + 1;
+    return summary;
+  }, {});
+  const completed = (counts.completed || 0) + (counts.skipped || 0);
+  const percent = Math.round((completed / nodes.length) * 100);
+  const progress = document.createElement("section");
+  progress.id = "path-progress";
+  progress.className = "path-progress";
+  progress.append(
+    textElement("div", "学习路径进度", "progress-label"),
+    textElement("strong", `${percent}%`, "progress-value"),
+  );
+  const track = document.createElement("div");
+  track.className = "progress-track";
+  const fill = document.createElement("span");
+  fill.className = "progress-fill";
+  fill.style.width = `${percent}%`;
+  track.append(fill);
+  progress.append(track);
+  const stats = document.createElement("div");
+  stats.className = "progress-stats";
+  [
+    ["已完成", completed, "completed"],
+    ["当前", counts.available || 0, "available"],
+    ["待学习", counts.pending || 0, "pending"],
+    ["受阻", counts.blocked || 0, "blocked"],
+  ].forEach(([label, value, status]) => {
+    const item = document.createElement("span");
+    item.className = `progress-stat progress-${status}`;
+    item.append(textElement("strong", String(value)), textElement("small", label));
+    stats.append(item);
+  });
+  progress.append(stats);
+  return progress;
+}
+
 function groupPathNodes(nodes) {
   const chapters = [];
   const chapterMap = new Map();
@@ -363,16 +402,31 @@ function selectPathNode(result, node) {
   });
   const detail = document.getElementById("node-detail");
   if (!detail) return;
+  const isCurrent = result.handoff?.concept_id === node.concept_id;
+  const facts = detailFacts(node);
+  if (isCurrent) {
+    facts.classList.add("current-facts");
+  }
   detail.replaceChildren(
     textElement("span", `节点 ${String(node.sequence).padStart(2, "0")}`, "detail-index"),
     textElement("h2", node.concept_id),
     textElement("p", `${chapterLabel(node.chapter_id)} / ${sectionLabel(node.section_id)}`),
-    detailFacts(node),
+    isCurrent ? textElement("span", "当前学习节点", "current-node-badge") : document.createDocumentFragment(),
+    facts,
+    node.reason_codes?.length
+      ? textElement("p", `规划依据：${node.reason_codes.map(reasonCodeLabel).join("、")}`, "node-reasons")
+      : document.createDocumentFragment(),
+    textElement("h3", "学习目标"),
+    isCurrent && result.handoff.learning_outcomes?.length
+      ? textElement("p", result.handoff.learning_outcomes.join("；"))
+      : textElement("p", node.status === "skipped" ? "该节点已根据画像掌握度跳过。" : "进入该节点后生成个性化学习目标。"),
     textElement("h3", "前置知识"),
     textElement(
       "p",
-      node.hard_prerequisite_ids.length
-        ? node.hard_prerequisite_ids.join("、")
+      node.blocking_prerequisite_ids?.length
+        ? `尚未满足：${node.blocking_prerequisite_ids.join("、")}`
+        : node.hard_prerequisite_ids.length
+          ? `已满足：${node.hard_prerequisite_ids.join("、")}`
         : "无硬性前置知识",
     ),
   );
@@ -398,7 +452,8 @@ function selectPathNode(result, node) {
     }
   });
   actions.append(enter);
-  if (node.status === "available" && result.resources) {
+  const assessmentReady = isCurrent && assessmentItemsFor(result).length > 0;
+  if (node.status === "available" && result.resources && !assessmentReady) {
     const complete = document.createElement("button");
     complete.type = "button";
     complete.className = "secondary-action compact-action";
@@ -487,6 +542,20 @@ function nodeStatusLabel(status) {
   return { skipped: "已掌握", available: "当前", blocked: "受阻", pending: "待学习", completed: "已完成" }[status] || status;
 }
 
+function reasonCodeLabel(code) {
+  return {
+    mastery_skip_threshold_met: "掌握度已达跳过阈值",
+    mastery_missing: "缺少掌握度证据",
+    mastery_low_confidence: "掌握度置信度偏低",
+    ability_incomplete: "能力维度尚未完整",
+    hard_prerequisite_below_threshold: "硬性前置掌握度不足",
+    hard_prerequisite_unassessed: "硬性前置尚未评估",
+    ready_for_intro: "适合入门交付",
+    ready_for_intermediate: "适合进阶交付",
+    ready_for_advanced: "适合高级交付",
+  }[code] || code;
+}
+
 function renderEvidence(result) {
   const target = document.getElementById("evidence-view");
   target.replaceChildren();
@@ -563,6 +632,10 @@ function contentKindLabel(kind) {
 function renderResources(result) {
   const target = document.getElementById("resource-view");
   target.replaceChildren();
+  const workbench = document.createElement("div");
+  workbench.id = "learning-workbench";
+  workbench.className = "learning-workbench";
+  target.append(workbench);
   if (!result.resources) {
     const block = document.createElement("div");
     block.className = "gap-block";
@@ -571,9 +644,14 @@ function renderResources(result) {
       textElement("p", result.evidence_gap?.message || result.failure?.message || "门禁未通过"),
       textElement("p", "完成审核后重新运行严格模式。", "resource-next-step"),
     );
-    target.append(block);
+    workbench.append(
+      resourceIdentity(result),
+      generationGate(result),
+      block,
+    );
     return;
   }
+  workbench.append(resourceIdentity(result), generationGate(result), resourceRequirements(result));
   const stack = document.createElement("div");
   stack.className = "resource-stack";
   if (result.resources.publication_status === "candidate_draft") {
@@ -583,7 +661,7 @@ function renderResources(result) {
       textElement("strong", "候选结构草稿"),
       textElement("span", "可用于查看课程结构；正式发布仍需补齐并审核证据。"),
     );
-    stack.append(notice);
+    workbench.append(notice);
   }
   if (result.resources.formal_package) {
     result.resources.formal_package.artifacts.forEach((artifact) => {
@@ -593,10 +671,11 @@ function renderResources(result) {
     const draft = result.resources.preview_package?.draft;
     if (draft) {
       stack.append(
-        resourceCard("lecture", draft.lecture.sections),
+        resourceCard(draft.lecture.title || "讲义", draft.lecture.sections, "lecture"),
         resourceCard(
-          "practical_guide",
+          draft.practical_guide.title || "实操指南",
           [...draft.practical_guide.learning_steps, ...draft.practical_guide.notebook_tasks],
+          "practical_guide",
         ),
       );
     }
@@ -605,7 +684,54 @@ function renderResources(result) {
   if (assessmentItems.length > 0) {
     stack.append(buildAssessmentForm(result, assessmentItems));
   }
-  target.append(stack);
+  workbench.append(stack);
+}
+
+function resourceIdentity(result) {
+  const handoff = result.handoff;
+  const resource = result.resources;
+  const card = document.createElement("header");
+  card.className = "workbench-header";
+  const copy = document.createElement("div");
+  copy.append(
+    textElement("span", "学习工作台", "result-label"),
+    textElement("h2", handoff?.concept_id || resource?.concept_id || "当前节点"),
+    textElement("p", handoff ? `${chapterLabel(handoff.chapter_id)} / ${sectionLabel(handoff.section_id)} · 第 ${handoff.sequence} 节` : "等待课程交接"),
+  );
+  const badge = textElement("strong", resource ? `${resource.depth} · ${resource.publication_status === "formal" ? "正式资源" : "候选预览"}` : "资源门禁");
+  badge.className = `workbench-badge ${resource?.publication_status === "formal" ? "is-formal" : "is-candidate"}`;
+  card.append(copy, badge);
+  return card;
+}
+
+function generationGate(result) {
+  const gate = result.handoff?.generation_gate;
+  const evidenceGap = result.evidence_gap || result.retrieval?.evidence_gap;
+  const notice = document.createElement("div");
+  notice.className = gate?.allowed ? "gate-notice gate-open" : "gate-notice gate-closed";
+  notice.append(
+    textElement("strong", gate?.allowed ? "资源生成门禁已通过" : "资源生成门禁未完全通过"),
+    textElement("span", gate?.allowed ? "当前内容可以进入正式资源流程。" : (evidenceGap?.message || "正式证据仍需审核；当前仅展示候选预览。")),
+  );
+  return notice;
+}
+
+function resourceRequirements(result) {
+  const handoff = result.handoff;
+  const allocation = handoff?.resource_allocation;
+  const box = document.createElement("section");
+  box.className = "resource-requirements";
+  box.append(textElement("h3", "本节点交付要求"));
+  const facts = document.createElement("dl");
+  [
+    ["学习目标", handoff?.learning_outcomes?.join("；") || "未提供"],
+    ["资源类型", handoff?.required_resource_types?.join("、") || "未提供"],
+    ["预计时间", allocation ? `${allocation.estimated_minutes} 分钟` : "未提供"],
+    ["个性化策略", handoff?.node_adaptation?.support_intensity || "按画像适配"],
+    ["代码环境", `${handoff?.presentation_preferences?.code_language || "Python"} / ${handoff?.presentation_preferences?.framework || "通用"}`],
+  ].forEach(([label, value]) => facts.append(textElement("dt", label), textElement("dd", value)));
+  box.append(facts);
+  return box;
 }
 
 function assessmentItemsFor(result) {
@@ -761,13 +887,23 @@ async function submitAssessment(event, result, form) {
   }
 }
 
-function resourceCard(title, items) {
+function resourceCard(title, items, kind = "resource") {
   const card = document.createElement("article");
-  card.className = "resource-card";
+  card.className = `resource-card resource-${kind}`;
   const header = document.createElement("header");
-  header.append(textElement("h3", title));
+  header.append(textElement("h3", title), textElement("span", contentKindLabel(kind), "kind-tag"));
   const list = document.createElement("ol");
-  items.forEach((item) => list.append(textElement("li", item)));
+  items.forEach((item) => {
+    const value = String(item);
+    const row = document.createElement("li");
+    if (kind === "practical_guide" && /(?:import |torch|nn\.|Conv2d|shape|kernel_size|padding|stride)/i.test(value)) {
+      row.className = "resource-code-line";
+      row.textContent = value;
+    } else {
+      row.textContent = value;
+    }
+    list.append(row);
+  });
   card.append(header, list);
   return card;
 }
