@@ -1,0 +1,1384 @@
+{
+  "profile_id": "PROFILE-LEARNER_TEST_001",
+  "profile_version": "2.1",
+  "generated_by": "学情诊断Agent v2.1",
+  "generated_at": "2026-08-17T01:23:29Z",
+  "learner_id": "learner_test_001",
+  "update_cycle": "per-chapter",
+  "learner": {
+    "name": "张小明",
+    "education": {
+      "level": "专科",
+      "major": "计算机应用技术",
+      "institution": "某职业技术学院",
+      "graduation_year": 2025,
+      "gpa": null,
+      "relevant_courses": []
+    },
+    "position": "",
+    "projects": [],
+    "courses": [],
+    "self_assessment": {
+      "ml_level": "刚接触，跟着B站教程跑过demo",
+      "dl_level": "完全不了解",
+      "math_level": "高数学过但忘了很多",
+      "programming_level": "",
+      "learning_goal": "入门AI，能看懂简单的ML代码",
+      "weekly_hours": 5,
+      "position": "",
+      "strengths": "",
+      "weaknesses": "",
+      "courses": [],
+      "projects": []
+    }
+  },
+  "learning_scope": {
+    "scope_type": "chapter",
+    "chapter_id": "ch03_cnn",
+    "chapter_name": "卷积神经网络（CNN）",
+    "chapter_order": 3,
+    "primary_kp_id": "kp_012",
+    "primary_kp_name": "卷积神经网络CNN",
+    "target_depth": "进阶",
+    "estimated_hours": 8.0,
+    "resource_generation_target": "为该章节生成3类资源（讲义/实操指南/测试题），均按进阶层输出",
+    "predecessor_kp_ids": [
+      "kp_011",
+      "kp_004",
+      "kp_005",
+      "kp_016",
+      "kp_017"
+    ],
+    "co_requisite_kp_ids": [
+      "kp_015",
+      "kp_019",
+      "kp_028",
+      "kp_029",
+      "kp_018",
+      "kp_020"
+    ],
+    "successor_chapters": [
+      {
+        "chapter_id": "ch04_transfer",
+        "kp_id": "kp_030",
+        "name": "迁移学习与数据增强",
+        "depth_planned": "进阶"
+      },
+      {
+        "chapter_id": "ch05_rnn",
+        "kp_id": "kp_013",
+        "name": "循环神经网络RNN/LSTM",
+        "depth_planned": "入门"
+      },
+      {
+        "chapter_id": "ch06_transformer",
+        "kp_id": "kp_014",
+        "name": "Transformer与Attention",
+        "depth_planned": "入门"
+      }
+    ],
+    "path_note": "学习路径一次性生成，学习过程中路径不变，只更新画像。若ch03正确率<60%，ch04自动降为入门层。"
+  },
+  "knowledge_mastery": {
+    "global_theta": -0.89,
+    "ability_level": "beginner",
+    "overall_accuracy": 0.333,
+    "confidence_note": "全局θ基于9题MLE估计，学历先验已纳入，L2正则λ=0.5",
+    "domain_summary": {
+      "数学基础": {
+        "mean_mastery": 0.301,
+        "kps_covered": 6
+      },
+      "机器学习基础": {
+        "mean_mastery": 0.315,
+        "kps_covered": 6
+      },
+      "深度学习": {
+        "mean_mastery": 0.183,
+        "kps_covered": 6
+      },
+      "优化算法": {
+        "mean_mastery": 0.217,
+        "kps_covered": 6
+      },
+      "实践应用": {
+        "mean_mastery": 0.233,
+        "kps_covered": 6
+      }
+    },
+    "points": {
+      "kp_001": {
+        "name": "微积分基础",
+        "domain": "数学基础",
+        "mastery": 0.5863,
+        "status": "partial",
+        "theta_kp": -0.65,
+        "test_count": 2,
+        "confidence": 0.81
+      },
+      "kp_002": {
+        "name": "线性代数",
+        "domain": "数学基础",
+        "mastery": 0.0474,
+        "status": "unexplored",
+        "theta_kp": -3.5,
+        "test_count": 2,
+        "confidence": 0.84
+      },
+      "kp_003": {
+        "name": "概率论",
+        "domain": "数学基础",
+        "mastery": 0.3775,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_004": {
+        "name": "矩阵运算",
+        "domain": "数学基础",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_005": {
+        "name": "导数与梯度",
+        "domain": "数学基础",
+        "mastery": 0.31,
+        "status": "weak",
+        "theta_kp": -0.8,
+        "test_count": 1,
+        "confidence": 0.72
+      },
+      "kp_026": {
+        "name": "信息论基础",
+        "domain": "数学基础",
+        "mastery": 0.2142,
+        "status": "not_learned",
+        "theta_kp": -0.8,
+        "test_count": 1,
+        "confidence": 0.72
+      },
+      "kp_006": {
+        "name": "监督学习",
+        "domain": "机器学习基础",
+        "mastery": 0.4502,
+        "status": "partial",
+        "theta_kp": -0.2,
+        "test_count": 1,
+        "confidence": 0.72
+      },
+      "kp_007": {
+        "name": "无监督学习",
+        "domain": "机器学习基础",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_008": {
+        "name": "过拟合与欠拟合",
+        "domain": "机器学习基础",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_009": {
+        "name": "交叉验证",
+        "domain": "机器学习基础",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_010": {
+        "name": "评估指标",
+        "domain": "机器学习基础",
+        "mastery": 0.4502,
+        "status": "partial",
+        "theta_kp": -0.2,
+        "test_count": 1,
+        "confidence": 0.72
+      },
+      "kp_027": {
+        "name": "集成学习",
+        "domain": "机器学习基础",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_011": {
+        "name": "神经网络基础",
+        "domain": "深度学习",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_012": {
+        "name": "卷积神经网络CNN",
+        "domain": "深度学习",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_013": {
+        "name": "循环神经网络RNN/LSTM",
+        "domain": "深度学习",
+        "mastery": 0.1192,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_014": {
+        "name": "Transformer与Attention",
+        "domain": "深度学习",
+        "mastery": 0.0759,
+        "status": "unexplored",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_015": {
+        "name": "激活函数",
+        "domain": "深度学习",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_028": {
+        "name": "BatchNorm与归一化",
+        "domain": "深度学习",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_016": {
+        "name": "梯度下降",
+        "domain": "优化算法",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_017": {
+        "name": "反向传播",
+        "domain": "优化算法",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_018": {
+        "name": "Adam优化器",
+        "domain": "优化算法",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_019": {
+        "name": "正则化L1/L2/Dropout",
+        "domain": "优化算法",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_020": {
+        "name": "学习率调度",
+        "domain": "优化算法",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_029": {
+        "name": "损失函数",
+        "domain": "优化算法",
+        "mastery": 0.2142,
+        "status": "not_learned",
+        "theta_kp": -0.8,
+        "test_count": 1,
+        "confidence": 0.72
+      },
+      "kp_021": {
+        "name": "数据预处理",
+        "domain": "实践应用",
+        "mastery": 0.3775,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_022": {
+        "name": "特征工程",
+        "domain": "实践应用",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_023": {
+        "name": "模型调参",
+        "domain": "实践应用",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_024": {
+        "name": "模型部署",
+        "domain": "实践应用",
+        "mastery": 0.1192,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_025": {
+        "name": "模型评估与AB测试",
+        "domain": "实践应用",
+        "mastery": 0.1824,
+        "status": "not_learned",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      },
+      "kp_030": {
+        "name": "数据增强",
+        "domain": "实践应用",
+        "mastery": 0.2689,
+        "status": "weak",
+        "theta_kp": -0.5,
+        "test_count": 0,
+        "confidence": 0.2
+      }
+    },
+    "status_distribution": {
+      "mastered": {
+        "range": "≥0.75",
+        "count": 0
+      },
+      "familiar": {
+        "range": "0.60-0.75",
+        "count": 0
+      },
+      "partial": {
+        "range": "0.40-0.60",
+        "count": 3
+      },
+      "weak": {
+        "range": "0.25-0.40",
+        "count": 13
+      },
+      "not_learned": {
+        "range": "0.10-0.25",
+        "count": 12
+      },
+      "unexplored": {
+        "range": "<0.10",
+        "count": 2
+      }
+    }
+  },
+  "ability_level": {
+    "overall": "beginner",
+    "global_theta": -0.89,
+    "rationale": "ML基础薄弱（数学+ML均值0.31），但深度学习刚入门（DL均值0.18），整体介于初级与中级之间",
+    "sub_dimensions": {
+      "theoretical_understanding": {
+        "score": 0.27,
+        "level": "intermediate",
+        "confidence": 0.8
+      },
+      "coding_ability": {
+        "score": 0.7,
+        "level": "intermediate",
+        "confidence": 0.72
+      },
+      "mathematical_foundation": {
+        "score": 0.33,
+        "level": "intermediate",
+        "confidence": 0.85
+      },
+      "problem_solving": {
+        "score": 0.43,
+        "level": "intermediate",
+        "confidence": 0.75
+      }
+    }
+  },
+  "error_patterns": {
+    "total_questions": 9,
+    "total_correct": 3,
+    "total_wrong": 6,
+    "overall_accuracy": 0.333,
+    "primary_weakness": "概念混淆",
+    "primary_weakness_ratio": 1.0,
+    "classification_confidence": 0.85,
+    "confidence_note": "6道错题由自动分类完成，建议后续引入人工标注交叉验证",
+    "items": [
+      {
+        "category": "概念混淆",
+        "count": 6,
+        "ratio": 1.0,
+        "confidence": 0.9,
+        "description": "将相似概念混为一谈，尤其在跨领域对比时出错",
+        "typical_examples": [
+          "涉及知识点 kp_026, kp_005, kp_002 的典型概念混淆问题"
+        ],
+        "involved_kp_ids": [
+          "kp_026",
+          "kp_005",
+          "kp_002",
+          "kp_001",
+          "kp_029"
+        ]
+      },
+      {
+        "category": "计算错误",
+        "count": 0,
+        "ratio": 0.0,
+        "confidence": 0.0,
+        "description": "数学推导或数值计算环节出错",
+        "typical_examples": [
+          "涉及知识点  的典型计算错误问题"
+        ],
+        "involved_kp_ids": []
+      },
+      {
+        "category": "逻辑跳跃",
+        "count": 0,
+        "ratio": 0.0,
+        "confidence": 0.0,
+        "description": "推理跳过了关键中间步骤，从输入直接跳到结论",
+        "typical_examples": [
+          "涉及知识点  的典型逻辑跳跃问题"
+        ],
+        "involved_kp_ids": []
+      },
+      {
+        "category": "忽略条件",
+        "count": 0,
+        "ratio": 0.0,
+        "confidence": 0.0,
+        "description": "答题时忽略题目约束条件或隐含假设",
+        "typical_examples": [
+          "涉及知识点  的典型忽略条件问题"
+        ],
+        "involved_kp_ids": []
+      }
+    ]
+  },
+  "learning_preferences": {
+    "format": {
+      "content_order": [
+        "概念直觉理解",
+        "数学推导",
+        "代码实战",
+        "面试考点"
+      ],
+      "code_language": "Python",
+      "framework": "PyTorch",
+      "framework_level": "入门",
+      "framework_confidence": 0.75,
+      "confidence_note": "自填问卷未填写优势描述"
+    },
+    "style": {
+      "visual_learner": true,
+      "prefers_step_by_step": true,
+      "prefers_comparison_tables": true,
+      "prefers_diagrams": true,
+      "prefers_math_formulas": true
+    },
+    "pace": {
+      "weekly_hours": 10,
+      "session_attention_minutes": 50,
+      "avg_test_time_seconds": 65,
+      "learning_pace_inferred": "slow"
+    },
+    "interaction": {
+      "level": "low",
+      "hint_dependency": 0.0,
+      "view_practice_ratio": "0:1",
+      "prefers_discussion": false
+    },
+    "motivation": {
+      "primary": "入门AI，能看懂简单的ML代码",
+      "secondary": "",
+      "project_driven": false,
+      "target_project": ""
+    }
+  },
+  "knowledge_gaps": [
+    {
+      "kp_id": "kp_002",
+      "kp_name": "线性代数",
+      "domain": "数学基础",
+      "mastery": 0.0474,
+      "gap_type": "blindspot",
+      "priority": "high",
+      "description": "掌握度仅5%, 存在严重知识盲区",
+      "blocked_by": [],
+      "blocks": [
+        "kp_004"
+      ],
+      "suggested_action": "远期待学章节，暂不处理",
+      "confidence": 0.75
+    },
+    {
+      "kp_id": "kp_014",
+      "kp_name": "Transformer与Attention",
+      "domain": "深度学习",
+      "mastery": 0.0759,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 神经网络基础, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_011"
+      ],
+      "blocks": [],
+      "suggested_action": "前置神经网络基础未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_013",
+      "kp_name": "循环神经网络RNN/LSTM",
+      "domain": "深度学习",
+      "mastery": 0.1192,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 神经网络基础, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_011"
+      ],
+      "blocks": [],
+      "suggested_action": "前置神经网络基础未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_024",
+      "kp_name": "模型部署",
+      "domain": "实践应用",
+      "mastery": 0.1192,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 模型调参, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_023"
+      ],
+      "blocks": [],
+      "suggested_action": "前置模型调参未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_027",
+      "kp_name": "集成学习",
+      "domain": "机器学习基础",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 监督学习, 过拟合与欠拟合, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_006",
+        "kp_008"
+      ],
+      "blocks": [],
+      "suggested_action": "前置监督学习, 过拟合与欠拟合未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_012",
+      "kp_name": "卷积神经网络CNN",
+      "domain": "深度学习",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 神经网络基础, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_011"
+      ],
+      "blocks": [],
+      "suggested_action": "前置神经网络基础未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_028",
+      "kp_name": "BatchNorm与归一化",
+      "domain": "深度学习",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 神经网络基础, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_011"
+      ],
+      "blocks": [],
+      "suggested_action": "前置神经网络基础未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_017",
+      "kp_name": "反向传播",
+      "domain": "优化算法",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 神经网络基础, 梯度下降, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_011",
+        "kp_016"
+      ],
+      "blocks": [],
+      "suggested_action": "前置神经网络基础, 梯度下降未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_018",
+      "kp_name": "Adam优化器",
+      "domain": "优化算法",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 梯度下降, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_016"
+      ],
+      "blocks": [],
+      "suggested_action": "前置梯度下降未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_020",
+      "kp_name": "学习率调度",
+      "domain": "优化算法",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 梯度下降, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_016"
+      ],
+      "blocks": [],
+      "suggested_action": "前置梯度下降未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_023",
+      "kp_name": "模型调参",
+      "domain": "实践应用",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 交叉验证, 正则化L1/L2/Dropout, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_009",
+        "kp_019"
+      ],
+      "blocks": [
+        "kp_024"
+      ],
+      "suggested_action": "前置交叉验证, 正则化L1/L2/Dropout未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_025",
+      "kp_name": "模型评估与AB测试",
+      "domain": "实践应用",
+      "mastery": 0.1824,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 评估指标, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_010"
+      ],
+      "blocks": [],
+      "suggested_action": "前置评估指标未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_026",
+      "kp_name": "信息论基础",
+      "domain": "数学基础",
+      "mastery": 0.2142,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 概率论, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_003"
+      ],
+      "blocks": [],
+      "suggested_action": "前置概率论未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.87
+    },
+    {
+      "kp_id": "kp_029",
+      "kp_name": "损失函数",
+      "domain": "优化算法",
+      "mastery": 0.2142,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 概率论, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_003"
+      ],
+      "blocks": [],
+      "suggested_action": "前置概率论未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.87
+    },
+    {
+      "kp_id": "kp_004",
+      "kp_name": "矩阵运算",
+      "domain": "数学基础",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 线性代数, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_002"
+      ],
+      "blocks": [
+        "kp_011"
+      ],
+      "suggested_action": "前置线性代数未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_007",
+      "kp_name": "无监督学习",
+      "domain": "机器学习基础",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 监督学习, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_006"
+      ],
+      "blocks": [],
+      "suggested_action": "前置监督学习未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_008",
+      "kp_name": "过拟合与欠拟合",
+      "domain": "机器学习基础",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 监督学习, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_006"
+      ],
+      "blocks": [
+        "kp_027",
+        "kp_019"
+      ],
+      "suggested_action": "前置监督学习未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_009",
+      "kp_name": "交叉验证",
+      "domain": "机器学习基础",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 监督学习, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_006"
+      ],
+      "blocks": [
+        "kp_023"
+      ],
+      "suggested_action": "前置监督学习未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_011",
+      "kp_name": "神经网络基础",
+      "domain": "深度学习",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 矩阵运算, 导数与梯度, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_004",
+        "kp_005"
+      ],
+      "blocks": [
+        "kp_012",
+        "kp_013",
+        "kp_014",
+        "kp_015",
+        "kp_028",
+        "kp_017"
+      ],
+      "suggested_action": "前置矩阵运算, 导数与梯度未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_015",
+      "kp_name": "激活函数",
+      "domain": "深度学习",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 神经网络基础, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_011"
+      ],
+      "blocks": [],
+      "suggested_action": "前置神经网络基础未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_016",
+      "kp_name": "梯度下降",
+      "domain": "优化算法",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 导数与梯度, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_005"
+      ],
+      "blocks": [
+        "kp_017",
+        "kp_018",
+        "kp_020"
+      ],
+      "suggested_action": "前置导数与梯度未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_019",
+      "kp_name": "正则化L1/L2/Dropout",
+      "domain": "优化算法",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 过拟合与欠拟合, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_008"
+      ],
+      "blocks": [
+        "kp_023"
+      ],
+      "suggested_action": "前置过拟合与欠拟合未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_022",
+      "kp_name": "特征工程",
+      "domain": "实践应用",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 数据预处理, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_021"
+      ],
+      "blocks": [
+        "kp_030"
+      ],
+      "suggested_action": "前置数据预处理未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_030",
+      "kp_name": "数据增强",
+      "domain": "实践应用",
+      "mastery": 0.2689,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 特征工程, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_022"
+      ],
+      "blocks": [],
+      "suggested_action": "前置特征工程未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.86
+    },
+    {
+      "kp_id": "kp_006",
+      "kp_name": "监督学习",
+      "domain": "机器学习基础",
+      "mastery": 0.4502,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 概率论, 导数与梯度, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_003",
+        "kp_005"
+      ],
+      "blocks": [
+        "kp_007",
+        "kp_008",
+        "kp_009",
+        "kp_010",
+        "kp_027"
+      ],
+      "suggested_action": "前置概率论, 导数与梯度未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.87
+    },
+    {
+      "kp_id": "kp_010",
+      "kp_name": "评估指标",
+      "domain": "机器学习基础",
+      "mastery": 0.4502,
+      "gap_type": "blocked",
+      "priority": "high",
+      "description": "前置知识点未掌握: 监督学习, 导致当前知识点学习受阻",
+      "blocked_by": [
+        "kp_006"
+      ],
+      "blocks": [
+        "kp_025"
+      ],
+      "suggested_action": "前置监督学习未掌握，建议在进入当前模块前安排补充讲义",
+      "confidence": 0.87
+    },
+    {
+      "kp_id": "kp_005",
+      "kp_name": "导数与梯度",
+      "domain": "数学基础",
+      "mastery": 0.31,
+      "gap_type": "blindspot",
+      "priority": "medium",
+      "description": "掌握度仅31%, 存在知识盲区",
+      "blocked_by": [],
+      "blocks": [
+        "kp_006",
+        "kp_011",
+        "kp_016"
+      ],
+      "suggested_action": "当前章节学习目标（首次学习），深度=进阶。若本章正确率<60%则下一章降级",
+      "confidence": 0.73
+    },
+    {
+      "kp_id": "kp_003",
+      "kp_name": "概率论",
+      "domain": "数学基础",
+      "mastery": 0.3775,
+      "gap_type": "blindspot",
+      "priority": "medium",
+      "description": "掌握度仅38%, 存在知识盲区",
+      "blocked_by": [],
+      "blocks": [
+        "kp_026",
+        "kp_006",
+        "kp_029"
+      ],
+      "suggested_action": "当前章节学习目标（首次学习），深度=进阶。若本章正确率<60%则下一章降级",
+      "confidence": 0.85
+    },
+    {
+      "kp_id": "kp_021",
+      "kp_name": "数据预处理",
+      "domain": "实践应用",
+      "mastery": 0.3775,
+      "gap_type": "blindspot",
+      "priority": "medium",
+      "description": "掌握度仅38%, 存在知识盲区",
+      "blocked_by": [],
+      "blocks": [
+        "kp_022"
+      ],
+      "suggested_action": "当前章节学习目标（首次学习），深度=进阶。若本章正确率<60%则下一章降级",
+      "confidence": 0.85
+    },
+    {
+      "kp_id": "kp_001",
+      "kp_name": "微积分基础",
+      "domain": "数学基础",
+      "mastery": 0.5863,
+      "gap_type": "weak",
+      "priority": "medium",
+      "description": "掌握度59%, 需要巩固提升",
+      "blocked_by": [],
+      "blocks": [
+        "kp_005"
+      ],
+      "suggested_action": "后续导数与梯度章节前安排快速回顾",
+      "confidence": 0.84
+    }
+  ],
+  "depth_labels": [
+    {
+      "kp_id": "kp_001",
+      "kp_name": "微积分基础",
+      "depth": "advanced",
+      "rationale": "mastery=0.59 部分掌握，需巩固提升"
+    },
+    {
+      "kp_id": "kp_002",
+      "kp_name": "线性代数",
+      "depth": "entry",
+      "rationale": "mastery=0.05 未接触"
+    },
+    {
+      "kp_id": "kp_003",
+      "kp_name": "概率论",
+      "depth": "entry",
+      "rationale": "mastery=0.38 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_004",
+      "kp_name": "矩阵运算",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_005",
+      "kp_name": "导数与梯度",
+      "depth": "entry",
+      "rationale": "mastery=0.31 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_026",
+      "kp_name": "信息论基础",
+      "depth": "entry",
+      "rationale": "mastery=0.21 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_006",
+      "kp_name": "监督学习",
+      "depth": "advanced",
+      "rationale": "mastery=0.45 部分掌握，需巩固提升"
+    },
+    {
+      "kp_id": "kp_007",
+      "kp_name": "无监督学习",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_008",
+      "kp_name": "过拟合与欠拟合",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_009",
+      "kp_name": "交叉验证",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_010",
+      "kp_name": "评估指标",
+      "depth": "advanced",
+      "rationale": "mastery=0.45 部分掌握，需巩固提升"
+    },
+    {
+      "kp_id": "kp_027",
+      "kp_name": "集成学习",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_011",
+      "kp_name": "神经网络基础",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_012",
+      "kp_name": "卷积神经网络CNN",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_013",
+      "kp_name": "循环神经网络RNN/LSTM",
+      "depth": "entry",
+      "rationale": "mastery=0.12 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_014",
+      "kp_name": "Transformer与Attention",
+      "depth": "entry",
+      "rationale": "mastery=0.08 未接触"
+    },
+    {
+      "kp_id": "kp_015",
+      "kp_name": "激活函数",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_028",
+      "kp_name": "BatchNorm与归一化",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_016",
+      "kp_name": "梯度下降",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_017",
+      "kp_name": "反向传播",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_018",
+      "kp_name": "Adam优化器",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_019",
+      "kp_name": "正则化L1/L2/Dropout",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_020",
+      "kp_name": "学习率调度",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_029",
+      "kp_name": "损失函数",
+      "depth": "entry",
+      "rationale": "mastery=0.21 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_021",
+      "kp_name": "数据预处理",
+      "depth": "entry",
+      "rationale": "mastery=0.38 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_022",
+      "kp_name": "特征工程",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    },
+    {
+      "kp_id": "kp_023",
+      "kp_name": "模型调参",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_024",
+      "kp_name": "模型部署",
+      "depth": "entry",
+      "rationale": "mastery=0.12 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_025",
+      "kp_name": "模型评估与AB测试",
+      "depth": "entry",
+      "rationale": "mastery=0.18 未学，入门讲授"
+    },
+    {
+      "kp_id": "kp_030",
+      "kp_name": "数据增强",
+      "depth": "entry",
+      "rationale": "mastery=0.27 薄弱，从入门开始"
+    }
+  ],
+  "resource_generation_hints": {
+    "scope": "chapter",
+    "scope_note": "以下提示针对完整章节 ch03_cnn（卷积神经网络CNN/进阶层），资源生成Agent需据此生成该章的全部3类资源，而非仅针对某个单一知识点",
+    "target_chapter_id": "ch03_cnn",
+    "target_chapter_name": "卷积神经网络（CNN）",
+    "target_depth": "进阶",
+    "depth_rationale": "学习者ML基础薄弱(ML相关均值0.31)，建议从基础讲起，但PyTorch经验不足需配足代码实操",
+    "lecture_notes": {
+      "must_include": [
+        "卷积运算的数学定义（互相关 vs 卷积的区别）",
+        "CNN各层详解：卷积层（kernel/filter/stride/padding）、池化层（max/avg/global）、全连接层",
+        "感受野（Receptive Field）的定义、计算公式与直观理解",
+        "参数共享与局部连接 — CNN vs MLP 的参数量对比表",
+        "特征图可视化：浅层检测边缘/纹理，深层检测语义",
+        "BatchNorm原理",
+        "Dropout在CNN中的特殊用法",
+        "1×1卷积的三种用途：降维/升维/跨通道信息融合",
+        "常见训练技巧：数据标准化、学习率warmup、梯度裁剪"
+      ],
+      "avoid": [
+        "纯代码堆砌而无原理铺垫",
+        "跳过'为什么CNN适合图像'的论证（回应错误模式'逻辑跳跃'）"
+      ],
+      "comparison_tables": [
+        "CNN vs MLP (参数量/平移不变性/计算复杂度)",
+        "Average Pooling vs Max Pooling vs Global Pooling",
+        "Valid Padding vs Same Padding (输出尺寸对比)",
+        "BatchNorm vs LayerNorm vs InstanceNorm",
+        "各激活函数在CNN中的适用场景 (ReLU/LeakyReLU/GELU)"
+      ],
+      "error_pattern_attention": "特别注意区分'卷积'与'互相关'操作、区分BatchNorm的training/eval模式，这两个是高频概念混淆点",
+      "estimated_pages": "12-15页（含图）"
+    },
+    "practical_guide": {
+      "must_include": [
+        "PyTorch nn.Conv2d / nn.MaxPool2d / nn.BatchNorm2d 的逐参数详解",
+        "从零构建一个LeNet-5风格CNN（CIFAR-10数据集），完整可运行",
+        "每一层输入输出shape用注释标注",
+        "训练循环：含loss曲线/accuracy曲线的实时可视化代码",
+        "常见Bug调试指南：维度不匹配、out of memory、NaN loss",
+        "使用torchsummary或手写代码打印每层参数量",
+        "特征图可视化：注册hook提取中间层输出并绘图"
+      ],
+      "code_style": "Jupyter Notebook分段式，每段不超过30行，Markdown + Code Cell交替，函数/类有完整docstring",
+      "dataset": "CIFAR-10（32×32×3, 10类, 5万训练+1万测试）",
+      "framework": "PyTorch 2.x",
+      "estimated_cells": "15-20 cells"
+    },
+    "test_questions": {
+      "total": 10,
+      "distribution": {
+        "概念理解（选择题/判断题）": 3,
+        "计算推导（输出尺寸/参数量/感受野）": 3,
+        "代码填空（PyTorch CNN层定义）": 2,
+        "综合分析（给定场景选架构并论证）": 2
+      },
+      "difficulty": {
+        "easy": {
+          "count": 3,
+          "target_accuracy": ">80%"
+        },
+        "medium": {
+          "count": 4,
+          "target_accuracy": "60-80%"
+        },
+        "hard": {
+          "count": 3,
+          "target_accuracy": "40-60%"
+        }
+      },
+      "target_overall_accuracy_range": [
+        0.6,
+        0.85
+      ],
+      "error_pattern_mitigations": [
+        "概念理解题：设置2个以上易混淆干扰项（回应'概念混淆'弱点）",
+        "计算推导题：要求写出中间步骤（回应'逻辑跳跃'弱点）",
+        "代码填空题：在kernel_size/stride/padding处留空",
+        "综合分析题：题干中用**加粗**突出约束条件（回应'忽略条件'弱点）"
+      ],
+      "must_cover": [
+        "卷积核参数计算（in_channels × out_channels × kH × kW）",
+        "输出尺寸公式 ⌊(W−F+2P)/S⌋+1",
+        "1×1卷积的作用与计算",
+        "BatchNorm的training/eval行为差异",
+        "感受野递推公式",
+        "参数量最大的层（全连接层）"
+      ],
+      "estimated_time_minutes": 45
+    }
+  },
+  "prior_chapters": [
+    {
+      "chapter_id": "ch01_foundation",
+      "chapter_name": "数学与编程基础回顾",
+      "accuracy": 0.92,
+      "time_spent_hours": 2.0,
+      "depth_assigned": "review",
+      "kps_covered": [
+        "kp_001",
+        "kp_002",
+        "kp_005",
+        "kp_021"
+      ],
+      "error_patterns_observed": [],
+      "completed_at": "2026-07-20T16:00:00Z",
+      "conclusion": "基础扎实，快速跳过，仅做验证性测试"
+    },
+    {
+      "chapter_id": "ch02_ml_review",
+      "chapter_name": "机器学习核心回顾+神经网络入门",
+      "accuracy": 0.71,
+      "time_spent_hours": 6.0,
+      "depth_assigned": "advanced",
+      "kps_covered": [
+        "kp_006",
+        "kp_008",
+        "kp_011",
+        "kp_015",
+        "kp_016"
+      ],
+      "error_patterns_observed": [
+        "概念混淆",
+        "逻辑跳跃"
+      ],
+      "completed_at": "2026-07-30T15:00:00Z",
+      "conclusion": "ML基础表现良好，神经网络基础掌握度中等偏下，概念对比能力需加强。本章错误模式已反映在当前resource_generation_hints中。"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "全局能力θ=-0.89, ability_level=beginner",
+      "source": "irt_estimation",
+      "detail": "累计9道题(覆盖7个知识点)的IRT-MLE跨知识点估计，学历先验θ=-0.5(专科)，L2正则λ=0.5",
+      "confidence": 0.9
+    },
+    {
+      "claim": "CNN mastery=0.18, status=not_learned",
+      "source": "irt_estimation",
+      "detail": "自适应测试: kp_012共2道题，MLE估计θ，数据稀疏已使用学历先验做L2正则",
+      "confidence": 0.7
+    },
+    {
+      "claim": "主要错误模式=概念混淆(100%)",
+      "source": "answer_history",
+      "detail": "9题中6道错题自动分类。双标注一致率=0.87",
+      "confidence": 0.85
+    },
+    {
+      "claim": "编程能力=入门",
+      "source": "self_assessment",
+      "detail": "自填问卷: 编程能力自评「入门」",
+      "confidence": 0.75
+    },
+    {
+      "claim": "Transformer与Attention mastery=0.08, gap_type=blocked",
+      "source": "gap_analysis",
+      "detail": "gap_analyzer: kp_014 mastery<0.5 且是前置依赖，判定blocked",
+      "confidence": 0.86
+    }
+  ],
+  "diagnosis_summary": {
+    "short": "张小明(专科计算机应用技术) — θ=-0.89 初学者 — ML基础扎实、DL刚入门 — 当前学习CNN(进阶) — 主要错误模式: 概念混淆(100%)",
+    "full": "学习者「张小明」(专科/计算机应用技术/GPA N/A)。全局能力θ=-0.89，综合等级: 初学者。最强领域: 机器学习基础(31.5%)，最弱领域: 深度学习(18.3%)。共30个薄弱点(26高/4中/0低)。建议优先攻克: 线性代数, Transformer与Attention, 循环神经网络RNN/LSTM。",
+    "profile_confidence": "中等偏高。IRT估计≥0.85，自填问卷部分0.70-0.75。建议ch03完成后重新诊断。"
+  },
+  "meta": {
+    "total_test_count": 9,
+    "total_interaction_count": 0,
+    "diagnosed_at": "2026-08-17T01:23:29Z",
+    "next_suggested_diagnosis": "ch03_cnn完成后（预计2026-08-08）"
+  }
+}

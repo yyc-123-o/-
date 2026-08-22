@@ -1,0 +1,58 @@
+[
+  {
+    "question_id": "cnn-c01",
+    "category": "concept",
+    "error_category": "concept_confusion",
+    "learning_outcome": "解释卷积运算的核心含义并识别其基本场景。",
+    "difficulty": "easy"
+  },
+  {
+    "question_id": "cnn-c02",
+    "category": "concept",
+    "error_category": "concept_confusion",
+    "learning_outcome": "解释卷积运算的核心含义并识别其基本场景。",
+    "difficulty": "medium"
+  },
+  {
+    "question_id": "cnn-c03",
+    "category": "concept",
+    "error_category": "logic_jump",
+    "learning_outcome": "解释卷积运算的核心含义并识别其基本场景。",
+    "difficulty": "medium"
+  },
+  {
+    "question_id": "cnn-s01",
+    "category": "calculation",
+    "error_category": "calculation_error",
+    "learning_outcome": "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+    "difficulty": "easy"
+  },
+  {
+    "question_id": "cnn-s02",
+    "category": "calculation",
+    "error_category": "calculation_error",
+    "learning_outcome": "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+    "difficulty": "medium"
+  },
+  {
+    "question_id": "cnn-s03",
+    "category": "calculation",
+    "error_category": "condition_omission",
+    "learning_outcome": "识别输入图像张量、卷积核、步幅和填充对输出特征图的影响。",
+    "difficulty": "hard"
+  },
+  {
+    "question_id": "cnn-p01",
+    "category": "code_reading",
+    "error_category": "code_shape_error",
+    "learning_outcome": "在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。",
+    "difficulty": "medium"
+  },
+  {
+    "question_id": "cnn-p02",
+    "category": "code_reading",
+    "error_category": "code_shape_error",
+    "learning_outcome": "在 PyTorch 中读取并修改一个基础 nn.Conv2d 示例。",
+    "difficulty": "hard"
+  }
+]

@@ -112,13 +112,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans
       <div class="form-group"><label>学校</label><input id="qInstitution" value="某大学"></div>
       <div class="form-group"><label>GPA</label><input id="qGpa" value="3.2" type="number" step="0.1"></div>
       <div class="form-group"><label>每周学习小时数</label><input id="qHours" value="8" type="number" min="1" max="40"></div>
+      <div class="form-group"><label>职位 / 担任角色</label><input id="qPosition" placeholder="如：班长 / 学生会部长 / 实习岗 / 无"></div>
+      <div class="form-group"><label>编程能力</label><select id="qProg"><option>未学过</option><option>入门</option><option selected>基础</option><option>熟练</option><option>精通</option></select></div>
     </div>
     <div class="form-group"><label>相关课程（逗号分隔）</label><input id="qCourses" value="Python, 数据结构, 高等数学"></div>
     <div class="form-group"><label>ML 掌握程度</label><select id="qML"><option>完全不了解</option><option>刚接触，跑过demo</option><option selected>了解基础，做过项目</option><option>熟练掌握</option></select></div>
     <div class="form-group"><label>DL 掌握程度</label><select id="qDL"><option>完全不了解</option><option selected>知道名字，没写过</option><option>熟悉CNN/RNN</option><option>独立完成过项目</option></select></div>
     <div class="form-group"><label>数学基础</label><select id="qMath"><option>薄弱</option><option selected>还行</option><option>扎实，能推公式</option></select></div>
     <div class="form-group"><label>学习目标</label><input id="qGoal" value="系统掌握深度学习，能独立完成CV项目"></div>
-    <button class="green" onclick="submitQuestionnaire()" style="width:100%;padding:12px;font-size:15px">提交问卷并创建学习者</button>
+    <div class="form-group"><label>优势 / 已掌握内容（详细填写）</label><textarea id="qStrengths" placeholder="详细描述你已掌握的知识、技能或经验"></textarea></div>
+    <div class="form-group"><label>薄弱 / 待提升内容（详细填写）</label><textarea id="qWeaknesses" placeholder="详细描述你的薄弱环节或想重点补强的内容"></textarea></div>
+
+    <h2 style="margin-top:18px">分课程自我评价</h2>
+    <p style="font-size:12px;color:#64748b;margin-bottom:8px">对每门课程给出掌握程度与备注；可点「+ 添加课程」录入任意课程</p>
+    <table class="gaps-table" style="margin-bottom:14px">
+      <thead><tr><th style="width:180px">课程</th><th style="width:150px">掌握程度</th><th>备注 / 自我评价</th><th style="width:70px">操作</th></tr></thead>
+      <tbody id="courseTable"></tbody>
+    </table>
+    <button type="button" onclick="addCourseRow()" style="margin-top:8px;padding:8px 16px">+ 添加课程</button>
+
+    <h2 style="margin-top:18px">项目经历</h2>
+    <p style="font-size:12px;color:#64748b;margin-bottom:8px">填写你做过的项目（可选，可添加多个）</p>
+    <div id="projectList"></div>
+    <button type="button" onclick="addProjectRow()" style="margin-top:8px;padding:8px 16px">+ 添加项目</button>
+
+    <button class="green" onclick="submitQuestionnaire()" style="width:100%;padding:12px;font-size:15px;margin-top:16px">提交问卷并创建学习者</button>
     <div id="qResult" style="margin-top:10px;font-size:13px"></div>
   </div>
 </div>
@@ -137,6 +155,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans
 </div>
 
 <div id="tab-adaptive" class="tab-panel">
+  <div class="card" style="margin-bottom:16px">
+    <h2>测试配置 — 分类 / 难度梯度 / 结束条件</h2>
+    <div class="form-row">
+      <div class="form-group"><label>领域（可多选，Ctrl/⌘ 点选；留空=全部）</label><select id="atDomains" multiple style="height:90px"></select></div>
+      <div class="form-group"><label>知识点（可多选；留空=全部）</label><select id="atKps" multiple style="height:90px"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>最大题数</label><input id="atMaxQ" type="number" value="30" min="3" max="100"></div>
+      <div class="form-group"><label>最小题数（收敛判定）</label><input id="atMinQ" type="number" value="8" min="1" max="50"></div>
+      <div class="form-group"><label>连续答错停止</label><input id="atWrong" type="number" value="3" min="1" max="10"></div>
+      <div class="form-group"><label>θ收敛阈值</label><input id="atConv" type="number" value="0.15" step="0.01" min="0.01" max="1"></div>
+    </div>
+    <p style="font-size:12px;color:#64748b;margin:0">难度梯度：易 → 中 → 难，每档正确率达标后自动晋升（默认阈值 易70% / 中65% / 难60%）</p>
+  </div>
   <div class="controls">
     <select id="atLearnerSelect"><option value="">-- 选择被测学习者 --</option></select>
     <button class="green" onclick="startAdaptiveTest()">开始测试</button>
@@ -154,7 +186,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans
 <script>
 var radarChart=null,heatmapChart=null,_profiles={},_atSessionId=null,_atLearnerId=null,_atAnswers=[];
 function initCharts(){radarChart=echarts.init(document.getElementById('radarChart'));heatmapChart=echarts.init(document.getElementById('heatmapChart'));window.addEventListener('resize',function(){radarChart.resize();heatmapChart.resize();});}
-async function init(){initCharts();await loadLearners();await loadChapters();fetch('/api/learners').then(function(r){return r.json()}).then(function(d){document.getElementById('apiStatus').textContent='API OK | '+d.learners.length+' learners';}).catch(function(){document.getElementById('apiStatus').textContent='API OFFLINE';});}
+async function init(){initCharts();renderCourseTable();addProjectRow();await loadLearners();await loadChapters();loadATConfig();fetch('/api/learners').then(function(r){return r.json()}).then(function(d){document.getElementById('apiStatus').textContent='API OK | '+d.learners.length+' learners';}).catch(function(){document.getElementById('apiStatus').textContent='API OFFLINE';});}
 function switchTab(name){document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active')});var btns=document.querySelectorAll('.tab-btn');for(var i=0;i<btns.length;i++){if(btns[i].getAttribute('onclick').indexOf(name)>=0){btns[i].classList.add('active');break;}}document.getElementById('tab-'+name).classList.add('active');if(name==='adaptive')refreshATLearners();if(name==='dashboard'){setTimeout(function(){if(radarChart)radarChart.resize();if(heatmapChart)heatmapChart.resize();},300);}}
 
 // ---- Shared ----
@@ -173,22 +205,74 @@ function renderRadar(dm){var domains=Object.keys(dm);radarChart.setOption({toolt
 function renderHeatmap(detail){var dd=detail.domain_data,domains=Object.keys(dd),xl=domains,yc=[],fd=[],yi=0;domains.forEach(function(d,di){dd[d].forEach(function(k){yc.push(k.kp_name);fd.push([di,yi,k.mastery]);yi++});yi++});heatmapChart.setOption({tooltip:{position:'top',formatter:function(p){return xl[p.data[0]]+' > '+yc[p.data[1]]+'<br/>'+ (p.data[2]*100).toFixed(1)+'%'}},grid:{left:180,right:20,top:30,bottom:40},xAxis:{type:'category',data:xl,splitArea:{show:true},axisLabel:{fontSize:11,color:'#475569'}},yAxis:{type:'category',data:yc.map(function(_,i){return i}),splitArea:{show:true},axisLabel:{fontSize:10,color:'#64748b',formatter:function(v){var n=yc[parseInt(v)];return n?(n.length>8?n.substring(0,8)+'..':n):''}}},visualMap:{min:0,max:1,calculable:true,orient:'horizontal',left:'center',bottom:0,inRange:{color:['#ef4444','#f59e0b','#22c55e']},text:['high','low'],textStyle:{color:'#475569',fontSize:11}},series:[{type:'heatmap',data:fd,label:{show:false},emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,0.3)'}}}]});}
 function renderGaps(gaps){var div=document.getElementById('gapsList');if(!gaps||gaps.length===0){div.innerHTML='<div class="loading">无盲区</div>';return}var tc={blindspot:'盲区',weak:'薄弱',blocked:'阻塞',difficult:'困难'},tcl={blindspot:'gap-blindspot',weak:'gap-weak',blocked:'gap-blocked',difficult:'gap-difficult'};var h='<table class="gaps-table"><thead><tr><th>P</th><th>Type</th><th>KP</th><th>Domain</th><th>Mastery</th><th>Conf</th><th>Action</th></tr></thead><tbody>';gaps.forEach(function(g){h+='<tr><td class="priority-'+g.priority+'">'+(g.priority==='high'?'H':g.priority==='medium'?'M':'L')+'</td><td><span class="gap-type '+tcl[g.gap_type]+'">'+(tc[g.gap_type]||g.gap_type)+'</span></td><td>'+g.kp_name+'</td><td>'+g.domain+'</td><td>'+(g.mastery*100).toFixed(0)+'%</td><td>'+(g.confidence*100).toFixed(0)+'%</td><td style="font-size:11px;color:#64748b">'+(g.suggested_action||g.description)+'</td></tr>'});h+='</tbody></table>';div.innerHTML=h;}
 
+// ---- Questionnaire helpers ----
+var COURSES=['高等数学','线性代数','概率论与数理统计','Python编程','数据结构与算法','机器学习','深度学习','最优化方法'];
+var LEVELS=['未学过','入门','基础','熟练','精通'];
+function courseRowHtml(){var opts='';LEVELS.forEach(function(l){opts+='<option>'+l+'</option>'});return '<td><input class="course-name" placeholder="课程名" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px"></td><td><select class="course-level" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">'+opts+'</select></td><td><input class="course-note" placeholder="备注" style="width:100%;padding:6px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px"></td><td style="text-align:center"><button type="button" onclick="removeCourse(this)" style="background:#ef4444;color:#fff;border:none;padding:5px 10px;border-radius:6px;cursor:pointer">删除</button></td>';}
+function addCourseRow(name,level,note){var tb=document.getElementById('courseTable');if(!tb)return;var tr=document.createElement('tr');tr.innerHTML=courseRowHtml();tr.querySelector('.course-name').value=name||'';tr.querySelector('.course-level').value=level||'未学过';tr.querySelector('.course-note').value=note||'';tb.appendChild(tr);}
+function renderCourseTable(){var tb=document.getElementById('courseTable');if(!tb)return;tb.innerHTML='';COURSES.forEach(function(c){addCourseRow(c,'未学过','');});}
+function removeCourse(btn){var r=btn.closest('tr');if(r)r.remove();}
+function removeProject(btn){var r=btn.closest('.project-row');if(r)r.remove();}
+function addProjectRow(data){data=data||{};var div=document.getElementById('projectList');if(!div)return;var row=document.createElement('div');row.className='project-row';row.style.cssText='border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-bottom:8px;background:#f8fafc';row.innerHTML='<div class="form-row"><div class="form-group"><label>项目名</label><input class="p-name"></div><div class="form-group"><label>担任角色</label><input class="p-role"></div></div><div class="form-group"><label>技术栈（逗号分隔）</label><input class="p-tech"></div><div class="form-group"><label>项目描述</label><textarea class="p-desc"></textarea></div><div style="display:flex;gap:12px;align-items:flex-end"><div class="form-group" style="flex:1;margin:0"><label>持续月数</label><input class="p-dur" type="number" min="0" value="0"></div><button type="button" onclick="removeProject(this)" style="background:#ef4444;color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer">删除</button></div>';row.querySelector('.p-name').value=data.name||'';row.querySelector('.p-role').value=data.role||'';row.querySelector('.p-tech').value=(data.tech_stack&&data.tech_stack.join)?data.tech_stack.join(', '):(data.tech_stack||'');row.querySelector('.p-desc').value=data.description||'';row.querySelector('.p-dur').value=data.duration_months||0;div.appendChild(row);}
+
 // ---- TAB2 Questionnaire ----
-async function submitQuestionnaire(){var payload={name:document.getElementById('qName').value,education:{level:document.getElementById('qLevel').value,major:document.getElementById('qMajor').value,institution:document.getElementById('qInstitution').value,gpa:parseFloat(document.getElementById('qGpa').value)||null,relevant_courses:document.getElementById('qCourses').value.split(',').map(function(s){return s.trim()}).filter(Boolean)},self_assessment:{ml_level:document.getElementById('qML').value,dl_level:document.getElementById('qDL').value,math_level:document.getElementById('qMath').value,learning_goal:document.getElementById('qGoal').value,weekly_hours:parseInt(document.getElementById('qHours').value)||5},test_records:[],interaction_records:[]};var resp=await fetch('/api/learner/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await resp.json();var lid=data.learner_id;document.getElementById('qResult').innerHTML='<span style="color:#22c55e">OK! ID: '+lid+'</span> - <a href="#" onclick="switchTab(\'dashboard\');setTimeout(function(){quickDiagnose(\''+lid+'\')},300);return false;">立即诊断</a>';await loadLearners();}
+async function submitQuestionnaire(){
+  var projects=[];
+  document.querySelectorAll('#projectList .project-row').forEach(function(r){
+    var name=r.querySelector('.p-name').value.trim();
+    if(!name)return;
+    projects.push({name:name,role:r.querySelector('.p-role').value.trim(),description:r.querySelector('.p-desc').value.trim(),tech_stack:r.querySelector('.p-tech').value.split(',').map(function(s){return s.trim()}).filter(Boolean),duration_months:parseInt(r.querySelector('.p-dur').value)||0});
+  });
+  var courses=[];
+  document.querySelectorAll('#courseTable tr').forEach(function(tr){
+    var name=tr.querySelector('.course-name').value.trim();
+    if(!name)return;
+    courses.push({name:name,level:tr.querySelector('.course-level').value,note:tr.querySelector('.course-note').value.trim()});
+  });
+  var payload={name:document.getElementById('qName').value,education:{level:document.getElementById('qLevel').value,major:document.getElementById('qMajor').value,institution:document.getElementById('qInstitution').value,gpa:parseFloat(document.getElementById('qGpa').value)||null,relevant_courses:document.getElementById('qCourses').value.split(',').map(function(s){return s.trim()}).filter(Boolean)},self_assessment:{ml_level:document.getElementById('qML').value,dl_level:document.getElementById('qDL').value,math_level:document.getElementById('qMath').value,programming_level:document.getElementById('qProg').value,learning_goal:document.getElementById('qGoal').value,weekly_hours:parseInt(document.getElementById('qHours').value)||5,position:document.getElementById('qPosition').value.trim(),strengths:document.getElementById('qStrengths').value.trim(),weaknesses:document.getElementById('qWeaknesses').value.trim(),courses:courses,projects:projects},test_records:[],interaction_records:[]};
+  var resp=await fetch('/api/learner/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  var data=await resp.json();
+  var lid=data.learner_id;
+  document.getElementById('qResult').innerHTML='<span style="color:#22c55e">OK! ID: '+lid+'</span> - <a href="#" onclick="switchTab(\'dashboard\');setTimeout(function(){quickDiagnose(\''+lid+'\')},300);return false;">立即诊断</a>';
+  await loadLearners();
+}
 
 // ---- TAB3 Upload ----
 function loadSampleJson(){document.getElementById('uploadJson').value=JSON.stringify({name:"王五",education:{level:"硕士",major:"人工智能",institution:"某科研院所",gpa:3.7,relevant_courses:["深度学习","NLP","计算机视觉"]},self_assessment:{ml_level:"熟练掌握",dl_level:"熟悉CNN/RNN",math_level:"扎实",learning_goal:"发表NLP论文",weekly_hours:15},test_records:[{knowledge_point_id:"kp_012",difficulty:1.0,discrimination:1.2,is_correct:true,time_spent:45},{knowledge_point_id:"kp_012",difficulty:1.3,discrimination:1.0,is_correct:false,time_spent:80,error_pattern:"概念混淆"},{knowledge_point_id:"kp_014",difficulty:2.0,discrimination:1.1,is_correct:true,time_spent:60},{knowledge_point_id:"kp_003",difficulty:0.0,discrimination:0.9,is_correct:false,time_spent:55,error_pattern:"计算错误"}],interaction_records:[{knowledge_point_id:"kp_012",type:"practice",duration:300,detail:"CNN练习"},{knowledge_point_id:"kp_014",type:"view",duration:180,detail:"阅读Transformer论文"}]},null,2);}
 async function submitUpload(){try{var payload=JSON.parse(document.getElementById('uploadJson').value);var resp=await fetch('/api/learner/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await resp.json();var lid=data.learner_id;document.getElementById('uploadResult').innerHTML='<span style="color:#22c55e">OK! ID: '+lid+' ('+data.test_count+' tests/'+data.interaction_count+' interactions)</span> - <a href="#" onclick="switchTab(\'dashboard\');setTimeout(function(){doDiagnose(\''+lid+'\')},200);return false;">立即诊断</a>';await loadLearners();}catch(e){document.getElementById('uploadResult').innerHTML='<span style="color:#ef4444">Error: '+e.message+'</span>'}}
 
 // ---- TAB4 Adaptive Test ----
+async function loadATConfig(){try{var resp=await fetch('/api/adaptive-test/config');var data=await resp.json();var ds=document.getElementById('atDomains');ds.innerHTML='';data.domains.forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=d;ds.appendChild(o);});var ks=document.getElementById('atKps');ks.innerHTML='';data.knowledge_points.forEach(function(k){var o=document.createElement('option');o.value=k.id;o.textContent=k.name+' ('+k.domain+')';ks.appendChild(o);});}catch(e){console.warn('loadATConfig failed',e)}}
 async function refreshATLearners(){var resp=await fetch('/api/learners');var data=await resp.json();var sel=document.getElementById('atLearnerSelect'),cur=sel.value;sel.innerHTML='<option value="">-- 选择被测学习者 --</option>';data.learners.forEach(function(l){var o=document.createElement('option');o.value=l.id;o.textContent=l.name+' ('+l.education_level+') ['+l.test_count+'题]';sel.appendChild(o)});if(cur)sel.value=cur;}
-async function startAdaptiveTest(){var lid=document.getElementById('atLearnerSelect').value;if(!lid){alert('请先选择学习者');return}_atLearnerId=lid;_atAnswers=[];var resp=await fetch('/api/adaptive-test/start/'+lid,{method:'POST'});var data=await resp.json();_atSessionId=data.session_id;document.getElementById('atStatus').textContent='Session: '+data.session_id;document.getElementById('btnFinishAT').disabled=false;window._tc=window._tc||{};renderQuestion(data);renderTheta(data.current_theta,0);document.getElementById('answerHistory').innerHTML='';}
+async function startAdaptiveTest(){
+  var lid=document.getElementById('atLearnerSelect').value;
+  if(!lid){alert('请先选择学习者');return}
+  _atLearnerId=lid;_atAnswers=[];
+  var cfg={};
+  var ds=[].slice.call(document.getElementById('atDomains').selectedOptions).map(function(o){return o.value});
+  if(ds.length)cfg.domains=ds;
+  var ks=[].slice.call(document.getElementById('atKps').selectedOptions).map(function(o){return o.value});
+  if(ks.length)cfg.knowledge_point_ids=ks;
+  cfg.max_questions=parseInt(document.getElementById('atMaxQ').value)||30;
+  cfg.min_questions=parseInt(document.getElementById('atMinQ').value)||8;
+  cfg.consecutive_wrong_stop=parseInt(document.getElementById('atWrong').value)||3;
+  cfg.convergence_threshold=parseFloat(document.getElementById('atConv').value)||0.15;
+  var resp=await fetch('/api/adaptive-test/start/'+lid,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+  var data=await resp.json();
+  _atSessionId=data.session_id;
+  document.getElementById('atStatus').textContent='Session: '+data.session_id+(data.bank_size?' | 题库 '+data.bank_size+' 题':'');
+  document.getElementById('btnFinishAT').disabled=false;
+  window._tc=window._tc||{};
+  renderQuestion(data);
+  renderTheta(data.current_theta,0,data);
+  document.getElementById('answerHistory').innerHTML='';
+}
 
 function renderQuestion(data){
   if(data.finished){
     document.getElementById('questionArea').innerHTML='<div class="question-card"><h3>✅ 测试完成</h3><p style="font-size:18px;margin:12px 0">theta = <b>'+(data.final_theta||data.current_theta).toFixed(4)+'</b></p><p style="color:#64748b">'+data.stop_reason+' | '+data.question_count+' questions</p><p style="color:#22c55e;font-weight:600;margin-top:8px">正在自动转移答题记录并执行诊断...</p></div>';
     if(data.answers&&data.answers.length>0){_atAnswers=data.answers;renderHistory();}
-    renderTheta(data.final_theta||data.current_theta,data.question_count);
+    renderTheta(data.final_theta||data.current_theta,data.question_count,data);
     // Auto-trigger transfer + diagnose when test finishes naturally
     setTimeout(function(){finishAdaptiveAndDiagnose();},800);
     return;
@@ -197,7 +281,7 @@ function renderQuestion(data){
   window._tc[q.question_id]=q;
   var hasQ=q.question_text&&q.options&&q.options.length>0;
   var h='<div class="question-card">';
-  h+='<div class="q-id">#'+(data.question_count+1)+' - '+q.knowledge_point_name+' - difficulty '+q.difficulty.toFixed(1)+'</div>';
+  h+='<div class="q-id">#'+(data.question_count+1)+' - '+q.knowledge_point_name+' - '+(q.level_label?'['+q.level_label+'] ':'')+'难度 '+q.difficulty.toFixed(1)+'</div>';
   if(hasQ){
     h+='<div style="font-size:15px;font-weight:600;margin:12px 0;text-align:left;line-height:1.6">'+q.question_text+'</div>';
     var labels=['A','B','C','D'];
@@ -206,10 +290,22 @@ function renderQuestion(data){
     h+='<p style="color:#94a3b8">IRT adaptive question (simplified)</p>';
     h+='<div style="display:flex;gap:12px;justify-content:center;margin-top:12px"><button class="option-btn" style="width:120px;text-align:center;background:#22c55e;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',0,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">CORRECT</button><button class="option-btn" style="width:120px;text-align:center;background:#ef4444;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',-1,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">WRONG</button></div>';
   }
-  h+='</div>';document.getElementById('questionArea').innerHTML=h;renderTheta(data.current_theta,data.question_count);
+  h+='</div>';document.getElementById('questionArea').innerHTML=h;renderTheta(data.current_theta,data.question_count,data);
 }
 
-function renderTheta(theta,qCount){var pct=Math.max(0,Math.min(100,((theta+4)/8)*100));document.getElementById('thetaDisplay').innerHTML='<div style="font-size:28px;font-weight:700;text-align:center;margin:10px 0">theta = '+theta.toFixed(4)+'</div><div class="theta-meter"><span style="font-size:11px">-4</span><div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div><span style="font-size:11px">+4</span></div><div style="text-align:center;font-size:13px;color:#64748b">Answered: '+qCount+' | Stop: 3 consecutive wrong / convergence(&lt;0.15,>=8q) / max 30q</div>'}
+function renderTheta(theta,qCount,stage){
+  var pct=Math.max(0,Math.min(100,((theta+4)/8)*100));
+  var stageHtml='';
+  if(stage&&stage.stages){
+    var dots=stage.stages.map(function(s,i){return '<span style="padding:2px 8px;border-radius:10px;font-size:11px;'+(i===stage.current_stage?'background:#4facfe;color:#fff;font-weight:700':'background:#e2e8f0;color:#64748b')+'">'+s.label+'</span>';}).join(' → ');
+    var range=stage.difficulty_range||[0,0];
+    var prog=stage.stage_progress||{};
+    var acc=(prog.accuracy==null||prog.accuracy===undefined)?'—':(prog.accuracy*100).toFixed(0)+'%';
+    stageHtml='<div style="text-align:center;font-size:13px;margin:6px 0">'+dots+'</div>'
+      +'<div style="text-align:center;font-size:12px;color:#64748b">当前档：<b style="color:#4facfe">'+stage.current_stage_label+'</b>（难度 '+range[0]+'~'+range[1]+'）| 档内 '+prog.answered+'/'+prog.min_questions+' 题，正确率 '+acc+'（晋升需≥'+(prog.promote_accuracy?Math.round(prog.promote_accuracy*100):0)+'%）</div>';
+  }
+  document.getElementById('thetaDisplay').innerHTML='<div style="font-size:28px;font-weight:700;text-align:center;margin:10px 0">theta = '+theta.toFixed(4)+'</div>'+stageHtml+'<div class="theta-meter"><span style="font-size:11px">-4</span><div class="bar"><div class="bar-fill" style="width:'+pct+'%"></div></div><span style="font-size:11px">+4</span></div><div style="text-align:center;font-size:13px;color:#64748b">Answered: '+qCount+' | 连续错停止 / θ收敛 / 最大题数 / 通过全部难度档</div>';
+}
 
 async function submitAnswer(qid,userAnswer,kpName,kpId){
   var q=window._tc?window._tc[qid]:null;

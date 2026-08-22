@@ -1,0 +1,174 @@
+{
+  "query": "如何搭建RAG系统并补足向量检索和重排序知识",
+  "rewritten_query": "如何搭建RAG系统并补足向量检索和重排序知识 ; goals:完成课程项目, 理解RAG基本架构 ; weak_concepts:向量检索, Reranker, Embedding",
+  "intent": "task_guidance",
+  "learner_id": "student_001",
+  "profile_id": "profile_student_001",
+  "difficulty_filter": "beginner",
+  "concept_id": "concept:rag",
+  "depth": 1,
+  "evidence": [],
+  "candidate_evidence": [
+    {
+      "chunk_id": "ab4d1c1c9f5f-c1",
+      "source_id": "data/raw/team_projects/rag_pipeline_notes.md",
+      "text": "当前 RAG Pipeline 可以拆解为五个阶段：\n\n1. 数据采集与整理\n2. 文档解析与结构化表示\n3. 语义切片与难度标注\n4. 混合检索索引构建\n5. 检索、重排与证据返回\n\n与传统“向量库 + 大模型”不同，本项目强调 RAG 与知识图谱联动，因此除了返回文本片段，还保留了概念级溯源能力。\n\n---",
+      "source_title": "rag_pipeline_notes",
+      "heading_path": [
+        "RAG Pipeline 搭建记录",
+        "2. Pipeline 总体流程"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 24.860558105470353,
+      "retrieval_method": "bm25_fallback",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "code",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "data/raw/team_projects/rag_pipeline_notes.md#ab4d1c1c9f5f-c1",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "beca473ff4d9-c2",
+      "source_id": "data/raw/textbooks/ch01.md",
+      "text": "输入序列是：'ab.b'，期望输出序列是'b.'\n这里同样采用最简易的独热编码（可以搜索对应概念），总共4个字符，其对应关系为\n[0,0,0,0]:'<begin>'; [1,0,0,0]:'a'; [0,1,0,0]:'b'; [0,0,1,0]:'.'; [0,0,0,1]:'<end>'; \n可以构建神经网络的输出是四分类，假设模型输出为\\[0,0,1,0]，通过映射关系得到其输出字符'b'，将预测得到的结果传入模型，得到下一个输出 \\[0,0,0,1]，通过映射关系得到其输出字符'.', 再将预测得到的结果传入模型，得到下一个输出 \\[0,0,0,1]，通过映射关系得到其输出字符'<end>'，从而结束整个输出。语言模型（LM）的经典定义是一种对词元序列(token)的概率分布。假设我们有一个词元集的词汇表 $V$ 。",
+      "source_title": "ch01",
+      "heading_path": [
+        "第1章 引言",
+        "1.1 什么是语言模型"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 23.073595845233108,
+      "retrieval_method": "bm25_fallback",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "data/raw/textbooks/ch01.md#beca473ff4d9-c2",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "6342dbaa5905-c19",
+      "source_id": "data/raw/textbooks/ch03.md",
+      "text": "编码端架构的著名的模型如BERT、RoBERTa等。这些语言模型生成上下文向量表征，但不能直接用于生成文本。可以表示为， $x_{1:L}⇒ϕ(x_{1:L})$ 。这些上下文向量表征通常用于分类任务（也被称为自然语言理解任务）。任务形式比较简单，下面以情感分类/自然语言推理任务举例：\n$$\n情感分析输入与输出形式：[[CLS], 他们, 移动, 而, 强大]\\Rightarrow 正面情绪\n$$\n$$\n自然语言处理输入与输出形式：[[CLS], 所有, 动物, 都, 喜欢, 吃, 饼干, 哦]⇒蕴涵\n$$\n该架构的优势是对于文本的上下文信息有更好的理解，因此该模型架构才会多用于理解任务。该架构的有点是对于每个 $x{i}$ ，上下文向量表征可以双向地依赖于左侧上下文 $(x_{1:i−1})$ 和右侧上下文 $(x_{i+1:L})$ 。",
+      "source_title": "ch03",
+      "heading_path": [
+        "第3章 模型架构",
+        "3.3 模型架构",
+        "3.3.1 语言模型分类",
+        "3.3.1.1 编码端（Encoder-Only）架构"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 22.8057355557886,
+      "retrieval_method": "bm25_fallback",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "data/raw/textbooks/ch03.md#6342dbaa5905-c19",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "beca473ff4d9-c1",
+      "source_id": "data/raw/textbooks/ch01.md",
+      "text": "输入序列是：'ab.b'\n这里采用最简易的独热编码（可以搜索对应概念），总共3个字符，再加入'<begin>'和'<end>'两个字符串的起始和终止字符，其对应关系为\n'<begin>':[0,0,0,0]; 'a':[1,0,0,0]; 'b':[0,1,0,0]; '.':[0,0,1,0]; '<end>':[0,0,0,1]\n则输入序列可以编码为:\n\\[[0,0,0,0],[1,0,0,0],[0,1,0,0],[0,0,0,1],[0,1,0,0],[0,0,0,1]]\n然后此序列编码可以进入神经网络进行计算啦。针对于第二个问题，同第一个问题类似，其处理方式其实有很多种，我们可以将输入序列进行编码，从而把数值转化为字符。> 示例：\n假设整个符号体系只有'a','b'两个小写字母和'.'一个句号。输入序列是：'ab.b'，期望输出序列是'b.'",
+      "source_title": "ch01",
+      "heading_path": [
+        "第1章 引言",
+        "1.1 什么是语言模型"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 21.97014559406277,
+      "retrieval_method": "bm25_fallback",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "data/raw/textbooks/ch01.md#beca473ff4d9-c1",
+      "evidence_status": "candidate_only"
+    },
+    {
+      "chunk_id": "393760458909-c17",
+      "source_id": "data/raw/official_docs/neo4j_knowledge_graph.md",
+      "text": "Neo4j 不应被视为向量库的替代品，而应被视为结构化知识增强组件。\n\n在 RAG 系统中，Neo4j 的主要作用包括：\n\n- 保存概念级知识结构\n- 提供知识点前置依赖关系\n- 连接学习者画像与知识点\n- 为生成结果提供证据链回溯\n- 为检索结果补充结构上下文\n\n典型联动方式如下：\n\n1. 文本知识库负责高召回\n2. Neo4j 负责结构化关系查询\n3. 生成 Agent 综合文本证据和图谱路径生成回答\n4. 审查 Agent 回查 `EVIDENCED_BY` 验证内容是否有来源\n\n这种架构兼顾了文本灵活性和结构可解释性。\n\n---",
+      "source_title": "neo4j_knowledge_graph",
+      "heading_path": [
+        "Neo4j 知识图谱建模与实践说明",
+        "6. Neo4j 在 RAG 系统中的作用"
+      ],
+      "page_no": null,
+      "difficulty": "beginner",
+      "score": 21.649986372517574,
+      "retrieval_method": "bm25_fallback",
+      "concept_id": "concept:rag",
+      "depth": 1,
+      "content_kind": "definition",
+      "review_status": "unreviewed",
+      "license_status": "unregistered",
+      "code_location": "data/raw/official_docs/neo4j_knowledge_graph.md#393760458909-c17",
+      "evidence_status": "candidate_only"
+    }
+  ],
+  "evidence_summary": {
+    "published_count": 0,
+    "candidate_count": 5,
+    "content_kinds_found_in_candidates": [
+      "code",
+      "definition"
+    ],
+    "required_content_kinds": [
+      "definition",
+      "code",
+      "exercise"
+    ],
+    "missing_required_content_kinds": [
+      "exercise"
+    ],
+    "formal_evidence_is_empty": true,
+    "note": "candidate_evidence is not published knowledge and must not be used as formal evidence before review and license confirmation."
+  },
+  "concept_evidence": {
+    "concept:rag": {
+      "depth": 1,
+      "published": [],
+      "candidates": [
+        "ab4d1c1c9f5f-c1",
+        "beca473ff4d9-c2",
+        "6342dbaa5905-c19",
+        "beca473ff4d9-c1",
+        "393760458909-c17"
+      ],
+      "graph_evidence": [],
+      "evidence_status": "candidate_only"
+    }
+  },
+  "learning_path": [],
+  "answer_outline": [
+    "Explain the concept first, then give practical steps and caveats.",
+    "Use evidence from rag_pipeline_notes.",
+    "Use evidence from ch01.",
+    "Use evidence from ch03."
+  ],
+  "agent_notes": [
+    "Applied learner level filter: beginner",
+    "Published evidence count: 0",
+    "Candidate evidence count: 5",
+    "Applied concept filter: concept:rag",
+    "Applied depth filter: 1",
+    "Applied weak concept boost: 向量检索, Reranker, Embedding",
+    "Candidate concepts: 向量检索, Reranker, Embedding, 如何搭建RAG系统并补足向量检索和重排序知识, RAG Pipeline 搭建记录",
+    "No published evidence found. Returning candidate evidence and evidence_gap only."
+  ],
+  "evidence_gap": {
+    "exercise": "No exercise candidate was found for this query/concept/depth.",
+    "formal_evidence": "No evidence was promoted from candidate_only to published evidence. Candidate fragments must be reviewed and licensed before publication."
+  }
+}

@@ -14,7 +14,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
@@ -169,17 +169,12 @@ class ResourceGenerationBrief(BaseModel):
     def create(
         cls, *, profile_id: str, policy: GenerationPolicy, learner_context: dict[str, Any]
     ) -> ResourceGenerationBrief:
-        payload: dict[str, object] = {
+        payload = {
             "profile_id": profile_id,
             "policy": policy.model_dump(mode="json"),
             "learner_context": learner_context,
         }
-        return cls(
-            brief_id=_digest("generation_brief", payload),
-            profile_id=profile_id,
-            policy=policy,
-            learner_context=learner_context,
-        )
+        return cls(**payload, brief_id=_digest("generation_brief", payload))
 
 
 class TechnicalClaim(BaseModel):
@@ -787,16 +782,10 @@ class ControlledResourceGenerationService:
             raw = self._adapter.complete(prompt, repair=repair)
             return schema.model_validate_json(raw)
 
-        lecture = cast(LectureDraft, generate_one("lecture", LectureDraft))
-        practical = cast(
-            PracticalGuideDraft,
-            generate_one("practical_guide", PracticalGuideDraft),
-        )
-        quiz = cast(StudentQuizDraft, generate_one("student_quiz", StudentQuizDraft))
-        teacher = cast(
-            TeacherGuideDraft,
-            generate_one("teacher_guide", TeacherGuideDraft, student_quiz=quiz),
-        )
+        lecture = generate_one("lecture", LectureDraft)
+        practical = generate_one("practical_guide", PracticalGuideDraft)
+        quiz = generate_one("student_quiz", StudentQuizDraft)
+        teacher = generate_one("teacher_guide", TeacherGuideDraft, student_quiz=quiz)
         return StructuredResourceDraft(
             lecture=lecture,
             practical_guide=practical,

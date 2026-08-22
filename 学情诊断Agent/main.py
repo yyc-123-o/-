@@ -28,6 +28,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from models.schemas import (
     Learner, LearnerProfile, DiagnosisResult,
     Education, SelfAssessment, TestRecord, InteractionRecord,
+    CourseSelfAssessment, ProjectExperience,
 )
 from models.knowledge_graph import KG
 from core.profile_builder import build_profile
@@ -136,8 +137,14 @@ async def upload_learner(payload: dict = Body(...)):
         ml_level=sa_data.get("ml_level", ""),
         dl_level=sa_data.get("dl_level", ""),
         math_level=sa_data.get("math_level", ""),
+        programming_level=sa_data.get("programming_level", ""),
         learning_goal=sa_data.get("learning_goal", ""),
         weekly_hours=sa_data.get("weekly_hours", 5),
+        position=sa_data.get("position", ""),
+        strengths=sa_data.get("strengths", ""),
+        weaknesses=sa_data.get("weaknesses", ""),
+        courses=[CourseSelfAssessment(**c) for c in sa_data.get("courses", [])],
+        projects=[ProjectExperience(**p) for p in sa_data.get("projects", [])],
     )
 
     # 解析 test_records
@@ -264,8 +271,18 @@ async def get_mastery_detail(learner_id: str):
 # ============================================================
 
 @app.post("/api/adaptive-test/start/{learner_id}")
-async def start_adaptive_test(learner_id: str):
-    """启动自适应测试 — 返回第一道题"""
+async def start_adaptive_test(learner_id: str, payload: Optional[dict] = Body(default=None)):
+    """启动自适应测试 — 返回第一道题
+
+    可选 JSON body (分类测试 + 难度梯度 + 结束条件):
+    {
+      "domains": ["数学基础"],                      // 按领域过滤
+      "knowledge_point_ids": ["kp_012", "kp_014"],  // 按知识点过滤
+      "difficulty_stages": [{"label":"易","low":-3,"high":-0.2,"promote_accuracy":0.7,"min_questions":2}, ...],
+      "max_questions": 30, "min_questions": 8,
+      "consecutive_wrong_stop": 3, "convergence_threshold": 0.15
+    }
+    """
     learner = _learners.get(learner_id)
     if not learner:
         raise HTTPException(status_code=404, detail="学习者不存在")
@@ -273,8 +290,19 @@ async def start_adaptive_test(learner_id: str):
     if learner.education:
         from core.irt import education_prior_theta
         prior_theta = education_prior_theta(learner.education.level)
-    result = adaptive_test.start_session(learner_id, prior_theta, _test_bank)
+    config = adaptive_test.build_config(payload) if payload else None
+    result = adaptive_test.start_session(learner_id, prior_theta, _test_bank, config=config)
     return result
+
+
+@app.get("/api/adaptive-test/config")
+async def get_adaptive_config():
+    """返回默认配置 + 可用领域/知识点 — 供前端渲染配置表单"""
+    return {
+        "default": adaptive_test.default_config_payload(),
+        "domains": KG.domains(),
+        "knowledge_points": KG.to_dict_list(),
+    }
 
 
 @app.post("/api/adaptive-test/answer")

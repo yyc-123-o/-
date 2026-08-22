@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,3 +13,8 @@ class Settings(BaseSettings):
     dense_model: str = "intfloat/multilingual-e5-large"
     sparse_model: str = "Qdrant/bm25"
     request_timeout_seconds: float = Field(default=20.0, gt=0, le=60)
+    llm_base_url: str | None = None
+    llm_api_key: SecretStr | None = None
+    llm_model: str | None = None
+    llm_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
+    notebook_timeout_seconds: int = Field(default=30, ge=1, le=120)

@@ -7,6 +7,11 @@ from .allocation import (
     build_resource_allocation_policy_digest,
 )
 from .briefs import ResourceBriefBuilder
+from .controlled_evaluation import (
+    EvaluationProfile,
+    ResourceEvaluationReport,
+    evaluate_profiles,
+)
 from .controlled_generation import (
     AllowedEvidence,
     AuditStatus,
@@ -17,9 +22,13 @@ from .controlled_generation import (
     FakeLLMAdapter,
     GenerationPolicy,
     PublicationStatus,
+    ResourceAuditReport,
     ResourceGenerationBrief,
     StructuredResourceDraft,
 )
+from .controlled_input import build_brief_from_handoffs
+from .demo_evidence import EvidenceBundleManifest, FrozenEvidence, freeze_cnn_demo_bundle
+from .demo_export import export_candidate_demo
 from .evidence_bundle import EvidenceBundle, build_evidence_bundle
 from .generator_contracts import (
     AssessmentResource,
@@ -36,45 +45,55 @@ from .models import (
     CitationRequirements,
     ErrorPatternHint,
     EvidenceFilters,
-    GenerationGate,
     PresentationPreferences,
     ResourceBrief,
 )
+from .notebook_runner import NotebookExecutionReport, run_fixed_cnn_notebook
 
 __all__ = [
     "AcceptanceChecks",
     "AllowedEvidence",
     "AssessmentResource",
     "AuditStatus",
-    "CandidateLearningPackage",
-    "ClaimSupportStatus",
     "CitationRecord",
     "CitationRequirements",
+    "CandidateLearningPackage",
+    "ClaimSupportStatus",
+    "ControlledResourceGenerationService",
+    "EvaluationProfile",
     "EvidenceBoundItem",
     "EvidenceBundle",
+    "EvidenceBundleManifest",
     "ErrorPatternHint",
     "EvidenceFilters",
     "EvidenceApprovalStatus",
-    "GenerationGate",
-    "GenerationPolicy",
+    "FakeLLMAdapter",
     "LectureResource",
     "PracticalGuideResource",
     "PresentationPreferences",
+    "GenerationPolicy",
+    "FrozenEvidence",
+    "NotebookExecutionReport",
     "ProjectResource",
     "PublicationStatus",
     "QuotaVector",
     "ResourceAllocation",
     "ResourceAllocationPolicy",
     "ResourceBrief",
+    "ResourceAuditReport",
     "ResourceBriefBuilder",
     "ResourceGenerationBrief",
+    "ResourceEvaluationReport",
     "ResourceHandoffContract",
     "StructuredResourceDraft",
-    "ControlledResourceGenerationService",
-    "FakeLLMAdapter",
     "ValidatedResourcePackage",
+    "build_evidence_bundle",
+    "build_brief_from_handoffs",
+    "evaluate_profiles",
+    "export_candidate_demo",
+    "freeze_cnn_demo_bundle",
+    "run_fixed_cnn_notebook",
     "allocate_resources",
     "build_resource_allocation_digest",
     "build_resource_allocation_policy_digest",
-    "build_evidence_bundle",
 ]

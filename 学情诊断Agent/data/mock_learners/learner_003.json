@@ -20,1206 +20,1257 @@
     "ml_level": "熟练掌握，有过Kaggle竞赛经验",
     "dl_level": "熟悉CNN/RNN/Transformer，独立完成过项目",
     "math_level": "数学基础扎实，能看懂论文公式推导",
+    "programming_level": "精通，有竞赛与项目经验",
     "learning_goal": "深入LLM前沿，准备发表一篇NLP方向论文",
-    "weekly_hours": 20
+    "weekly_hours": 20,
+    "position": "实验室研究助理 / 竞赛队长",
+    "strengths": "数学基础扎实能推公式，深度学习熟悉CNN/RNN/Transformer，有完整项目与竞赛经验",
+    "weaknesses": "模型部署与工程化（量化/推理优化）经验相对较少",
+    "courses": [
+      {
+        "name": "高等数学",
+        "level": "熟练",
+        "note": "能看懂论文公式推导"
+      },
+      {
+        "name": "线性代数",
+        "level": "熟练",
+        "note": "矩阵分解/特征分解熟练"
+      },
+      {
+        "name": "概率论与数理统计",
+        "level": "熟练",
+        "note": ""
+      },
+      {
+        "name": "Python编程",
+        "level": "精通",
+        "note": ""
+      },
+      {
+        "name": "数据结构与算法",
+        "level": "熟练",
+        "note": ""
+      },
+      {
+        "name": "机器学习",
+        "level": "熟练",
+        "note": "有Kaggle经验"
+      },
+      {
+        "name": "深度学习",
+        "level": "熟练",
+        "note": "独立完成过CV/NLP项目"
+      },
+      {
+        "name": "最优化方法",
+        "level": "基础",
+        "note": ""
+      }
+    ],
+    "projects": [
+      {
+        "name": "Kaggle图像分割竞赛",
+        "role": "队长",
+        "description": "基于U-Net/DeepLab的医学图像分割，Top 5%",
+        "tech_stack": [
+          "Python",
+          "PyTorch",
+          "segmentation_models"
+        ],
+        "duration_months": 3
+      },
+      {
+        "name": "基于Transformer的文本分类",
+        "role": "独立完成",
+        "description": "用BERT微调做多分类，含数据增强与对抗训练",
+        "tech_stack": [
+          "Python",
+          "PyTorch",
+          "transformers"
+        ],
+        "duration_months": 2
+      }
+    ]
   },
   "test_records": [
     {
-      "knowledge_point_id": "kp_030",
-      "question_id": "q_kp_030_1",
-      "difficulty": 0.74,
-      "discrimination": 1.08,
-      "is_correct": true,
-      "timestamp": "2026-06-15T09:00:00",
-      "time_spent": 33,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_030",
-      "question_id": "q_kp_030_2",
-      "difficulty": 0.16,
-      "discrimination": 0.62,
-      "is_correct": true,
-      "timestamp": "2026-06-15T09:03:00",
-      "time_spent": 22,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_024",
-      "question_id": "q_kp_024_1",
-      "difficulty": 1.2,
-      "discrimination": 0.71,
-      "is_correct": false,
-      "timestamp": "2026-06-16T09:00:00",
-      "time_spent": 54,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_024",
-      "question_id": "q_kp_024_2",
+      "knowledge_point_id": "kp_023",
+      "question_id": "q_kp_023_1",
       "difficulty": 1.1,
-      "discrimination": 0.61,
-      "is_correct": false,
-      "timestamp": "2026-06-16T09:03:00",
-      "time_spent": 68,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_007",
-      "question_id": "q_kp_007_1",
-      "difficulty": 0.53,
-      "discrimination": 1.1,
-      "is_correct": true,
-      "timestamp": "2026-06-17T09:00:00",
-      "time_spent": 27,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_007",
-      "question_id": "q_kp_007_2",
-      "difficulty": 0.34,
-      "discrimination": 1.13,
-      "is_correct": false,
-      "timestamp": "2026-06-17T09:03:00",
-      "time_spent": 35,
-      "hint_used": false,
-      "error_pattern": "忽略条件"
-    },
-    {
-      "knowledge_point_id": "kp_007",
-      "question_id": "q_kp_007_3",
-      "difficulty": 0.3,
-      "discrimination": 1.09,
-      "is_correct": true,
-      "timestamp": "2026-06-17T09:06:00",
-      "time_spent": 28,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_003",
-      "question_id": "q_kp_003_1",
-      "difficulty": -0.32,
-      "discrimination": 1.31,
-      "is_correct": true,
-      "timestamp": "2026-06-18T09:00:00",
-      "time_spent": 22,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_003",
-      "question_id": "q_kp_003_2",
-      "difficulty": 0.37,
-      "discrimination": 0.74,
-      "is_correct": true,
-      "timestamp": "2026-06-18T09:03:00",
-      "time_spent": 34,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_003",
-      "question_id": "q_kp_003_3",
-      "difficulty": -0.23,
-      "discrimination": 0.98,
-      "is_correct": false,
-      "timestamp": "2026-06-18T09:06:00",
-      "time_spent": 45,
-      "hint_used": false,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_002",
-      "question_id": "q_kp_002_1",
-      "difficulty": -0.82,
-      "discrimination": 0.76,
-      "is_correct": true,
-      "timestamp": "2026-06-19T09:00:00",
-      "time_spent": 12,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_002",
-      "question_id": "q_kp_002_2",
-      "difficulty": -0.6,
-      "discrimination": 1.18,
-      "is_correct": false,
-      "timestamp": "2026-06-19T09:03:00",
-      "time_spent": 27,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_002",
-      "question_id": "q_kp_002_3",
-      "difficulty": -0.44,
-      "discrimination": 0.93,
-      "is_correct": true,
-      "timestamp": "2026-06-19T09:06:00",
-      "time_spent": 22,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_002",
-      "question_id": "q_kp_002_4",
-      "difficulty": -0.74,
-      "discrimination": 0.9,
-      "is_correct": true,
-      "timestamp": "2026-06-19T09:09:00",
-      "time_spent": 13,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_010",
-      "question_id": "q_kp_010_1",
-      "difficulty": -0.32,
-      "discrimination": 1.2,
-      "is_correct": false,
-      "timestamp": "2026-06-20T09:00:00",
-      "time_spent": 30,
-      "hint_used": false,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_010",
-      "question_id": "q_kp_010_2",
-      "difficulty": -0.03,
-      "discrimination": 0.81,
-      "is_correct": true,
-      "timestamp": "2026-06-20T09:03:00",
-      "time_spent": 24,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_010",
-      "question_id": "q_kp_010_3",
-      "difficulty": 0.12,
-      "discrimination": 1.0,
-      "is_correct": true,
-      "timestamp": "2026-06-20T09:06:00",
-      "time_spent": 24,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_014",
-      "question_id": "q_kp_014_1",
-      "difficulty": 1.84,
-      "discrimination": 1.04,
-      "is_correct": true,
-      "timestamp": "2026-06-21T09:00:00",
-      "time_spent": 54,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_014",
-      "question_id": "q_kp_014_2",
-      "difficulty": 2.03,
-      "discrimination": 0.73,
-      "is_correct": true,
-      "timestamp": "2026-06-21T09:03:00",
-      "time_spent": 45,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_014",
-      "question_id": "q_kp_014_3",
-      "difficulty": 2.07,
-      "discrimination": 1.19,
-      "is_correct": false,
-      "timestamp": "2026-06-21T09:06:00",
-      "time_spent": 79,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_025",
-      "question_id": "q_kp_025_1",
-      "difficulty": 1.32,
-      "discrimination": 0.68,
-      "is_correct": true,
-      "timestamp": "2026-06-22T09:00:00",
-      "time_spent": 47,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_025",
-      "question_id": "q_kp_025_2",
-      "difficulty": 0.93,
-      "discrimination": 0.96,
-      "is_correct": true,
-      "timestamp": "2026-06-22T09:03:00",
-      "time_spent": 40,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_025",
-      "question_id": "q_kp_025_3",
-      "difficulty": 1.3,
-      "discrimination": 0.87,
-      "is_correct": false,
-      "timestamp": "2026-06-22T09:06:00",
-      "time_spent": 59,
-      "hint_used": true,
-      "error_pattern": "概念混淆"
-    },
-    {
-      "knowledge_point_id": "kp_012",
-      "question_id": "q_kp_012_1",
-      "difficulty": 1.22,
-      "discrimination": 1.01,
-      "is_correct": false,
-      "timestamp": "2026-06-23T09:00:00",
-      "time_spent": 68,
-      "hint_used": false,
-      "error_pattern": "忽略条件"
-    },
-    {
-      "knowledge_point_id": "kp_012",
-      "question_id": "q_kp_012_2",
-      "difficulty": 0.71,
-      "discrimination": 0.7,
-      "is_correct": false,
-      "timestamp": "2026-06-23T09:03:00",
-      "time_spent": 56,
-      "hint_used": false,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_017",
-      "question_id": "q_kp_017_1",
-      "difficulty": 0.92,
-      "discrimination": 1.03,
-      "is_correct": true,
-      "timestamp": "2026-06-24T09:00:00",
-      "time_spent": 43,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_017",
-      "question_id": "q_kp_017_2",
-      "difficulty": 1.19,
-      "discrimination": 0.98,
-      "is_correct": true,
-      "timestamp": "2026-06-24T09:03:00",
-      "time_spent": 46,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "question_id": "q_kp_027_1",
-      "difficulty": 0.77,
-      "discrimination": 1.34,
-      "is_correct": true,
-      "timestamp": "2026-06-25T09:00:00",
-      "time_spent": 37,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "question_id": "q_kp_027_2",
-      "difficulty": 1.39,
       "discrimination": 0.82,
       "is_correct": true,
-      "timestamp": "2026-06-25T09:03:00",
-      "time_spent": 42,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "question_id": "q_kp_027_3",
-      "difficulty": 0.72,
-      "discrimination": 1.11,
-      "is_correct": true,
-      "timestamp": "2026-06-25T09:06:00",
-      "time_spent": 39,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "question_id": "q_kp_015_1",
-      "difficulty": 0.13,
-      "discrimination": 0.96,
-      "is_correct": false,
-      "timestamp": "2026-06-26T09:00:00",
-      "time_spent": 51,
-      "hint_used": false,
-      "error_pattern": "忽略条件"
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "question_id": "q_kp_015_2",
-      "difficulty": 0.63,
-      "discrimination": 0.84,
-      "is_correct": false,
-      "timestamp": "2026-06-26T09:03:00",
-      "time_spent": 51,
-      "hint_used": false,
-      "error_pattern": "忽略条件"
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "question_id": "q_kp_015_3",
-      "difficulty": 0.68,
-      "discrimination": 1.01,
-      "is_correct": false,
-      "timestamp": "2026-06-26T09:06:00",
-      "time_spent": 53,
-      "hint_used": false,
-      "error_pattern": "逻辑跳跃"
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "question_id": "q_kp_015_4",
-      "difficulty": 0.43,
-      "discrimination": 0.95,
-      "is_correct": true,
-      "timestamp": "2026-06-26T09:09:00",
-      "time_spent": 26,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_018",
-      "question_id": "q_kp_018_1",
-      "difficulty": 1.13,
-      "discrimination": 0.7,
-      "is_correct": true,
-      "timestamp": "2026-06-27T09:00:00",
-      "time_spent": 34,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_018",
-      "question_id": "q_kp_018_2",
-      "difficulty": 1.14,
-      "discrimination": 1.33,
-      "is_correct": true,
-      "timestamp": "2026-06-27T09:03:00",
+      "timestamp": "2026-06-15T09:00:00",
       "time_spent": 40,
       "hint_used": false,
       "error_pattern": null
     },
     {
-      "knowledge_point_id": "kp_018",
-      "question_id": "q_kp_018_3",
-      "difficulty": 1.36,
-      "discrimination": 1.09,
+      "knowledge_point_id": "kp_023",
+      "question_id": "q_kp_023_2",
+      "difficulty": 1.13,
+      "discrimination": 1.27,
       "is_correct": true,
-      "timestamp": "2026-06-27T09:06:00",
-      "time_spent": 44,
-      "hint_used": false,
+      "timestamp": "2026-06-15T09:03:00",
+      "time_spent": 41,
+      "hint_used": true,
       "error_pattern": null
     },
     {
-      "knowledge_point_id": "kp_021",
-      "question_id": "q_kp_021_1",
-      "difficulty": 0.15,
-      "discrimination": 0.62,
-      "is_correct": true,
-      "timestamp": "2026-06-28T09:00:00",
-      "time_spent": 31,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_021",
-      "question_id": "q_kp_021_2",
-      "difficulty": -0.04,
-      "discrimination": 1.35,
+      "knowledge_point_id": "kp_023",
+      "question_id": "q_kp_023_3",
+      "difficulty": 1.3,
+      "discrimination": 0.8,
       "is_correct": false,
-      "timestamp": "2026-06-28T09:03:00",
-      "time_spent": 36,
-      "hint_used": false,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_021",
-      "question_id": "q_kp_021_3",
-      "difficulty": 0.11,
-      "discrimination": 0.87,
-      "is_correct": true,
-      "timestamp": "2026-06-28T09:06:00",
-      "time_spent": 30,
+      "timestamp": "2026-06-15T09:06:00",
+      "time_spent": 71,
       "hint_used": false,
       "error_pattern": null
     },
     {
       "knowledge_point_id": "kp_009",
       "question_id": "q_kp_009_1",
-      "difficulty": 0.7,
-      "discrimination": 1.21,
-      "is_correct": false,
-      "timestamp": "2026-06-29T09:00:00",
-      "time_spent": 56,
-      "hint_used": false,
-      "error_pattern": "忽略条件"
+      "difficulty": 0.18,
+      "discrimination": 1.31,
+      "is_correct": true,
+      "timestamp": "2026-06-16T09:00:00",
+      "time_spent": 29,
+      "hint_used": true,
+      "error_pattern": null
     },
     {
       "knowledge_point_id": "kp_009",
       "question_id": "q_kp_009_2",
-      "difficulty": 0.62,
-      "discrimination": 0.83,
+      "difficulty": 0.87,
+      "discrimination": 0.74,
       "is_correct": true,
-      "timestamp": "2026-06-29T09:03:00",
-      "time_spent": 34,
+      "timestamp": "2026-06-16T09:03:00",
+      "time_spent": 41,
       "hint_used": false,
       "error_pattern": null
     },
     {
       "knowledge_point_id": "kp_009",
       "question_id": "q_kp_009_3",
-      "difficulty": 0.28,
-      "discrimination": 1.25,
+      "difficulty": 0.27,
+      "discrimination": 0.98,
       "is_correct": false,
-      "timestamp": "2026-06-29T09:06:00",
-      "time_spent": 38,
-      "hint_used": true,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_009",
-      "question_id": "q_kp_009_4",
-      "difficulty": 0.77,
-      "discrimination": 0.71,
-      "is_correct": false,
-      "timestamp": "2026-06-29T09:09:00",
-      "time_spent": 45,
+      "timestamp": "2026-06-16T09:06:00",
+      "time_spent": 57,
       "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_029",
-      "question_id": "q_kp_029_1",
-      "difficulty": 0.81,
-      "discrimination": 1.13,
-      "is_correct": true,
-      "timestamp": "2026-06-30T09:00:00",
-      "time_spent": 40,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_029",
-      "question_id": "q_kp_029_2",
-      "difficulty": 0.44,
-      "discrimination": 1.04,
-      "is_correct": true,
-      "timestamp": "2026-06-30T09:03:00",
-      "time_spent": 33,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_026",
-      "question_id": "q_kp_026_1",
-      "difficulty": 0.9,
-      "discrimination": 1.01,
-      "is_correct": true,
-      "timestamp": "2026-07-01T09:00:00",
-      "time_spent": 39,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_026",
-      "question_id": "q_kp_026_2",
-      "difficulty": 0.35,
-      "discrimination": 0.97,
-      "is_correct": true,
-      "timestamp": "2026-07-01T09:03:00",
-      "time_spent": 25,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_023",
-      "question_id": "q_kp_023_1",
-      "difficulty": 1.2,
-      "discrimination": 1.24,
-      "is_correct": false,
-      "timestamp": "2026-07-02T09:00:00",
-      "time_spent": 82,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_023",
-      "question_id": "q_kp_023_2",
-      "difficulty": 0.68,
-      "discrimination": 0.72,
-      "is_correct": false,
-      "timestamp": "2026-07-02T09:03:00",
-      "time_spent": 42,
-      "hint_used": true,
       "error_pattern": "概念混淆"
-    },
-    {
-      "knowledge_point_id": "kp_023",
-      "question_id": "q_kp_023_3",
-      "difficulty": 1.22,
-      "discrimination": 0.63,
-      "is_correct": false,
-      "timestamp": "2026-07-02T09:06:00",
-      "time_spent": 80,
-      "hint_used": true,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_023",
-      "question_id": "q_kp_023_4",
-      "difficulty": 1.29,
-      "discrimination": 1.26,
-      "is_correct": false,
-      "timestamp": "2026-07-02T09:09:00",
-      "time_spent": 81,
-      "hint_used": true,
-      "error_pattern": "逻辑跳跃"
     },
     {
       "knowledge_point_id": "kp_020",
       "question_id": "q_kp_020_1",
-      "difficulty": 1.2,
-      "discrimination": 0.7,
+      "difficulty": 0.76,
+      "discrimination": 1.19,
       "is_correct": true,
-      "timestamp": "2026-07-03T09:00:00",
-      "time_spent": 36,
-      "hint_used": true,
+      "timestamp": "2026-06-17T09:00:00",
+      "time_spent": 41,
+      "hint_used": false,
       "error_pattern": null
     },
     {
       "knowledge_point_id": "kp_020",
       "question_id": "q_kp_020_2",
-      "difficulty": 1.26,
-      "discrimination": 0.92,
+      "difficulty": 1.18,
+      "discrimination": 1.31,
       "is_correct": false,
-      "timestamp": "2026-07-03T09:03:00",
-      "time_spent": 54,
+      "timestamp": "2026-06-17T09:03:00",
+      "time_spent": 59,
       "hint_used": false,
       "error_pattern": "概念混淆"
     },
     {
       "knowledge_point_id": "kp_020",
       "question_id": "q_kp_020_3",
-      "difficulty": 0.91,
-      "discrimination": 1.3,
-      "is_correct": false,
-      "timestamp": "2026-07-03T09:06:00",
-      "time_spent": 74,
-      "hint_used": true,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_001",
-      "question_id": "q_kp_001_1",
-      "difficulty": -0.92,
-      "discrimination": 0.99,
-      "is_correct": true,
-      "timestamp": "2026-07-04T09:00:00",
-      "time_spent": 13,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_001",
-      "question_id": "q_kp_001_2",
-      "difficulty": -0.74,
-      "discrimination": 1.05,
-      "is_correct": true,
-      "timestamp": "2026-07-04T09:03:00",
-      "time_spent": 14,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_001",
-      "question_id": "q_kp_001_3",
-      "difficulty": -1.15,
-      "discrimination": 1.05,
-      "is_correct": true,
-      "timestamp": "2026-07-04T09:06:00",
-      "time_spent": 9,
-      "hint_used": true,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "question_id": "q_kp_013_1",
-      "difficulty": 1.81,
-      "discrimination": 0.98,
-      "is_correct": false,
-      "timestamp": "2026-07-05T09:00:00",
-      "time_spent": 99,
-      "hint_used": true,
-      "error_pattern": "概念混淆"
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "question_id": "q_kp_013_2",
-      "difficulty": 1.57,
-      "discrimination": 0.76,
-      "is_correct": false,
-      "timestamp": "2026-07-05T09:03:00",
-      "time_spent": 62,
-      "hint_used": true,
-      "error_pattern": "概念混淆"
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "question_id": "q_kp_013_3",
-      "difficulty": 1.24,
-      "discrimination": 0.71,
-      "is_correct": false,
-      "timestamp": "2026-07-05T09:06:00",
-      "time_spent": 61,
-      "hint_used": false,
-      "error_pattern": "计算错误"
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "question_id": "q_kp_013_4",
-      "difficulty": 1.39,
-      "discrimination": 0.81,
-      "is_correct": false,
-      "timestamp": "2026-07-05T09:09:00",
-      "time_spent": 59,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_016",
-      "question_id": "q_kp_016_1",
-      "difficulty": 0.14,
-      "discrimination": 0.92,
-      "is_correct": true,
-      "timestamp": "2026-07-06T09:00:00",
-      "time_spent": 31,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_016",
-      "question_id": "q_kp_016_2",
-      "difficulty": 0.74,
-      "discrimination": 0.74,
-      "is_correct": false,
-      "timestamp": "2026-07-06T09:03:00",
-      "time_spent": 57,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_028",
-      "question_id": "q_kp_028_1",
       "difficulty": 0.93,
-      "discrimination": 0.95,
+      "discrimination": 1.08,
       "is_correct": false,
-      "timestamp": "2026-07-07T09:00:00",
-      "time_spent": 76,
+      "timestamp": "2026-06-17T09:06:00",
+      "time_spent": 60,
+      "hint_used": true,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "question_id": "q_kp_015_1",
+      "difficulty": 0.18,
+      "discrimination": 1.2,
+      "is_correct": false,
+      "timestamp": "2026-06-18T09:00:00",
+      "time_spent": 39,
+      "hint_used": false,
+      "error_pattern": "概念混淆"
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "question_id": "q_kp_015_2",
+      "difficulty": 0.52,
+      "discrimination": 0.97,
+      "is_correct": true,
+      "timestamp": "2026-06-18T09:03:00",
+      "time_spent": 26,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "question_id": "q_kp_015_3",
+      "difficulty": 0.87,
+      "discrimination": 1.12,
+      "is_correct": false,
+      "timestamp": "2026-06-18T09:06:00",
+      "time_spent": 46,
+      "hint_used": false,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "question_id": "q_kp_015_4",
+      "difficulty": 0.8,
+      "discrimination": 1.32,
+      "is_correct": false,
+      "timestamp": "2026-06-18T09:09:00",
+      "time_spent": 75,
       "hint_used": false,
       "error_pattern": "忽略条件"
     },
     {
-      "knowledge_point_id": "kp_028",
-      "question_id": "q_kp_028_2",
-      "difficulty": 0.96,
-      "discrimination": 1.05,
+      "knowledge_point_id": "kp_021",
+      "question_id": "q_kp_021_1",
+      "difficulty": 0.28,
+      "discrimination": 1.07,
       "is_correct": false,
-      "timestamp": "2026-07-07T09:03:00",
-      "time_spent": 67,
+      "timestamp": "2026-06-19T09:00:00",
+      "time_spent": 42,
       "hint_used": false,
-      "error_pattern": "计算错误"
+      "error_pattern": "概念混淆"
     },
     {
-      "knowledge_point_id": "kp_028",
-      "question_id": "q_kp_028_3",
-      "difficulty": 0.88,
-      "discrimination": 0.9,
+      "knowledge_point_id": "kp_021",
+      "question_id": "q_kp_021_2",
+      "difficulty": 0.22,
+      "discrimination": 0.77,
+      "is_correct": false,
+      "timestamp": "2026-06-19T09:03:00",
+      "time_spent": 36,
+      "hint_used": false,
+      "error_pattern": "忽略条件"
+    },
+    {
+      "knowledge_point_id": "kp_011",
+      "question_id": "q_kp_011_1",
+      "difficulty": 0.46,
+      "discrimination": 0.8,
+      "is_correct": false,
+      "timestamp": "2026-06-20T09:00:00",
+      "time_spent": 62,
+      "hint_used": false,
+      "error_pattern": "逻辑跳跃"
+    },
+    {
+      "knowledge_point_id": "kp_011",
+      "question_id": "q_kp_011_2",
+      "difficulty": 0.3,
+      "discrimination": 0.8,
       "is_correct": true,
-      "timestamp": "2026-07-07T09:06:00",
-      "time_spent": 32,
+      "timestamp": "2026-06-20T09:03:00",
+      "time_spent": 33,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_011",
+      "question_id": "q_kp_011_3",
+      "difficulty": 0.72,
+      "discrimination": 1.01,
+      "is_correct": true,
+      "timestamp": "2026-06-20T09:06:00",
+      "time_spent": 35,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_011",
+      "question_id": "q_kp_011_4",
+      "difficulty": 0.45,
+      "discrimination": 0.71,
+      "is_correct": true,
+      "timestamp": "2026-06-20T09:09:00",
+      "time_spent": 36,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_012",
+      "question_id": "q_kp_012_1",
+      "difficulty": 0.73,
+      "discrimination": 1.04,
+      "is_correct": true,
+      "timestamp": "2026-06-21T09:00:00",
+      "time_spent": 31,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_012",
+      "question_id": "q_kp_012_2",
+      "difficulty": 0.7,
+      "discrimination": 1.33,
+      "is_correct": true,
+      "timestamp": "2026-06-21T09:03:00",
+      "time_spent": 35,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_012",
+      "question_id": "q_kp_012_3",
+      "difficulty": 0.92,
+      "discrimination": 1.03,
+      "is_correct": true,
+      "timestamp": "2026-06-21T09:06:00",
+      "time_spent": 43,
       "hint_used": false,
       "error_pattern": null
     },
     {
       "knowledge_point_id": "kp_022",
       "question_id": "q_kp_022_1",
-      "difficulty": 0.86,
-      "discrimination": 0.91,
-      "is_correct": false,
-      "timestamp": "2026-07-08T09:00:00",
-      "time_spent": 62,
-      "hint_used": true,
-      "error_pattern": "忽略条件"
+      "difficulty": 0.37,
+      "discrimination": 1.24,
+      "is_correct": true,
+      "timestamp": "2026-06-22T09:00:00",
+      "time_spent": 32,
+      "hint_used": false,
+      "error_pattern": null
     },
     {
       "knowledge_point_id": "kp_022",
       "question_id": "q_kp_022_2",
-      "difficulty": 0.55,
-      "discrimination": 0.62,
-      "is_correct": false,
-      "timestamp": "2026-07-08T09:03:00",
-      "time_spent": 64,
-      "hint_used": false,
-      "error_pattern": "逻辑跳跃"
-    },
-    {
-      "knowledge_point_id": "kp_011",
-      "question_id": "q_kp_011_1",
-      "difficulty": 0.72,
-      "discrimination": 1.0,
-      "is_correct": false,
-      "timestamp": "2026-07-09T09:00:00",
-      "time_spent": 72,
-      "hint_used": false,
-      "error_pattern": null
-    },
-    {
-      "knowledge_point_id": "kp_011",
-      "question_id": "q_kp_011_2",
-      "difficulty": 0.25,
-      "discrimination": 1.08,
-      "is_correct": false,
-      "timestamp": "2026-07-09T09:03:00",
-      "time_spent": 43,
+      "difficulty": 0.27,
+      "discrimination": 1.34,
+      "is_correct": true,
+      "timestamp": "2026-06-22T09:03:00",
+      "time_spent": 30,
       "hint_used": true,
       "error_pattern": null
     },
     {
-      "knowledge_point_id": "kp_011",
-      "question_id": "q_kp_011_3",
-      "difficulty": 0.49,
-      "discrimination": 1.05,
+      "knowledge_point_id": "kp_022",
+      "question_id": "q_kp_022_3",
+      "difficulty": 0.89,
+      "discrimination": 0.82,
+      "is_correct": true,
+      "timestamp": "2026-06-22T09:06:00",
+      "time_spent": 36,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_029",
+      "question_id": "q_kp_029_1",
+      "difficulty": 0.86,
+      "discrimination": 0.87,
+      "is_correct": true,
+      "timestamp": "2026-06-23T09:00:00",
+      "time_spent": 38,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_029",
+      "question_id": "q_kp_029_2",
+      "difficulty": 0.13,
+      "discrimination": 0.96,
       "is_correct": false,
-      "timestamp": "2026-07-09T09:06:00",
-      "time_spent": 55,
+      "timestamp": "2026-06-23T09:03:00",
+      "time_spent": 51,
+      "hint_used": false,
+      "error_pattern": "忽略条件"
+    },
+    {
+      "knowledge_point_id": "kp_029",
+      "question_id": "q_kp_029_3",
+      "difficulty": 0.34,
+      "discrimination": 1.36,
+      "is_correct": true,
+      "timestamp": "2026-06-23T09:06:00",
+      "time_spent": 32,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_004",
+      "question_id": "q_kp_004_1",
+      "difficulty": 0.45,
+      "discrimination": 0.7,
+      "is_correct": true,
+      "timestamp": "2026-06-24T09:00:00",
+      "time_spent": 33,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_004",
+      "question_id": "q_kp_004_2",
+      "difficulty": 0.63,
+      "discrimination": 0.62,
+      "is_correct": true,
+      "timestamp": "2026-06-24T09:03:00",
+      "time_spent": 29,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_004",
+      "question_id": "q_kp_004_3",
+      "difficulty": 0.79,
+      "discrimination": 0.8,
+      "is_correct": false,
+      "timestamp": "2026-06-24T09:06:00",
+      "time_spent": 46,
+      "hint_used": false,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_004",
+      "question_id": "q_kp_004_4",
+      "difficulty": 0.33,
+      "discrimination": 1.14,
+      "is_correct": false,
+      "timestamp": "2026-06-24T09:09:00",
+      "time_spent": 40,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_010",
+      "question_id": "q_kp_010_1",
+      "difficulty": -0.2,
+      "discrimination": 1.1,
+      "is_correct": true,
+      "timestamp": "2026-06-25T09:00:00",
+      "time_spent": 26,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_010",
+      "question_id": "q_kp_010_2",
+      "difficulty": 0.15,
+      "discrimination": 0.62,
+      "is_correct": true,
+      "timestamp": "2026-06-25T09:03:00",
+      "time_spent": 31,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_010",
+      "question_id": "q_kp_010_3",
+      "difficulty": -0.04,
+      "discrimination": 1.35,
+      "is_correct": false,
+      "timestamp": "2026-06-25T09:06:00",
+      "time_spent": 36,
+      "hint_used": false,
+      "error_pattern": "逻辑跳跃"
+    },
+    {
+      "knowledge_point_id": "kp_027",
+      "question_id": "q_kp_027_1",
+      "difficulty": 0.98,
+      "discrimination": 0.97,
+      "is_correct": true,
+      "timestamp": "2026-06-26T09:00:00",
+      "time_spent": 39,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_027",
+      "question_id": "q_kp_027_2",
+      "difficulty": 0.81,
+      "discrimination": 1.07,
+      "is_correct": true,
+      "timestamp": "2026-06-26T09:03:00",
+      "time_spent": 32,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_027",
+      "question_id": "q_kp_027_3",
+      "difficulty": 1.29,
+      "discrimination": 0.73,
+      "is_correct": true,
+      "timestamp": "2026-06-26T09:06:00",
+      "time_spent": 39,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_017",
+      "question_id": "q_kp_017_1",
+      "difficulty": 1.22,
+      "discrimination": 0.69,
+      "is_correct": true,
+      "timestamp": "2026-06-27T09:00:00",
+      "time_spent": 48,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_017",
+      "question_id": "q_kp_017_2",
+      "difficulty": 0.72,
+      "discrimination": 0.94,
+      "is_correct": false,
+      "timestamp": "2026-06-27T09:03:00",
+      "time_spent": 71,
       "hint_used": false,
       "error_pattern": "概念混淆"
     },
     {
-      "knowledge_point_id": "kp_011",
-      "question_id": "q_kp_011_4",
-      "difficulty": 0.19,
-      "discrimination": 1.24,
+      "knowledge_point_id": "kp_014",
+      "question_id": "q_kp_014_1",
+      "difficulty": 1.94,
+      "discrimination": 1.04,
       "is_correct": false,
-      "timestamp": "2026-07-09T09:09:00",
+      "timestamp": "2026-06-28T09:00:00",
+      "time_spent": 91,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_014",
+      "question_id": "q_kp_014_2",
+      "difficulty": 2.4,
+      "discrimination": 1.01,
+      "is_correct": true,
+      "timestamp": "2026-06-28T09:03:00",
+      "time_spent": 60,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_014",
+      "question_id": "q_kp_014_3",
+      "difficulty": 1.85,
+      "discrimination": 0.97,
+      "is_correct": false,
+      "timestamp": "2026-06-28T09:06:00",
+      "time_spent": 60,
+      "hint_used": false,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_014",
+      "question_id": "q_kp_014_4",
+      "difficulty": 2.27,
+      "discrimination": 1.26,
+      "is_correct": false,
+      "timestamp": "2026-06-28T09:09:00",
+      "time_spent": 80,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_005",
+      "question_id": "q_kp_005_1",
+      "difficulty": -0.05,
+      "discrimination": 1.22,
+      "is_correct": true,
+      "timestamp": "2026-06-29T09:00:00",
+      "time_spent": 26,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_005",
+      "question_id": "q_kp_005_2",
+      "difficulty": -0.27,
+      "discrimination": 0.72,
+      "is_correct": false,
+      "timestamp": "2026-06-29T09:03:00",
+      "time_spent": 43,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_007",
+      "question_id": "q_kp_007_1",
+      "difficulty": 0.7,
+      "discrimination": 1.0,
+      "is_correct": false,
+      "timestamp": "2026-06-30T09:00:00",
+      "time_spent": 55,
+      "hint_used": false,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_007",
+      "question_id": "q_kp_007_2",
+      "difficulty": 0.27,
+      "discrimination": 1.2,
+      "is_correct": true,
+      "timestamp": "2026-06-30T09:03:00",
+      "time_spent": 24,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_007",
+      "question_id": "q_kp_007_3",
+      "difficulty": 0.24,
+      "discrimination": 1.26,
+      "is_correct": true,
+      "timestamp": "2026-06-30T09:06:00",
+      "time_spent": 33,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_025",
+      "question_id": "q_kp_025_1",
+      "difficulty": 1.38,
+      "discrimination": 1.3,
+      "is_correct": true,
+      "timestamp": "2026-07-01T09:00:00",
+      "time_spent": 38,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_025",
+      "question_id": "q_kp_025_2",
+      "difficulty": 0.83,
+      "discrimination": 1.19,
+      "is_correct": false,
+      "timestamp": "2026-07-01T09:03:00",
+      "time_spent": 61,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_025",
+      "question_id": "q_kp_025_3",
+      "difficulty": 0.62,
+      "discrimination": 0.64,
+      "is_correct": false,
+      "timestamp": "2026-07-01T09:06:00",
+      "time_spent": 54,
+      "hint_used": false,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_006",
+      "question_id": "q_kp_006_1",
+      "difficulty": 0.05,
+      "discrimination": 0.91,
+      "is_correct": true,
+      "timestamp": "2026-07-02T09:00:00",
+      "time_spent": 26,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_006",
+      "question_id": "q_kp_006_2",
+      "difficulty": 0.05,
+      "discrimination": 1.14,
+      "is_correct": true,
+      "timestamp": "2026-07-02T09:03:00",
+      "time_spent": 21,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_006",
+      "question_id": "q_kp_006_3",
+      "difficulty": 0.32,
+      "discrimination": 1.12,
+      "is_correct": true,
+      "timestamp": "2026-07-02T09:06:00",
+      "time_spent": 33,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_006",
+      "question_id": "q_kp_006_4",
+      "difficulty": -0.02,
+      "discrimination": 1.35,
+      "is_correct": true,
+      "timestamp": "2026-07-02T09:09:00",
+      "time_spent": 22,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_003",
+      "question_id": "q_kp_003_1",
+      "difficulty": -0.26,
+      "discrimination": 0.71,
+      "is_correct": false,
+      "timestamp": "2026-07-03T09:00:00",
+      "time_spent": 32,
+      "hint_used": false,
+      "error_pattern": "逻辑跳跃"
+    },
+    {
+      "knowledge_point_id": "kp_003",
+      "question_id": "q_kp_003_2",
+      "difficulty": -0.19,
+      "discrimination": 1.09,
+      "is_correct": true,
+      "timestamp": "2026-07-03T09:03:00",
+      "time_spent": 26,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_003",
+      "question_id": "q_kp_003_3",
+      "difficulty": -0.32,
+      "discrimination": 0.69,
+      "is_correct": true,
+      "timestamp": "2026-07-03T09:06:00",
+      "time_spent": 22,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_003",
+      "question_id": "q_kp_003_4",
+      "difficulty": 0.28,
+      "discrimination": 1.2,
+      "is_correct": false,
+      "timestamp": "2026-07-03T09:09:00",
+      "time_spent": 48,
+      "hint_used": false,
+      "error_pattern": "计算错误"
+    },
+    {
+      "knowledge_point_id": "kp_024",
+      "question_id": "q_kp_024_1",
+      "difficulty": 1.74,
+      "discrimination": 0.74,
+      "is_correct": false,
+      "timestamp": "2026-07-04T09:00:00",
+      "time_spent": 78,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_024",
+      "question_id": "q_kp_024_2",
+      "difficulty": 1.4,
+      "discrimination": 0.92,
+      "is_correct": false,
+      "timestamp": "2026-07-04T09:03:00",
+      "time_spent": 56,
+      "hint_used": false,
+      "error_pattern": "忽略条件"
+    },
+    {
+      "knowledge_point_id": "kp_030",
+      "question_id": "q_kp_030_1",
+      "difficulty": 0.57,
+      "discrimination": 0.89,
+      "is_correct": true,
+      "timestamp": "2026-07-05T09:00:00",
+      "time_spent": 31,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_030",
+      "question_id": "q_kp_030_2",
+      "difficulty": 0.84,
+      "discrimination": 1.35,
+      "is_correct": true,
+      "timestamp": "2026-07-05T09:03:00",
+      "time_spent": 34,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_001",
+      "question_id": "q_kp_001_1",
+      "difficulty": -1.1,
+      "discrimination": 0.68,
+      "is_correct": true,
+      "timestamp": "2026-07-06T09:00:00",
+      "time_spent": 12,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_001",
+      "question_id": "q_kp_001_2",
+      "difficulty": -1.23,
+      "discrimination": 1.05,
+      "is_correct": true,
+      "timestamp": "2026-07-06T09:03:00",
+      "time_spent": 8,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_001",
+      "question_id": "q_kp_001_3",
+      "difficulty": -0.66,
+      "discrimination": 1.08,
+      "is_correct": true,
+      "timestamp": "2026-07-06T09:06:00",
+      "time_spent": 14,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_018",
+      "question_id": "q_kp_018_1",
+      "difficulty": 0.63,
+      "discrimination": 1.14,
+      "is_correct": false,
+      "timestamp": "2026-07-07T09:00:00",
       "time_spent": 40,
       "hint_used": false,
       "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_018",
+      "question_id": "q_kp_018_2",
+      "difficulty": 1.0,
+      "discrimination": 0.97,
+      "is_correct": true,
+      "timestamp": "2026-07-07T09:03:00",
+      "time_spent": 42,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_018",
+      "question_id": "q_kp_018_3",
+      "difficulty": 1.3,
+      "discrimination": 0.9,
+      "is_correct": false,
+      "timestamp": "2026-07-07T09:06:00",
+      "time_spent": 60,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_018",
+      "question_id": "q_kp_018_4",
+      "difficulty": 1.0,
+      "discrimination": 1.03,
+      "is_correct": false,
+      "timestamp": "2026-07-07T09:09:00",
+      "time_spent": 79,
+      "hint_used": false,
+      "error_pattern": "忽略条件"
+    },
+    {
+      "knowledge_point_id": "kp_016",
+      "question_id": "q_kp_016_1",
+      "difficulty": 0.4,
+      "discrimination": 0.68,
+      "is_correct": false,
+      "timestamp": "2026-07-08T09:00:00",
+      "time_spent": 49,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_016",
+      "question_id": "q_kp_016_2",
+      "difficulty": 0.59,
+      "discrimination": 0.94,
+      "is_correct": true,
+      "timestamp": "2026-07-08T09:03:00",
+      "time_spent": 32,
+      "hint_used": true,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_016",
+      "question_id": "q_kp_016_3",
+      "difficulty": 0.74,
+      "discrimination": 1.27,
+      "is_correct": true,
+      "timestamp": "2026-07-08T09:06:00",
+      "time_spent": 32,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_008",
+      "question_id": "q_kp_008_1",
+      "difficulty": 0.52,
+      "discrimination": 0.77,
+      "is_correct": true,
+      "timestamp": "2026-07-09T09:00:00",
+      "time_spent": 28,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_008",
+      "question_id": "q_kp_008_2",
+      "difficulty": 0.18,
+      "discrimination": 1.36,
+      "is_correct": true,
+      "timestamp": "2026-07-09T09:03:00",
+      "time_spent": 30,
+      "hint_used": false,
+      "error_pattern": null
+    },
+    {
+      "knowledge_point_id": "kp_008",
+      "question_id": "q_kp_008_3",
+      "difficulty": 0.16,
+      "discrimination": 1.12,
+      "is_correct": false,
+      "timestamp": "2026-07-09T09:06:00",
+      "time_spent": 48,
+      "hint_used": false,
+      "error_pattern": "计算错误"
     }
   ],
   "interaction_records": [
     {
-      "knowledge_point_id": "kp_030",
+      "knowledge_point_id": "kp_023",
       "type": "discussion",
-      "duration": 458,
+      "duration": 591,
       "timestamp": "2026-06-15T09:00:00",
-      "detail": "discussion: 数据增强"
+      "detail": "discussion: 模型调参"
     },
     {
-      "knowledge_point_id": "kp_030",
+      "knowledge_point_id": "kp_023",
       "type": "practice",
-      "duration": 540,
+      "duration": 337,
       "timestamp": "2026-06-15T11:00:00",
-      "detail": "practice: 数据增强"
+      "detail": "practice: 模型调参"
     },
     {
-      "knowledge_point_id": "kp_007",
+      "knowledge_point_id": "kp_023",
+      "type": "view",
+      "duration": 489,
+      "timestamp": "2026-06-15T13:00:00",
+      "detail": "view: 模型调参"
+    },
+    {
+      "knowledge_point_id": "kp_023",
       "type": "practice",
-      "duration": 469,
-      "timestamp": "2026-06-17T09:00:00",
-      "detail": "practice: 无监督学习"
+      "duration": 280,
+      "timestamp": "2026-06-15T15:00:00",
+      "detail": "practice: 模型调参"
     },
     {
-      "knowledge_point_id": "kp_007",
-      "type": "quiz",
-      "duration": 286,
-      "timestamp": "2026-06-17T11:00:00",
-      "detail": "quiz: 无监督学习"
-    },
-    {
-      "knowledge_point_id": "kp_007",
-      "type": "practice",
-      "duration": 66,
-      "timestamp": "2026-06-17T13:00:00",
-      "detail": "practice: 无监督学习"
-    },
-    {
-      "knowledge_point_id": "kp_007",
-      "type": "discussion",
-      "duration": 340,
-      "timestamp": "2026-06-17T15:00:00",
-      "detail": "discussion: 无监督学习"
-    },
-    {
-      "knowledge_point_id": "kp_003",
+      "knowledge_point_id": "kp_009",
       "type": "discussion",
       "duration": 367,
-      "timestamp": "2026-06-18T09:00:00",
-      "detail": "discussion: 概率论"
+      "timestamp": "2026-06-16T09:00:00",
+      "detail": "discussion: 交叉验证"
     },
     {
-      "knowledge_point_id": "kp_003",
+      "knowledge_point_id": "kp_009",
       "type": "view",
       "duration": 548,
-      "timestamp": "2026-06-18T11:00:00",
-      "detail": "view: 概率论"
+      "timestamp": "2026-06-16T11:00:00",
+      "detail": "view: 交叉验证"
     },
     {
-      "knowledge_point_id": "kp_003",
+      "knowledge_point_id": "kp_009",
       "type": "quiz",
       "duration": 490,
+      "timestamp": "2026-06-16T13:00:00",
+      "detail": "quiz: 交叉验证"
+    },
+    {
+      "knowledge_point_id": "kp_020",
+      "type": "view",
+      "duration": 429,
+      "timestamp": "2026-06-17T09:00:00",
+      "detail": "view: 学习率调度"
+    },
+    {
+      "knowledge_point_id": "kp_020",
+      "type": "practice",
+      "duration": 575,
+      "timestamp": "2026-06-17T11:00:00",
+      "detail": "practice: 学习率调度"
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "type": "practice",
+      "duration": 112,
+      "timestamp": "2026-06-18T09:00:00",
+      "detail": "practice: 激活函数"
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "type": "discussion",
+      "duration": 393,
+      "timestamp": "2026-06-18T11:00:00",
+      "detail": "discussion: 激活函数"
+    },
+    {
+      "knowledge_point_id": "kp_015",
+      "type": "practice",
+      "duration": 149,
       "timestamp": "2026-06-18T13:00:00",
-      "detail": "quiz: 概率论"
+      "detail": "practice: 激活函数"
     },
     {
-      "knowledge_point_id": "kp_002",
-      "type": "quiz",
-      "duration": 191,
+      "knowledge_point_id": "kp_015",
+      "type": "view",
+      "duration": 146,
+      "timestamp": "2026-06-18T15:00:00",
+      "detail": "view: 激活函数"
+    },
+    {
+      "knowledge_point_id": "kp_021",
+      "type": "view",
+      "duration": 283,
       "timestamp": "2026-06-19T09:00:00",
-      "detail": "quiz: 线性代数"
+      "detail": "view: 数据预处理"
+    },
+    {
+      "knowledge_point_id": "kp_012",
+      "type": "view",
+      "duration": 557,
+      "timestamp": "2026-06-21T09:00:00",
+      "detail": "view: 卷积神经网络CNN"
+    },
+    {
+      "knowledge_point_id": "kp_012",
+      "type": "practice",
+      "duration": 87,
+      "timestamp": "2026-06-21T11:00:00",
+      "detail": "practice: 卷积神经网络CNN"
+    },
+    {
+      "knowledge_point_id": "kp_022",
+      "type": "practice",
+      "duration": 557,
+      "timestamp": "2026-06-22T09:00:00",
+      "detail": "practice: 特征工程"
+    },
+    {
+      "knowledge_point_id": "kp_022",
+      "type": "practice",
+      "duration": 452,
+      "timestamp": "2026-06-22T11:00:00",
+      "detail": "practice: 特征工程"
+    },
+    {
+      "knowledge_point_id": "kp_022",
+      "type": "practice",
+      "duration": 416,
+      "timestamp": "2026-06-22T13:00:00",
+      "detail": "practice: 特征工程"
+    },
+    {
+      "knowledge_point_id": "kp_022",
+      "type": "practice",
+      "duration": 315,
+      "timestamp": "2026-06-22T15:00:00",
+      "detail": "practice: 特征工程"
+    },
+    {
+      "knowledge_point_id": "kp_029",
+      "type": "discussion",
+      "duration": 334,
+      "timestamp": "2026-06-23T09:00:00",
+      "detail": "discussion: 损失函数"
+    },
+    {
+      "knowledge_point_id": "kp_029",
+      "type": "quiz",
+      "duration": 286,
+      "timestamp": "2026-06-23T11:00:00",
+      "detail": "quiz: 损失函数"
+    },
+    {
+      "knowledge_point_id": "kp_029",
+      "type": "practice",
+      "duration": 244,
+      "timestamp": "2026-06-23T13:00:00",
+      "detail": "practice: 损失函数"
+    },
+    {
+      "knowledge_point_id": "kp_010",
+      "type": "view",
+      "duration": 552,
+      "timestamp": "2026-06-25T09:00:00",
+      "detail": "view: 评估指标"
     },
     {
       "knowledge_point_id": "kp_010",
       "type": "quiz",
-      "duration": 546,
-      "timestamp": "2026-06-20T09:00:00",
+      "duration": 515,
+      "timestamp": "2026-06-25T11:00:00",
       "detail": "quiz: 评估指标"
     },
     {
       "knowledge_point_id": "kp_010",
       "type": "quiz",
-      "duration": 590,
-      "timestamp": "2026-06-20T11:00:00",
+      "duration": 462,
+      "timestamp": "2026-06-25T13:00:00",
       "detail": "quiz: 评估指标"
     },
     {
       "knowledge_point_id": "kp_010",
+      "type": "discussion",
+      "duration": 471,
+      "timestamp": "2026-06-25T15:00:00",
+      "detail": "discussion: 评估指标"
+    },
+    {
+      "knowledge_point_id": "kp_017",
+      "type": "view",
+      "duration": 537,
+      "timestamp": "2026-06-27T09:00:00",
+      "detail": "view: 反向传播"
+    },
+    {
+      "knowledge_point_id": "kp_017",
+      "type": "practice",
+      "duration": 120,
+      "timestamp": "2026-06-27T11:00:00",
+      "detail": "practice: 反向传播"
+    },
+    {
+      "knowledge_point_id": "kp_017",
+      "type": "discussion",
+      "duration": 155,
+      "timestamp": "2026-06-27T13:00:00",
+      "detail": "discussion: 反向传播"
+    },
+    {
+      "knowledge_point_id": "kp_014",
       "type": "quiz",
-      "duration": 98,
-      "timestamp": "2026-06-20T13:00:00",
-      "detail": "quiz: 评估指标"
+      "duration": 137,
+      "timestamp": "2026-06-28T09:00:00",
+      "detail": "quiz: Transformer与Attention"
+    },
+    {
+      "knowledge_point_id": "kp_014",
+      "type": "quiz",
+      "duration": 111,
+      "timestamp": "2026-06-28T11:00:00",
+      "detail": "quiz: Transformer与Attention"
     },
     {
       "knowledge_point_id": "kp_014",
       "type": "view",
-      "duration": 568,
-      "timestamp": "2026-06-21T09:00:00",
+      "duration": 348,
+      "timestamp": "2026-06-28T13:00:00",
       "detail": "view: Transformer与Attention"
     },
     {
-      "knowledge_point_id": "kp_012",
+      "knowledge_point_id": "kp_014",
       "type": "view",
-      "duration": 76,
-      "timestamp": "2026-06-23T09:00:00",
-      "detail": "view: 卷积神经网络CNN"
+      "duration": 88,
+      "timestamp": "2026-06-28T15:00:00",
+      "detail": "view: Transformer与Attention"
     },
     {
-      "knowledge_point_id": "kp_012",
+      "knowledge_point_id": "kp_005",
+      "type": "practice",
+      "duration": 458,
+      "timestamp": "2026-06-29T09:00:00",
+      "detail": "practice: 导数与梯度"
+    },
+    {
+      "knowledge_point_id": "kp_007",
+      "type": "practice",
+      "duration": 532,
+      "timestamp": "2026-06-30T09:00:00",
+      "detail": "practice: 无监督学习"
+    },
+    {
+      "knowledge_point_id": "kp_006",
       "type": "view",
-      "duration": 555,
-      "timestamp": "2026-06-23T11:00:00",
-      "detail": "view: 卷积神经网络CNN"
+      "duration": 113,
+      "timestamp": "2026-07-02T09:00:00",
+      "detail": "view: 监督学习"
     },
     {
-      "knowledge_point_id": "kp_012",
-      "type": "practice",
-      "duration": 388,
-      "timestamp": "2026-06-23T13:00:00",
-      "detail": "practice: 卷积神经网络CNN"
-    },
-    {
-      "knowledge_point_id": "kp_017",
-      "type": "practice",
-      "duration": 489,
-      "timestamp": "2026-06-24T09:00:00",
-      "detail": "practice: 反向传播"
-    },
-    {
-      "knowledge_point_id": "kp_017",
-      "type": "practice",
-      "duration": 465,
-      "timestamp": "2026-06-24T11:00:00",
-      "detail": "practice: 反向传播"
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "type": "practice",
-      "duration": 416,
-      "timestamp": "2026-06-25T09:00:00",
-      "detail": "practice: 集成学习"
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "type": "practice",
-      "duration": 315,
-      "timestamp": "2026-06-25T11:00:00",
-      "detail": "practice: 集成学习"
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "type": "quiz",
-      "duration": 245,
-      "timestamp": "2026-06-25T13:00:00",
-      "detail": "quiz: 集成学习"
-    },
-    {
-      "knowledge_point_id": "kp_027",
-      "type": "view",
-      "duration": 426,
-      "timestamp": "2026-06-25T15:00:00",
-      "detail": "view: 集成学习"
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "type": "view",
-      "duration": 236,
-      "timestamp": "2026-06-26T09:00:00",
-      "detail": "view: 激活函数"
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "type": "view",
-      "duration": 480,
-      "timestamp": "2026-06-26T11:00:00",
-      "detail": "view: 激活函数"
-    },
-    {
-      "knowledge_point_id": "kp_015",
-      "type": "quiz",
-      "duration": 193,
-      "timestamp": "2026-06-26T13:00:00",
-      "detail": "quiz: 激活函数"
-    },
-    {
-      "knowledge_point_id": "kp_009",
+      "knowledge_point_id": "kp_006",
       "type": "view",
       "duration": 288,
-      "timestamp": "2026-06-29T09:00:00",
-      "detail": "view: 交叉验证"
-    },
-    {
-      "knowledge_point_id": "kp_009",
-      "type": "practice",
-      "duration": 563,
-      "timestamp": "2026-06-29T11:00:00",
-      "detail": "practice: 交叉验证"
-    },
-    {
-      "knowledge_point_id": "kp_009",
-      "type": "quiz",
-      "duration": 97,
-      "timestamp": "2026-06-29T13:00:00",
-      "detail": "quiz: 交叉验证"
-    },
-    {
-      "knowledge_point_id": "kp_009",
-      "type": "view",
-      "duration": 486,
-      "timestamp": "2026-06-29T15:00:00",
-      "detail": "view: 交叉验证"
-    },
-    {
-      "knowledge_point_id": "kp_026",
-      "type": "discussion",
-      "duration": 503,
-      "timestamp": "2026-07-01T09:00:00",
-      "detail": "discussion: 信息论基础"
-    },
-    {
-      "knowledge_point_id": "kp_026",
-      "type": "practice",
-      "duration": 233,
-      "timestamp": "2026-07-01T11:00:00",
-      "detail": "practice: 信息论基础"
-    },
-    {
-      "knowledge_point_id": "kp_023",
-      "type": "discussion",
-      "duration": 332,
-      "timestamp": "2026-07-02T09:00:00",
-      "detail": "discussion: 模型调参"
-    },
-    {
-      "knowledge_point_id": "kp_023",
-      "type": "discussion",
-      "duration": 310,
       "timestamp": "2026-07-02T11:00:00",
-      "detail": "discussion: 模型调参"
+      "detail": "view: 监督学习"
     },
     {
-      "knowledge_point_id": "kp_023",
-      "type": "practice",
-      "duration": 178,
-      "timestamp": "2026-07-02T13:00:00",
-      "detail": "practice: 模型调参"
-    },
-    {
-      "knowledge_point_id": "kp_020",
-      "type": "discussion",
-      "duration": 365,
+      "knowledge_point_id": "kp_003",
+      "type": "quiz",
+      "duration": 371,
       "timestamp": "2026-07-03T09:00:00",
-      "detail": "discussion: 学习率调度"
+      "detail": "quiz: 概率论"
     },
     {
-      "knowledge_point_id": "kp_020",
+      "knowledge_point_id": "kp_030",
       "type": "practice",
-      "duration": 507,
-      "timestamp": "2026-07-03T11:00:00",
-      "detail": "practice: 学习率调度"
+      "duration": 359,
+      "timestamp": "2026-07-05T09:00:00",
+      "detail": "practice: 数据增强"
     },
     {
-      "knowledge_point_id": "kp_020",
-      "type": "discussion",
-      "duration": 74,
-      "timestamp": "2026-07-03T13:00:00",
-      "detail": "discussion: 学习率调度"
+      "knowledge_point_id": "kp_030",
+      "type": "practice",
+      "duration": 246,
+      "timestamp": "2026-07-05T11:00:00",
+      "detail": "practice: 数据增强"
     },
     {
       "knowledge_point_id": "kp_001",
-      "type": "quiz",
-      "duration": 408,
-      "timestamp": "2026-07-04T09:00:00",
-      "detail": "quiz: 微积分基础"
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "type": "view",
-      "duration": 394,
-      "timestamp": "2026-07-05T09:00:00",
-      "detail": "view: 循环神经网络RNN/LSTM"
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "type": "view",
-      "duration": 520,
-      "timestamp": "2026-07-05T11:00:00",
-      "detail": "view: 循环神经网络RNN/LSTM"
-    },
-    {
-      "knowledge_point_id": "kp_013",
-      "type": "discussion",
-      "duration": 502,
-      "timestamp": "2026-07-05T13:00:00",
-      "detail": "discussion: 循环神经网络RNN/LSTM"
-    },
-    {
-      "knowledge_point_id": "kp_013",
       "type": "practice",
-      "duration": 598,
-      "timestamp": "2026-07-05T15:00:00",
-      "detail": "practice: 循环神经网络RNN/LSTM"
-    },
-    {
-      "knowledge_point_id": "kp_016",
-      "type": "practice",
-      "duration": 129,
+      "duration": 62,
       "timestamp": "2026-07-06T09:00:00",
-      "detail": "practice: 梯度下降"
+      "detail": "practice: 微积分基础"
     },
     {
       "knowledge_point_id": "kp_016",
       "type": "practice",
-      "duration": 164,
-      "timestamp": "2026-07-06T11:00:00",
+      "duration": 432,
+      "timestamp": "2026-07-08T09:00:00",
       "detail": "practice: 梯度下降"
     },
     {
       "knowledge_point_id": "kp_016",
       "type": "view",
-      "duration": 527,
-      "timestamp": "2026-07-06T13:00:00",
+      "duration": 420,
+      "timestamp": "2026-07-08T11:00:00",
       "detail": "view: 梯度下降"
     },
     {
       "knowledge_point_id": "kp_016",
       "type": "practice",
-      "duration": 253,
-      "timestamp": "2026-07-06T15:00:00",
+      "duration": 394,
+      "timestamp": "2026-07-08T13:00:00",
       "detail": "practice: 梯度下降"
     },
     {
-      "knowledge_point_id": "kp_028",
-      "type": "practice",
-      "duration": 467,
-      "timestamp": "2026-07-07T09:00:00",
-      "detail": "practice: BatchNorm与归一化"
-    },
-    {
-      "knowledge_point_id": "kp_028",
+      "knowledge_point_id": "kp_016",
       "type": "view",
-      "duration": 506,
-      "timestamp": "2026-07-07T11:00:00",
-      "detail": "view: BatchNorm与归一化"
+      "duration": 309,
+      "timestamp": "2026-07-08T15:00:00",
+      "detail": "view: 梯度下降"
     },
     {
-      "knowledge_point_id": "kp_028",
+      "knowledge_point_id": "kp_008",
       "type": "quiz",
-      "duration": 382,
-      "timestamp": "2026-07-07T13:00:00",
-      "detail": "quiz: BatchNorm与归一化"
-    },
-    {
-      "knowledge_point_id": "kp_028",
-      "type": "practice",
-      "duration": 88,
-      "timestamp": "2026-07-07T15:00:00",
-      "detail": "practice: BatchNorm与归一化"
-    },
-    {
-      "knowledge_point_id": "kp_022",
-      "type": "practice",
-      "duration": 534,
-      "timestamp": "2026-07-08T09:00:00",
-      "detail": "practice: 特征工程"
-    },
-    {
-      "knowledge_point_id": "kp_022",
-      "type": "practice",
-      "duration": 365,
-      "timestamp": "2026-07-08T11:00:00",
-      "detail": "practice: 特征工程"
-    },
-    {
-      "knowledge_point_id": "kp_022",
-      "type": "view",
-      "duration": 146,
-      "timestamp": "2026-07-08T13:00:00",
-      "detail": "view: 特征工程"
-    },
-    {
-      "knowledge_point_id": "kp_011",
-      "type": "practice",
-      "duration": 310,
+      "duration": 577,
       "timestamp": "2026-07-09T09:00:00",
-      "detail": "practice: 神经网络基础"
-    },
-    {
-      "knowledge_point_id": "kp_011",
-      "type": "practice",
-      "duration": 148,
-      "timestamp": "2026-07-09T11:00:00",
-      "detail": "practice: 神经网络基础"
+      "detail": "quiz: 过拟合与欠拟合"
     }
   ]
 }

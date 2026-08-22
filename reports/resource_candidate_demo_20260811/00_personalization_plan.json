@@ -1,0 +1,97 @@
+{
+  "learner_snapshot": {
+    "target_mastery": 0.18,
+    "target_mastery_status": "not_learned",
+    "target_mastery_confidence": 0.7,
+    "global_theta": 0.32,
+    "coding_ability": 0.7,
+    "mathematical_foundation": 0.62,
+    "theoretical_understanding": 0.55
+  },
+  "current_resource_boundary": {
+    "delivery_depth": "intro",
+    "generation_gate": "blocked_prerequisite_and_evidence",
+    "reason": "当前仅生成卷积运算补救包；完整 CNN 章节内容等待先修与证据门禁解除。"
+  },
+  "resource_shape": {
+    "worked_example_count": 4,
+    "guided_exercise_count": 8,
+    "assessment_item_count": 8,
+    "code_cell_max_lines": 30,
+    "visual_assets": [
+      "01_nchw_tensor_layout.svg",
+      "02_convolution_window.svg",
+      "03_shape_reasoning_flow.svg"
+    ]
+  },
+  "scaffolding_policy": {
+    "mastery_strategy": "掌握度较低：采用补救型入门路径，先给完整示例，再给带提示练习。",
+    "coding_strategy": "代码能力可用但框架经验有限：提供可运行最小示例，要求一次只修改一个参数并用断言验证。",
+    "math_strategy": "数学基础可支持推导：保留两道完整尺寸例题与参数量核对，要求写出中间步骤。"
+  },
+  "session_plan": [
+    {
+      "session": 1,
+      "minutes": 50,
+      "goal": "概念直觉与两次尺寸推导",
+      "materials": [
+        "讲义第 2–6 节",
+        "卷积滑窗图",
+        "Q1–Q5"
+      ],
+      "success_check": "能解释 NCHW、卷积/互相关区别，并手算 32→16。"
+    },
+    {
+      "session": 2,
+      "minutes": 40,
+      "goal": "PyTorch shape 验证与代码纠错",
+      "materials": [
+        "Notebook 全部代码单元",
+        "Q6–Q8"
+      ],
+      "success_check": "能运行 Conv2d/池化断言并定位 NHWC 错误。"
+    }
+  ],
+  "weekly_capacity": {
+    "weekly_hours": 10,
+    "current_pack_minutes": 90,
+    "remaining_minutes_after_current_pack": 510,
+    "recommended_use_of_remaining_time": "先完成图像张量前置复习与错题复盘；不要在课程规划未解锁前跳到完整 CNN 训练。"
+  },
+  "presentation_strategy": {
+    "content_order": [
+      "概念直觉理解",
+      "数学推导",
+      "代码实战",
+      "面试考点"
+    ],
+    "visual_learner": true,
+    "step_by_step": true,
+    "comparison_tables": true,
+    "formula_first_for_calculation_errors": true
+  },
+  "project_connection": {
+    "target_project": "图像分类实战 → 目标检测 → 基于Transformer的视觉任务",
+    "current_connection": "用 CIFAR-10 的 32×32×3 输入理解卷积 shape；后续连接图像分类与目标检测。"
+  },
+  "deferred_advanced_content": [
+    "卷积运算的数学定义（互相关 vs 卷积的区别）",
+    "CNN各层详解：卷积层（kernel/filter/stride/padding）、池化层（max/avg/global）、全连接层",
+    "感受野（Receptive Field）的定义、计算公式与直观理解",
+    "参数共享与局部连接 — CNN vs MLP 的参数量对比表",
+    "特征图可视化：浅层检测边缘/纹理，深层检测语义",
+    "BatchNorm原理",
+    "Dropout在CNN中的特殊用法",
+    "1×1卷积的三种用途：降维/升维/跨通道信息融合",
+    "常见训练技巧：数据标准化、学习率warmup、梯度裁剪"
+  ],
+  "prior_chapter_signal": {
+    "chapter_name": "机器学习核心回顾+神经网络入门",
+    "accuracy": 0.71,
+    "observed_errors": [
+      "概念混淆",
+      "逻辑跳跃"
+    ],
+    "adaptation": "保留神经网络概念对比与分步论证，避免从前一章直接跳到复杂 CNN。"
+  }
+}

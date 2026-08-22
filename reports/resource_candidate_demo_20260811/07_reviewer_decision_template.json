@@ -1,0 +1,42 @@
+{
+  "instruction": "由具备审核权限的人员逐条填写；资源生成 Agent 不得自行确认。",
+  "concept_id": "dl.cnn.convolution",
+  "depth": "intro",
+  "decisions": [
+    {
+      "evidence_id": "dl_ch09_cnn_a3dde521400f",
+      "approved": false,
+      "license_confirmed": false,
+      "reviewer": "",
+      "note": ""
+    },
+    {
+      "evidence_id": "dl_ch09_cnn_5e2a9735ace2",
+      "approved": false,
+      "license_confirmed": false,
+      "reviewer": "",
+      "note": ""
+    },
+    {
+      "evidence_id": "dl_ch09_cnn_51551ccb3ced",
+      "approved": false,
+      "license_confirmed": false,
+      "reviewer": "",
+      "note": ""
+    },
+    {
+      "evidence_id": "derived_dl_ch09_cnn_pytorch_conv2d_0804",
+      "approved": false,
+      "license_confirmed": false,
+      "reviewer": "",
+      "note": ""
+    },
+    {
+      "evidence_id": "derived_dl_ch09_cnn_exercise_0804",
+      "approved": false,
+      "license_confirmed": false,
+      "reviewer": "",
+      "note": ""
+    }
+  ]
+}
