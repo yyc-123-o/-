@@ -48,4 +48,5 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert 'id="node-resource"' in html.text
     assert "resource-requirements" in javascript.text
     assert "resource-code-line" in javascript.text
+    assert "项目实践要求" in javascript.text
     assert "start-node" in javascript.text

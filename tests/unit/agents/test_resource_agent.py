@@ -130,6 +130,36 @@ def test_preview_does_not_open_formal_gate(resource_case) -> None:
     assert result.publication_status == "candidate_draft"
 
 
+def test_preview_materials_are_specific_to_node_and_question_kind(resource_case) -> None:
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+
+    result = ResourceGenerationAgent().generate_preview(
+        _profile(handoff),
+        handoff,
+        _candidate_retrieval(handoff),
+    )
+    assert result.preview_package is not None
+    assert result.preview_package.draft is not None
+    draft = result.preview_package.draft
+
+    assert any("标量" in section for section in draft.lecture.sections)
+    assert len({item.prompt for item in draft.student_quiz.items}) == len(
+        draft.student_quiz.items
+    )
+    assert any("概念" in item.prompt for item in draft.student_quiz.items)
+    assert any("形状" in item.prompt for item in draft.student_quiz.items)
+    assert any("代码" in item.prompt for item in draft.student_quiz.items)
+
+
 def test_preview_rejects_hard_prerequisite_block(resource_case) -> None:
     brief, _ = resource_case
     handoff = _handoff_with_gate(

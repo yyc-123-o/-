@@ -680,11 +680,36 @@ function renderResources(result) {
       );
     }
   }
+  if (result.handoff?.required_resource_types?.includes("project")) {
+    stack.append(
+      resourceCard(
+        "项目实践要求",
+        [
+          `项目目标：将“${conceptLabel(result.handoff.concept_id)}”应用到一个最小可验证任务。`,
+          "交付物：可运行代码、关键结果记录、失败原因与改进说明。",
+          `验收点：能够解释“${conceptLabel(result.handoff.concept_id)}”的输入、输出和适用边界。`,
+        ],
+        "project",
+      ),
+    );
+  }
   const assessmentItems = assessmentItemsFor(result);
   if (assessmentItems.length > 0) {
     stack.append(buildAssessmentForm(result, assessmentItems));
   }
   workbench.append(stack);
+}
+
+function conceptLabel(conceptId) {
+  const labels = {
+    "math.linear-algebra.scalar": "标量",
+    "math.linear-algebra.vector": "向量",
+    "math.linear-algebra.matrix": "矩阵",
+    "math.linear-algebra.tensor": "张量",
+    "dl.cnn.convolution": "卷积运算",
+    "dl.cnn.cross-correlation": "互相关",
+  };
+  return labels[conceptId] || conceptId.split(".").at(-1).replaceAll("-", " ");
 }
 
 function resourceIdentity(result) {

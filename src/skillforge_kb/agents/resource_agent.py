@@ -288,6 +288,8 @@ def _preview_draft(
     definition_text, definition_id = _evidence_text(definition, handoff, ContentKind.DEFINITION)
     code_text, code_id = _evidence_text(code, handoff, ContentKind.CODE)
     exercise_text, _ = _evidence_text(exercise, handoff, ContentKind.EXERCISE)
+    topic = _concept_label(handoff.concept_id)
+    outcome = handoff.learning_outcomes[0]
     lecture_claim = TechnicalClaim(
         claim_id="preview-lecture-claim",
         text=definition_text,
@@ -317,7 +319,7 @@ def _preview_draft(
             question_id=f"preview-question-{index}",
             kind=kind,
             difficulty=difficulty_levels[index - 1],
-            prompt=f"{handoff.learning_outcomes[(index - 1) % len(handoff.learning_outcomes)]}",
+            prompt=_quiz_prompt(topic, outcome, kind, index),
             hints=(),
         )
         for index, kind in enumerate(kinds, start=1)
@@ -334,14 +336,14 @@ def _preview_draft(
     )
     return StructuredResourceDraft(
         lecture=LectureDraft(
-            title=f"{handoff.concept_id} lecture",
-            sections=handoff.learning_outcomes,
+            title=f"{topic}：概念讲义",
+            sections=_lecture_sections(topic, outcome, definition_text),
             claims=(lecture_claim,),
             explanation_order=policy.personalization.explanation_order_hint,
         ),
         practical_guide=PracticalGuideDraft(
-            title=f"{handoff.concept_id} practical guide",
-            learning_steps=handoff.learning_outcomes,
+            title=f"{topic}：实操指南",
+            learning_steps=_practical_steps(topic, outcome, code_text),
             claims=(practical_claim,),
             notebook_tasks=(code_text,),
             debug_hint_depth=policy.personalization.debugging_emphasis,
@@ -356,6 +358,103 @@ def _preview_draft(
             feedback_strategy=("diagnose", "review", "retry"),
         ),
     )
+
+
+_CONCEPT_LABELS = {
+    "scalar": "标量",
+    "vector": "向量",
+    "matrix": "矩阵",
+    "tensor": "张量",
+    "matrix-operations": "矩阵运算",
+    "matrix-multiplication": "矩阵乘法",
+    "norm": "范数",
+    "eigen-decomposition": "特征值分解",
+    "svd": "奇异值分解",
+    "derivative-gradient": "导数与梯度",
+    "random-variable": "随机变量",
+    "probability-distribution": "概率分布",
+    "convolution": "卷积运算",
+    "cross-correlation": "互相关",
+    "pooling": "池化",
+    "cnn": "卷积神经网络",
+}
+
+_CONCEPT_EXPLANATIONS = {
+    "标量": "标量是只包含一个数值的量，不携带方向或多个坐标；损失值、学习率和温度都是常见例子。",
+    "向量": "向量是一组按顺序排列的数值，既可以表示多个特征，也可以表示带方向的量。",
+    "矩阵": "矩阵是按行和列组织的二维数值表，可用于表示线性变换、样本特征或参数。",
+    "张量": "张量是对标量、向量和矩阵的多维推广，深度学习中的图像通常以批次、通道和空间维度组织。",
+    "矩阵运算": "矩阵运算包括加法、乘法和转置等操作，必须先检查维度是否满足对应运算规则。",
+    "矩阵乘法": "矩阵乘法通过左矩阵的行与右矩阵的列做内积，结果的形状由外侧两个维度决定。",
+    "卷积运算": "卷积运算用局部窗口和可学习的卷积核提取邻域模式，并将输入特征映射为新的空间特征。",
+    "互相关": (
+        "互相关保持卷积核的原有排列，在输入上滑动并逐元素乘加；"
+        "多数深度学习框架的 Conv2d 实际实现它。"
+    ),
+    "池化": "池化在局部窗口内进行聚合，用更少的空间位置保留主要响应并降低特征图分辨率。",
+}
+
+_QUIZ_KIND_LABELS = {
+    "concept": "概念题",
+    "calculation": "计算题",
+    "shape_reasoning": "形状推理题",
+    "code": "代码题",
+    "debugging": "调试题",
+    "synthesis": "综合题",
+    "analysis": "分析题",
+}
+
+
+def _concept_label(concept_id: str) -> str:
+    slug = concept_id.rsplit(".", 1)[-1]
+    return _CONCEPT_LABELS.get(slug, slug.replace("-", " "))
+
+
+def _lecture_sections(topic: str, outcome: str, definition_text: str) -> tuple[str, ...]:
+    explanation = _CONCEPT_EXPLANATIONS.get(topic, f"{topic}是本节需要掌握的核心概念。")
+    return (
+        f"学习目标：{outcome}",
+        f"核心概念：{explanation}",
+        f"证据导读：{definition_text}",
+        f"自检：不用看资料，说明“{topic}”与相邻前置知识的一个区别。",
+    )
+
+
+def _practical_steps(topic: str, outcome: str, code_text: str) -> tuple[str, ...]:
+    return (
+        f"准备：把“{topic}”的输入、输出和关键参数写成一行，确认它们的类型或形状。",
+        f"实现：围绕“{topic}”完成一个最小可运行示例，并记录运行结果。",
+        f"验证：用一个边界值或反例检查实现是否满足“{outcome}”。",
+        f"参考代码/证据：{code_text}",
+    )
+
+
+def _quiz_prompt(topic: str, outcome: str, kind: object, index: int) -> str:
+    kind_value = getattr(kind, "value", str(kind))
+    label = _QUIZ_KIND_LABELS.get(kind_value, kind_value)
+    prompts = {
+        "concept": (
+            f"[{label}] 用自己的话定义“{topic}”，并说明它解决的核心问题。"
+            if index % 2
+            else f"[{label}] 从一个实际例子出发，解释“{topic}”的输入、输出和作用。"
+        ),
+        "calculation": f"[{label}] 为“{topic}”设计一个最小数值例子，写出计算步骤和最终结果。",
+        "shape_reasoning": (
+            f"[{label}] 给定输入和关键参数后，推导“{topic}”的输出形状，并解释每一步变化。"
+            if index % 2
+            else f"[{label}] 修改一个关键参数，重新计算“{topic}”的输出形状并说明影响。"
+        ),
+        "code": (
+            f"[{label}] 用 Python 或 PyTorch 写出“{topic}”的最小实现，标注输入和输出。"
+            if index % 2
+            else f"[{label}] 在“{topic}”示例中加入一次参数变化，打印并解释新的输出。"
+        ),
+        "debugging": f"[{label}] 找出“{topic}”实现中一个可能的错误，说明错误原因和修复方法。",
+        "synthesis": f"[{label}] 将“{topic}”与一个前置知识联系起来，说明何时应该使用它。",
+        "analysis": f"[{label}] 分析“{topic}”的适用边界，并给出一个不适合使用它的场景。",
+    }
+    fallback = f"[{label}] 围绕“{topic}”完成一次解释、验证或迁移。"
+    return prompts.get(kind_value, fallback) + f"（第 {index} 题）"
 
 
 def _evidence_gap(
