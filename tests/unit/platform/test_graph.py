@@ -233,6 +233,45 @@ def test_saved_observations_feed_knowledge_tracing_evaluation(
     assert report.metrics.sample_count == 1
 
 
+def test_service_evaluates_profile_observations(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="eval-entry",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+    service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "eval-1",
+            "concept_id": initial.planning.current_node.concept_id,
+            "score": 1.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    reports = service.evaluate_profile_knowledge_tracing(profile.profile_id)
+
+    assert len(reports) == 1
+    assert reports[0].metrics.sample_count == 1
+
+
+def test_service_evaluation_rejects_profile_without_observations(
+    platform_case,
+    profile,
+) -> None:
+    service, _, _ = _service(platform_case)
+
+    with pytest.raises(ValueError, match="no prediction observations"):
+        service.evaluate_profile_knowledge_tracing(profile.profile_id)
+
+
 def test_strict_gap_blocks_without_calling_resource_agent(platform_case, profile) -> None:
     service, _, resource = _service(platform_case)
     result = service.run(

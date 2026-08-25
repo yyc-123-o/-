@@ -27,7 +27,11 @@ from skillforge_kb.assessment import (
     apply_assessment_event,
     apply_bkt_event,
 )
-from skillforge_kb.evaluation.knowledge_tracing import KnowledgeTracingObservation
+from skillforge_kb.evaluation.knowledge_tracing import (
+    KnowledgeTracingEvaluationReport,
+    KnowledgeTracingObservation,
+    evaluate_knowledge_tracing_by_model,
+)
 from skillforge_kb.evidence.manifest import EvidenceIndex
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.planning.models import PathStatus
@@ -435,6 +439,18 @@ class PlatformService:
 
     def get(self, run_id: str) -> PlatformRunResult | None:
         return self._repository.get(run_id)
+
+    def evaluate_profile_knowledge_tracing(
+        self,
+        profile_id: str,
+    ) -> tuple[KnowledgeTracingEvaluationReport, ...]:
+        with self._lock:
+            observations = self._repository.list_prediction_observations_for_profile(
+                profile_id
+            )
+            if not observations:
+                raise ValueError("no prediction observations")
+            return evaluate_knowledge_tracing_by_model(observations)
 
     def _execute(
         self,
