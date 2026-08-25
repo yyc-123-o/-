@@ -50,7 +50,7 @@ def evaluate_profile_knowledge_tracing(
 
 在 `src/skillforge_kb/api/app.py` 增加只读 endpoint：
 
-`GET /api/profiles/{profile_id}/knowledge-tracing/evaluation`
+`GET /api/v1/profiles/{profile_id}/knowledge-tracing/evaluation`
 
 响应为报告数组的 JSON；无记录返回 HTTP 404，其他校验错误返回现有错误格式。API 层只调用 PlatformService 入口，不重复实现指标。
 
