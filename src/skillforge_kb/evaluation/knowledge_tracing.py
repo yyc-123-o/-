@@ -1,9 +1,10 @@
 import json
+from collections.abc import Sequence
 from datetime import datetime
 from hashlib import sha256
 from math import isfinite, log
 from pathlib import Path
-from typing import Literal, Sequence
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
