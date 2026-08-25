@@ -6,8 +6,8 @@ from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
+from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.platform.models import (
     AssessmentSubmission,
     PlatformRunRequest,
