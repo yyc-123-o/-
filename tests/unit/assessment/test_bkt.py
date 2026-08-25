@@ -1,5 +1,6 @@
-import pytest
 from datetime import UTC, datetime
+
+import pytest
 from pydantic import ValidationError
 
 from skillforge_kb.assessment import AssessmentEvent, apply_assessment_event

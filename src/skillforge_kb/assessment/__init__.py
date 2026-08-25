@@ -1,3 +1,10 @@
+from .bkt import (
+    BktAssessmentUpdateResult,
+    BktParameters,
+    BktState,
+    apply_bkt_event,
+    update_bkt_probability,
+)
 from .update import (
     AssessmentErrorKind,
     AssessmentEvent,
@@ -7,13 +14,6 @@ from .update import (
     apply_assessment_event,
     build_assessment_event_digest,
     build_assessment_policy_digest,
-)
-from .bkt import (
-    BktAssessmentUpdateResult,
-    BktParameters,
-    BktState,
-    apply_bkt_event,
-    update_bkt_probability,
 )
 
 __all__ = [
