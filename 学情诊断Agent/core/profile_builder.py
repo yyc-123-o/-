@@ -631,6 +631,9 @@ def build_profile(
 ) -> LearnerProfile:
     """构建完整学习者画像 — 对齐 0803 结构"""
 
+    if not kg.get_chapter(current_chapter_id):
+        raise ValueError(f"章节 {current_chapter_id} 不存在")
+
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # 1. 学历先验θ

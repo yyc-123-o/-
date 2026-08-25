@@ -84,3 +84,8 @@ def test_test_record_rejects_invalid_irt_and_timing_inputs() -> None:
             is_correct=True,
             time_spent=-1,
         )
+
+
+def test_build_profile_rejects_unknown_chapter() -> None:
+    with pytest.raises(ValueError, match="章节"):
+        build_profile(_blank_learner(), KG, current_chapter_id="missing-chapter")
