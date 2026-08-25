@@ -20,6 +20,7 @@ from skillforge_kb.ontology.models import DepthLevel, LearnerProfileSnapshot
 from skillforge_kb.ontology.resource_blueprints import load_resource_blueprints
 from skillforge_kb.platform.graph import PlatformGraphDependencies, PlatformService
 from skillforge_kb.platform.models import (
+    AssessmentModel,
     ExecutionMode,
     PlatformRunRequest,
     PlatformRunStatus,
@@ -208,6 +209,89 @@ def test_assessment_updates_profile_and_replans_depth_before_advancing() -> None
     assert updated.handoff is not None
     assert updated.handoff.concept_id == "math.linear-algebra.vector"
     assert updated.handoff.path_id == initial.handoff.path_id
+
+
+def test_bkt_assessment_updates_profile_and_replans() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-BKT-FLOW-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="assessment-bkt-flow",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+            assessment_model=AssessmentModel.BKT,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    submission = {
+        "assessment_id": "assessment-bkt-flow-1",
+        "concept_id": concept_id,
+        "score": 1.0,
+        "response_time_ms": 1000,
+        "hint_count": 0,
+        "attempt_count": 1,
+    }
+
+    updated = service.submit_assessment(initial.run_id, submission)
+    replay = service.submit_assessment(initial.run_id, submission)
+    saved_request = service._repository.get_request(initial.run_id)
+
+    assert replay == updated
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id != concept_id
+    assert saved_request is not None
+    mastery = next(
+        item for item in saved_request.profile.knowledge_mastery
+        if item.concept_id == concept_id
+    )
+    assert mastery.mastery_score == pytest.approx(0.5764705882)
+
+
+def test_bkt_failed_assessment_keeps_current_node_open() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-BKT-FAILED-FLOW-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="assessment-bkt-failed-flow",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+            assessment_model=AssessmentModel.BKT,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+
+    updated = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "assessment-bkt-failed-1",
+            "concept_id": concept_id,
+            "score": 0.0,
+            "response_time_ms": 150000,
+            "hint_count": 2,
+            "attempt_count": 2,
+        },
+    )
+
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id == concept_id
 
 
 def test_correct_candidate_quiz_choices_advance_the_learning_node() -> None:
