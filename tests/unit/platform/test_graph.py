@@ -4,6 +4,7 @@ import pytest
 
 import skillforge_kb.platform.graph as graph_module
 from skillforge_kb.agents.resource_agent import ResourceGenerationAgent
+from skillforge_kb.evaluation import evaluate_knowledge_tracing
 from skillforge_kb.platform.graph import PlatformGraphDependencies, PlatformService
 from skillforge_kb.platform.models import (
     AssessmentModel,
@@ -198,6 +199,38 @@ def test_bkt_assessment_records_prior_and_replay_is_idempotent(
     assert observation.model_version == "bkt.v1"
     assert observation.predicted_mastery == 0.20
     assert len(service._repository.list_prediction_observations(initial.run_id)) == 1
+
+
+def test_saved_observations_feed_knowledge_tracing_evaluation(
+    platform_case,
+    profile,
+) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="obs-export",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+
+    service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "obs-export-1",
+            "concept_id": initial.planning.current_node.concept_id,
+            "score": 1.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+    observations = service._repository.list_prediction_observations(initial.run_id)
+    report = evaluate_knowledge_tracing(observations)
+
+    assert report.metrics.sample_count == 1
 
 
 def test_strict_gap_blocks_without_calling_resource_agent(platform_case, profile) -> None:
