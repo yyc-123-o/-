@@ -23,9 +23,11 @@ from skillforge_kb.agents.retrieval_agent_models import (
 from skillforge_kb.assessment import (
     AssessmentEvent,
     AssessmentLedger,
+    BktParameters,
     apply_assessment_event,
     apply_bkt_event,
 )
+from skillforge_kb.evaluation.knowledge_tracing import KnowledgeTracingObservation
 from skillforge_kb.evidence.manifest import EvidenceIndex
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.planning.models import PathStatus
@@ -192,6 +194,26 @@ class PlatformService:
                 raise ValueError("assessment is only available for a ready learning node")
             if planning.current_node.concept_id != submission.concept_id:
                 raise ValueError("assessment concept does not match the current learning node")
+            existing_mastery = next(
+                (
+                    item.mastery_score
+                    for item in request.profile.knowledge_mastery
+                    if item.concept_id == submission.concept_id
+                ),
+                None,
+            )
+            prior_mastery = existing_mastery
+            model_version = "rule.v1"
+            if request.assessment_model is AssessmentModel.BKT:
+                prior_mastery = (
+                    BktParameters().p_l0
+                    if prior_mastery is None
+                    else prior_mastery
+                )
+                model_version = BktParameters().model_version
+            elif prior_mastery is None:
+                prior_mastery = 0.50
+            observed_at = datetime.now(UTC)
             event = AssessmentEvent(
                 event_id=submission.assessment_id,
                 profile_id=request.profile.profile_id,
@@ -201,13 +223,22 @@ class PlatformService:
                 response_time_ms=submission.response_time_ms,
                 hint_count=submission.hint_count,
                 attempt_count=submission.attempt_count,
-                timestamp=datetime.now(UTC),
+                timestamp=observed_at,
                 error_kind=(
                     None
                     if submission.score >= submission.passing_score
                     else submission.error_kind
                 ),
                 evidence_refs=submission.evidence_refs,
+            )
+            observation = KnowledgeTracingObservation(
+                observation_id=submission.assessment_id,
+                profile_id=request.profile.profile_id,
+                concept_id=submission.concept_id,
+                model_version=model_version,
+                predicted_mastery=prior_mastery,
+                correct=submission.score >= submission.passing_score,
+                observed_at=observed_at,
             )
             ledger = AssessmentLedger(profile=request.profile)
             if request.assessment_model is AssessmentModel.BKT:
@@ -246,6 +277,11 @@ class PlatformService:
                     submission_digest,
                     refreshed,
                 )
+                self._repository.save_prediction_observation(
+                    run_id,
+                    submission.assessment_id,
+                    observation,
+                )
                 return refreshed
             completed_event = PlanningAgentEvent(
                 event_id=f"event_{sha256(f'{run_id}:{submission.assessment_id}:complete'.encode()).hexdigest()}",
@@ -264,6 +300,11 @@ class PlatformService:
                 submission.assessment_id,
                 submission_digest,
                 result,
+            )
+            self._repository.save_prediction_observation(
+                run_id,
+                submission.assessment_id,
+                observation,
             )
             return result
 

@@ -127,6 +127,79 @@ def test_bkt_assessment_dispatches_to_bkt_updater(
     assert calls == ["bkt"]
 
 
+def test_rule_assessment_records_prior_mastery(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="obs-rule",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+
+    service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "obs-rule-1",
+            "concept_id": concept_id,
+            "score": 1.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    observation = service._repository.get_prediction_observation(
+        initial.run_id,
+        "obs-rule-1",
+    )
+    assert observation is not None
+    assert observation.model_version == "rule.v1"
+    assert observation.predicted_mastery == 0.50
+
+
+def test_bkt_assessment_records_prior_and_replay_is_idempotent(
+    platform_case,
+    profile,
+) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="obs-bkt",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+            assessment_model=AssessmentModel.BKT,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    submission = {
+        "assessment_id": "obs-bkt-1",
+        "concept_id": concept_id,
+        "score": 1.0,
+        "response_time_ms": 1000,
+        "hint_count": 0,
+        "attempt_count": 1,
+    }
+
+    first = service.submit_assessment(initial.run_id, submission)
+    replay = service.submit_assessment(initial.run_id, submission)
+    observation = service._repository.get_prediction_observation(
+        initial.run_id,
+        "obs-bkt-1",
+    )
+
+    assert replay == first
+    assert observation is not None
+    assert observation.model_version == "bkt.v1"
+    assert observation.predicted_mastery == 0.20
+    assert len(service._repository.list_prediction_observations(initial.run_id)) == 1
+
+
 def test_strict_gap_blocks_without_calling_resource_agent(platform_case, profile) -> None:
     service, _, resource = _service(platform_case)
     result = service.run(
