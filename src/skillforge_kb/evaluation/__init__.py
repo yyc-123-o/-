@@ -6,6 +6,7 @@ from .knowledge_tracing import (
     build_knowledge_tracing_report_digest,
     compare_knowledge_tracing_reports,
     evaluate_knowledge_tracing,
+    evaluate_knowledge_tracing_by_model,
     load_knowledge_tracing_report,
     write_knowledge_tracing_report,
 )
@@ -82,6 +83,7 @@ __all__ = [
     "build_knowledge_tracing_report_digest",
     "compare_knowledge_tracing_reports",
     "evaluate_knowledge_tracing",
+    "evaluate_knowledge_tracing_by_model",
     "load_knowledge_tracing_report",
     "write_knowledge_tracing_report",
 ]

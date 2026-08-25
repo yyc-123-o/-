@@ -10,6 +10,7 @@ from skillforge_kb.evaluation.knowledge_tracing import (
     KnowledgeTracingObservation,
     compare_knowledge_tracing_reports,
     evaluate_knowledge_tracing,
+    evaluate_knowledge_tracing_by_model,
     load_knowledge_tracing_report,
     write_knowledge_tracing_report,
 )
@@ -150,3 +151,14 @@ def test_comparison_requires_same_observation_set() -> None:
                 ),
             )
         )
+
+
+def test_evaluate_knowledge_tracing_by_model_returns_sorted_reports() -> None:
+    reports = evaluate_knowledge_tracing_by_model(
+        (
+            _observation("r", 0.6, True, "rule.v1"),
+            _observation("b", 0.7, True, "bkt.v1"),
+        )
+    )
+
+    assert tuple(report.model_version for report in reports) == ("bkt.v1", "rule.v1")

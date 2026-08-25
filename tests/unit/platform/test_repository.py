@@ -16,12 +16,16 @@ from skillforge_kb.platform.repository import (
 )
 
 
-def _observation(assessment_id: str = "assessment-1", probability: float = 0.2):
+def _observation(
+    assessment_id: str = "assessment-1",
+    probability: float = 0.2,
+    model_version: str = "bkt.v1",
+):
     return KnowledgeTracingObservation(
         observation_id=assessment_id,
         profile_id="PROFILE-2026-0001-DEMO",
         concept_id="ml.optimization.gradient-descent",
-        model_version="bkt.v1",
+        model_version=model_version,
         predicted_mastery=probability,
         correct=True,
         observed_at=datetime(2026, 8, 26, tzinfo=UTC),
@@ -95,3 +99,29 @@ def test_repository_rejects_observation_conflicts(profile) -> None:
             "assessment-1",
             _observation(probability=0.8),
         )
+
+
+def test_repository_lists_profile_observations_across_runs_and_filters_model(profile) -> None:
+    repository = InMemoryPlatformRunRepository()
+    first = PlatformRunRequest(profile=profile, idempotency_key="aggregate-1")
+    second = PlatformRunRequest(profile=profile, idempotency_key="aggregate-2")
+    repository.reserve(first)
+    repository.reserve(second)
+    repository.save_prediction_observation(
+        build_run_id(second),
+        "b",
+        _observation("b", 0.4, "bkt.v1"),
+    )
+    repository.save_prediction_observation(
+        build_run_id(first),
+        "a",
+        _observation("a", 0.6, "rule.v1"),
+    )
+
+    observations = repository.list_prediction_observations_for_profile(profile.profile_id)
+
+    assert tuple(item.observation_id for item in observations) == ("a", "b")
+    assert repository.list_prediction_observations_for_profile(
+        profile.profile_id,
+        model_version="bkt.v1",
+    )[0].observation_id == "b"

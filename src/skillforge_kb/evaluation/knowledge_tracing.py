@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime
 from hashlib import sha256
@@ -141,6 +142,30 @@ def evaluate_knowledge_tracing(
     return KnowledgeTracingEvaluationReport(
         **payload,
         report_digest=build_knowledge_tracing_report_digest(payload),
+    )
+
+
+def evaluate_knowledge_tracing_by_model(
+    observations: Sequence[KnowledgeTracingObservation],
+    *,
+    data_version: str = "knowledge-tracing-eval.v1",
+) -> tuple[KnowledgeTracingEvaluationReport, ...]:
+    validated = tuple(
+        KnowledgeTracingObservation.model_validate(item.model_dump())
+        for item in observations
+    )
+    if not validated:
+        raise ValueError("knowledge tracing evaluation requires at least one observation")
+    groups: defaultdict[str, list[KnowledgeTracingObservation]] = defaultdict(list)
+    for observation in validated:
+        groups[observation.model_version].append(observation)
+    return tuple(
+        evaluate_knowledge_tracing(
+            tuple(groups[model_version]),
+            model_version=model_version,
+            data_version=data_version,
+        )
+        for model_version in sorted(groups)
     )
 
 

@@ -159,3 +159,23 @@ class InMemoryPlatformRunRepository:
                 for (stored_run_id, _), observation in self._observations.items()
                 if stored_run_id == run_id
             )
+
+    def list_prediction_observations_for_profile(
+        self,
+        profile_id: str,
+        *,
+        model_version: str | None = None,
+    ) -> tuple[KnowledgeTracingObservation, ...]:
+        with self._lock:
+            observations: list[tuple[str, str, KnowledgeTracingObservation]] = []
+            for run_id, request in self._requests.items():
+                if request.profile.profile_id != profile_id:
+                    continue
+                for (stored_run_id, assessment_id), observation in self._observations.items():
+                    if stored_run_id != run_id:
+                        continue
+                    if model_version is not None and observation.model_version != model_version:
+                        continue
+                    observations.append((run_id, assessment_id, observation))
+            observations.sort(key=lambda item: (item[2].observed_at, item[0], item[1]))
+            return tuple(item[2] for item in observations)

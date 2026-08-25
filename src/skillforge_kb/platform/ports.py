@@ -102,6 +102,13 @@ class PlatformRunRepository(Protocol):
         run_id: str,
     ) -> tuple[KnowledgeTracingObservation, ...]: ...
 
+    def list_prediction_observations_for_profile(
+        self,
+        profile_id: str,
+        *,
+        model_version: str | None = None,
+    ) -> tuple[KnowledgeTracingObservation, ...]: ...
+
 
 class Clock(Protocol):
     def now(self) -> datetime: ...
