@@ -18,8 +18,9 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from fastapi import FastAPI, HTTPException, Query, Body
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 if str(PROJECT_ROOT) not in sys.path:
@@ -42,6 +43,20 @@ app = FastAPI(
 )
 
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
+
+
+@app.exception_handler(ValidationError)
+async def pydantic_validation_handler(_request, exc: ValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": {
+                "code": "invalid_input",
+                "message": "输入数据校验失败",
+                "errors": exc.errors(),
+            }
+        },
+    )
 
 _learners: Dict[str, Learner] = {}
 _profiles: Dict[tuple[str, str], LearnerProfile] = {}

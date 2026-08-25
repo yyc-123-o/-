@@ -58,3 +58,18 @@ def test_profile_rejects_unknown_chapter_like_diagnose(client: TestClient) -> No
     )
 
     assert response.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "education_patch",
+    [{"graduation_year": "bad"}, {"gpa": "bad"}, {"relevant_courses": {}}],
+)
+def test_upload_converts_nested_model_validation_to_422(
+    client: TestClient,
+    education_patch: dict[str, object],
+) -> None:
+    education = {"level": "\u672c\u79d1", **education_patch}
+
+    response = client.post("/api/learner/upload", json={"education": education})
+
+    assert response.status_code == 422
