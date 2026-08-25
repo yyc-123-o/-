@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from skillforge_kb.agents.resource_agent import ResourceGenerationAgent
 import skillforge_kb.platform.graph as graph_module
+from skillforge_kb.agents.resource_agent import ResourceGenerationAgent
 from skillforge_kb.platform.graph import PlatformGraphDependencies, PlatformService
 from skillforge_kb.platform.models import (
     AssessmentModel,

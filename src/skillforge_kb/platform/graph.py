@@ -35,8 +35,8 @@ from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import ResourceBrief
 
 from .models import (
-    AssessmentSubmission,
     AssessmentModel,
+    AssessmentSubmission,
     ExecutionMode,
     PlatformFailure,
     PlatformRunRequest,
