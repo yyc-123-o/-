@@ -1,8 +1,12 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from skillforge_kb.agents.resource_agent import ResourceGenerationAgent
+import skillforge_kb.platform.graph as graph_module
 from skillforge_kb.platform.graph import PlatformGraphDependencies, PlatformService
 from skillforge_kb.platform.models import (
+    AssessmentModel,
     ExecutionMode,
     PlatformRunRequest,
     PlatformRunStatus,
@@ -74,12 +78,53 @@ def _service(platform_case, *, retrieval_fails: bool = False):
         handoff_factory=StaticHandoffFactory(platform_case["handoff"]),
         evidence_index=platform_case["evidence_index"],
         clock=FixedClock(),
+        catalog=platform_case["catalog"],
     )
     service = PlatformService(
         dependencies,
         InMemoryPlatformRunRepository(),
     )
     return service, planning, resource
+
+
+def test_bkt_assessment_dispatches_to_bkt_updater(
+    monkeypatch: pytest.MonkeyPatch,
+    platform_case,
+    profile,
+) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="dispatch-bkt-run",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+            assessment_model=AssessmentModel.BKT,
+        )
+    )
+    assert initial.planning is not None
+    assert initial.planning.current_node is not None
+    calls: list[str] = []
+    original = graph_module.apply_bkt_event
+
+    def capture(catalog, ledger, event, parameters=None):
+        calls.append("bkt")
+        return original(catalog, ledger, event, parameters)
+
+    monkeypatch.setattr(graph_module, "apply_bkt_event", capture)
+    result = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "dispatch-bkt-1",
+            "concept_id": initial.planning.current_node.concept_id,
+            "score": 1.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    assert result.status is PlatformRunStatus.COMPLETED
+    assert calls == ["bkt"]
 
 
 def test_strict_gap_blocks_without_calling_resource_agent(platform_case, profile) -> None:

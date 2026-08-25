@@ -20,7 +20,12 @@ from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalResult,
     EvidenceGap,
 )
-from skillforge_kb.assessment import AssessmentEvent, AssessmentLedger, apply_assessment_event
+from skillforge_kb.assessment import (
+    AssessmentEvent,
+    AssessmentLedger,
+    apply_assessment_event,
+    apply_bkt_event,
+)
 from skillforge_kb.evidence.manifest import EvidenceIndex
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.planning.models import PathStatus
@@ -31,6 +36,7 @@ from skillforge_kb.resources.models import ResourceBrief
 
 from .models import (
     AssessmentSubmission,
+    AssessmentModel,
     ExecutionMode,
     PlatformFailure,
     PlatformRunRequest,
@@ -203,11 +209,19 @@ class PlatformService:
                 ),
                 evidence_refs=submission.evidence_refs,
             )
-            update = apply_assessment_event(
-                self._dependencies.catalog,
-                AssessmentLedger(profile=request.profile),
-                event,
-            )
+            ledger = AssessmentLedger(profile=request.profile)
+            if request.assessment_model is AssessmentModel.BKT:
+                update = apply_bkt_event(
+                    self._dependencies.catalog,
+                    ledger,
+                    event,
+                )
+            else:
+                update = apply_assessment_event(
+                    self._dependencies.catalog,
+                    ledger,
+                    event,
+                )
             updated_request = request.model_copy(
                 update={"profile": update.ledger.profile}
             )
