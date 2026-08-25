@@ -17,6 +17,12 @@ from skillforge_kb.evaluation import (
 )
 
 
+def test_knowledge_tracing_evaluation_is_public() -> None:
+    from skillforge_kb.evaluation import evaluate_knowledge_tracing
+
+    assert callable(evaluate_knowledge_tracing)
+
+
 def test_dataset_write_and_load_round_trip(tmp_path: Path, catalog) -> None:
     dataset = generate_synthetic_dataset(catalog, case_count=8)
     output = tmp_path / "dataset.json"

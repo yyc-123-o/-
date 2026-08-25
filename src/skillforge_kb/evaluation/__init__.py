@@ -27,6 +27,17 @@ from .planner_calibration import (
     search_planner_policies,
     write_planner_policy_calibration_report,
 )
+from .knowledge_tracing import (
+    KnowledgeTracingComparison,
+    KnowledgeTracingEvaluationReport,
+    KnowledgeTracingMetrics,
+    KnowledgeTracingObservation,
+    build_knowledge_tracing_report_digest,
+    compare_knowledge_tracing_reports,
+    evaluate_knowledge_tracing,
+    load_knowledge_tracing_report,
+    write_knowledge_tracing_report,
+)
 from .synthetic import (
     DEFAULT_SYNTHETIC_CASE_COUNT,
     DEFAULT_SYNTHETIC_SEED,
@@ -64,4 +75,13 @@ __all__ = [
     "write_planner_policy_calibration_report",
     "write_synthetic_dataset",
     "search_planner_policies",
+    "KnowledgeTracingComparison",
+    "KnowledgeTracingEvaluationReport",
+    "KnowledgeTracingMetrics",
+    "KnowledgeTracingObservation",
+    "build_knowledge_tracing_report_digest",
+    "compare_knowledge_tracing_reports",
+    "evaluate_knowledge_tracing",
+    "load_knowledge_tracing_report",
+    "write_knowledge_tracing_report",
 ]
