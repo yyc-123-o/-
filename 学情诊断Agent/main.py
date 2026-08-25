@@ -158,6 +158,13 @@ async def upload_learner(payload: dict = Body(...)):
     sa_data = payload.get("self_assessment", {})
     if not isinstance(sa_data, dict):
         raise HTTPException(status_code=422, detail="self_assessment 必须是对象")
+    for field_name in ("domain_assessments", "courses", "projects"):
+        value = sa_data.get(field_name, [])
+        if not isinstance(value, list):
+            raise HTTPException(
+                status_code=422,
+                detail=f"self_assessment.{field_name} 必须是数组",
+            )
     domain_assessments = [
         DomainAssessment(
             domain=item.get("domain", ""),
@@ -185,8 +192,13 @@ async def upload_learner(payload: dict = Body(...)):
     )
 
     # 解析 test_records
+    raw_test_records = payload.get("test_records", [])
+    if not isinstance(raw_test_records, list):
+        raise HTTPException(status_code=422, detail="test_records 必须是数组")
     test_records = []
-    for t in payload.get("test_records", []):
+    for t in raw_test_records:
+        if not isinstance(t, dict):
+            raise HTTPException(status_code=422, detail="test_records 条目必须是对象")
         if t.get("knowledge_point_id") not in set(KG.all_ids()):
             raise HTTPException(status_code=422, detail=f"未知知识点: {t.get('knowledge_point_id')}")
         if not isinstance(t.get("is_correct"), bool):
@@ -205,8 +217,13 @@ async def upload_learner(payload: dict = Body(...)):
         ))
 
     # 解析 interaction_records
+    raw_interactions = payload.get("interaction_records", [])
+    if not isinstance(raw_interactions, list):
+        raise HTTPException(status_code=422, detail="interaction_records 必须是数组")
     interaction_records = []
-    for i in payload.get("interaction_records", []):
+    for i in raw_interactions:
+        if not isinstance(i, dict):
+            raise HTTPException(status_code=422, detail="interaction_records 条目必须是对象")
         if i.get("knowledge_point_id") not in set(KG.all_ids()):
             raise HTTPException(status_code=422, detail=f"未知知识点: {i.get('knowledge_point_id')}")
         if i.get("type", "view") not in _INTERACTION_TYPES or i.get("duration", 60) < 0:
@@ -267,6 +284,11 @@ async def diagnose_learner(
 
 @app.get("/api/learner/{learner_id}/profile")
 async def get_profile(learner_id: str, chapter_id: Optional[str] = Query(None)):
+    if chapter_id is not None and not KG.get_chapter(chapter_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"章节 {chapter_id} 不存在, 可用: {[c.chapter_id for c in KG.chapters]}",
+        )
     key = _profile_key(learner_id, chapter_id)
     profile = _profiles.get(key)
     if not profile:
@@ -343,7 +365,7 @@ async def start_adaptive_test(learner_id: str, payload: Optional[dict] = Body(de
         prior_theta = education_prior_theta(learner.education.level)
     try:
         config = adaptive_test.build_config(payload) if payload else None
-    except ValueError as exc:
+    except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     result = adaptive_test.start_session(learner_id, prior_theta, _test_bank, config=config)
     if result.get("bank_size", 0) == 0:
@@ -371,13 +393,18 @@ async def answer_adaptive_test(payload: dict = Body(...)):
         raise HTTPException(status_code=422, detail="禁止提交 is_correct，请提交 selected_answer")
     if "selected_answer" not in payload:
         raise HTTPException(status_code=422, detail="缺少 selected_answer")
+    time_spent = payload.get("time_spent", 60)
+    if isinstance(time_spent, bool) or not isinstance(time_spent, int) or time_spent < 0:
+        raise HTTPException(status_code=422, detail="time_spent 必须是非负整数")
     result = adaptive_test.submit_answer(
         session_id=payload["session_id"],
         question_id=payload["question_id"],
         selected_answer=payload["selected_answer"],
-        time_spent=payload.get("time_spent", 60),
+        time_spent=time_spent,
         test_bank=_test_bank,
     )
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
     return result
 
 

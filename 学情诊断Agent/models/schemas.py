@@ -76,10 +76,10 @@ class TestRecord(BaseModel):
     knowledge_point_id: str
     question_id: str = ""
     difficulty: float = Field(..., description="题目难度 b, IRT参数")
-    discrimination: float = Field(1.0, description="题目区分度 a, IRT参数")
+    discrimination: float = Field(1.0, gt=0, description="题目区分度 a, IRT参数")
     is_correct: bool
     timestamp: datetime = Field(default_factory=datetime.now)
-    time_spent: int = Field(60, description="答题用时(秒)")
+    time_spent: int = Field(60, ge=0, description="答题用时(秒)")
     hint_used: bool = False
     error_pattern: Optional[str] = Field(None, description="概念混淆/计算错误/逻辑跳跃/忽略条件")
 

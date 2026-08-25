@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 import yaml
 
 from core import adaptive_test
@@ -8,6 +9,7 @@ from core.profile_builder import build_profile
 from generators.mock_generator import generate_test_bank
 from models.knowledge_graph import KG
 from models.schemas import Education, Learner, SelfAssessment
+from pydantic import ValidationError
 
 
 def _blank_learner() -> Learner:
@@ -29,6 +31,9 @@ def test_blank_profile_has_no_fabricated_history_or_cnn_evidence() -> None:
     assert profile.resource_generation_hints.lecture_notes.must_include
     assert profile.resource_generation_hints.practical_guide.must_include
     assert profile.resource_generation_hints.test_questions.must_cover
+    assert profile.error_patterns.primary_weakness == ""
+    assert profile.error_patterns.total_wrong == 0
+    assert all(not item.typical_examples for item in profile.error_patterns.items)
 
 
 def test_profile_agent_mapping_covers_every_legacy_knowledge_point() -> None:
@@ -59,3 +64,23 @@ def test_adaptive_test_honors_domain_filter_and_uses_answer_history_for_theta() 
         bank,
     )
     assert answered["current_theta"] != 0.0
+
+
+def test_test_record_rejects_invalid_irt_and_timing_inputs() -> None:
+    from models.schemas import TestRecord
+
+    with pytest.raises(ValidationError):
+        TestRecord(
+            knowledge_point_id="kp_001",
+            difficulty=0.0,
+            discrimination=0.0,
+            is_correct=True,
+        )
+    with pytest.raises(ValidationError):
+        TestRecord(
+            knowledge_point_id="kp_001",
+            difficulty=0.0,
+            discrimination=1.0,
+            is_correct=True,
+            time_spent=-1,
+        )

@@ -589,6 +589,7 @@ def _build_diagnosis_summary(
 
     primary_err = error_patterns.primary_weakness
     primary_err_ratio = error_patterns.primary_weakness_ratio
+    primary_err_label = primary_err or "暂无"
 
     sa_hints = _self_assessed_domain_hints(learner.self_assessment)
     sa_sentence = ""
@@ -599,7 +600,7 @@ def _build_diagnosis_summary(
         f"{learner.name}({learner.education.level}{learner.education.major}) — "
         f"θ={global_theta:.2f} {level_cn} — "
         f"当前学习范围由知识点掌握度与章节参数决定 — "
-        f"主要错误模式: {primary_err}({primary_err_ratio:.0%})"
+        f"主要错误模式: {primary_err_label}({primary_err_ratio:.0%})"
     )
 
     full = (

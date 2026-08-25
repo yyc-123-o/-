@@ -62,10 +62,17 @@ class AdaptiveConfig:
 
 def build_config(data: Optional[dict] = None) -> AdaptiveConfig:
     """从 dict 构建配置 — 供 API 层使用, 容忍部分字段缺失"""
-    data = data or {}
+    if data is None:
+        data = {}
+    elif not isinstance(data, dict):
+        raise ValueError("adaptive test config 必须是对象")
     stages = None
     raw_stages = data.get("difficulty_stages")
     if raw_stages:
+        if not isinstance(raw_stages, list) or any(
+            not isinstance(stage, dict) for stage in raw_stages
+        ):
+            raise ValueError("difficulty_stages 必须是对象数组")
         stages = [
             DifficultyStage(
                 label=s.get("label", f"档{i + 1}"),
@@ -353,6 +360,8 @@ def submit_answer(
 
     if session.current_question_id != question_id:
         return {"error": "提交的题目不是当前会话要求回答的题目"}
+    if isinstance(time_spent, bool) or not isinstance(time_spent, int) or time_spent < 0:
+        return {"error": "time_spent 必须是非负整数"}
 
     # 找到这道题
     q = next((x for x in bank if x["question_id"] == question_id), None)
@@ -462,7 +471,7 @@ def get_session(session_id: str) -> Optional[dict]:
         "question_count": len(s.answers),
         "finished": s.finished,
         "stop_reason": s.stop_reason,
-        "final_theta": round(s.final_theta, 4) if s.final_theta else None,
+        "final_theta": round(s.final_theta, 4) if s.final_theta is not None else None,
         "current_question_id": s.current_question_id,
         "answers": s.answers,
     }

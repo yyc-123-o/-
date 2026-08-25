@@ -255,14 +255,14 @@ def classify_error_patterns(
         for kp_id in list(cat_data["kp_ids"])[:3]:
             if cat_name in _ERROR_EXAMPLES and kp_id in _ERROR_EXAMPLES[cat_name]:
                 cat_data["examples"].extend(_ERROR_EXAMPLES[cat_name][kp_id])
-        # 如果该类别没有匹配的模板错例，使用通用描述
-        if not cat_data["examples"]:
+        # 只有确有该类错误时才生成示例，避免空白画像出现伪造历史。
+        if cat_data["count"] > 0 and not cat_data["examples"]:
             cat_data["examples"] = [f"涉及知识点 {', '.join(list(cat_data['kp_ids'])[:3])} 的典型{cat_name}问题"]
 
     items: List[ErrorPatternItem] = []
     total_wrong = len(wrong_records) if wrong_records else 1
-    primary = ("概念混淆", 0)
-    secondary = ("概念混淆", 0)
+    primary = ("", 0)
+    secondary = ("", 0)
 
     for cat_name in ["概念混淆", "计算错误", "逻辑跳跃", "忽略条件"]:
         cat_data = categories[cat_name]
@@ -288,6 +288,11 @@ def classify_error_patterns(
 
     classification_conf = round(labeled_wrong / len(wrong_records), 2) if wrong_records else 0.0
 
+    confidence_note = (
+        f"{len(wrong_records)}道错题由自动分类完成，建议后续引入人工标注交叉验证"
+        if wrong_records
+        else "暂无错题记录，暂不推断错误模式"
+    )
     return ErrorPatterns(
         total_questions=total,
         total_correct=correct,
@@ -296,6 +301,6 @@ def classify_error_patterns(
         primary_weakness=primary[0],
         primary_weakness_ratio=round(primary[1] / total_wrong, 2) if total_wrong > 0 else 0.0,
         classification_confidence=classification_conf,
-        confidence_note=f"{len(wrong_records)}道错题由自动分类完成，建议后续引入人工标注交叉验证",
+        confidence_note=confidence_note,
         items=items,
     )
