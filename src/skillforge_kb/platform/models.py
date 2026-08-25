@@ -64,7 +64,8 @@ class AssessmentSubmission(BaseModel):
 
     assessment_id: str = Field(min_length=1, max_length=128)
     concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
-    score: float = Field(ge=0, le=1)
+    score: float | None = Field(default=None, ge=0, le=1)
+    responses: dict[str, int] = Field(default_factory=dict)
     response_time_ms: int = Field(strict=True, ge=0)
     hint_count: int = Field(strict=True, ge=0)
     attempt_count: int = Field(strict=True, ge=1)
@@ -74,9 +75,25 @@ class AssessmentSubmission(BaseModel):
 
     @model_validator(mode="after")
     def validate_error_kind(self) -> "AssessmentSubmission":
-        if self.score >= self.passing_score and self.error_kind is not None:
+        if self.score is None and not self.responses:
+            raise ValueError("assessment requires a score or selected responses")
+        if (
+            self.score is not None
+            and not self.responses
+            and self.score >= self.passing_score
+            and self.error_kind is not None
+        ):
             raise ValueError("passing assessment cannot include an error kind")
         return self
+
+
+class PracticeReviewSubmission(BaseModel):
+    """A student source submission for the current node's practice exercise."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    source: str = Field(min_length=1, max_length=12_000)
 
 
 class PlatformFailure(BaseModel):

@@ -28,7 +28,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from models.schemas import (
     Learner, LearnerProfile, DiagnosisResult,
     Education, SelfAssessment, TestRecord, InteractionRecord,
-    CourseSelfAssessment, ProjectExperience,
+    CourseSelfAssessment, DomainAssessment, ProjectExperience,
 )
 from models.knowledge_graph import KG
 from core.profile_builder import build_profile
@@ -44,8 +44,22 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 
 _learners: Dict[str, Learner] = {}
-_profiles: Dict[str, LearnerProfile] = {}
+_profiles: Dict[tuple[str, str], LearnerProfile] = {}
 _test_bank: list = []
+_applied_sessions: Dict[str, dict] = {}
+_EDUCATION_LEVELS = {"\u4e13\u79d1", "\u672c\u79d1", "\u7855\u58eb", "\u535a\u58eb"}
+_INTERACTION_TYPES = {"view", "quiz", "practice", "discussion"}
+_SELF_ASSESSMENT_LEVELS = {"未学过", "入门", "基础", "熟练", "精通"}
+
+
+def _profile_key(learner_id: str, chapter_id: str | None) -> tuple[str, str]:
+    return learner_id, chapter_id or "ch03_cnn"
+
+
+def _invalidate_profiles(learner_id: str) -> None:
+    for key in tuple(_profiles):
+        if key[0] == learner_id:
+            _profiles.pop(key, None)
 
 
 @app.on_event("startup")
@@ -72,7 +86,10 @@ async def get_chapters():
 
 @app.get("/api/test-bank")
 async def get_test_bank():
-    return {"questions": _test_bank, "total": len(_test_bank)}
+    return {
+        "questions": [adaptive_test.public_question(question) for question in _test_bank],
+        "total": len(_test_bank),
+    }
 
 
 # ============================================================
@@ -118,10 +135,16 @@ async def upload_learner(payload: dict = Body(...)):
     }
     """
     import uuid as _uuid
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=422, detail="学习者数据必须是 JSON 对象")
     lid = payload.get("id", f"uploaded_{_uuid.uuid4().hex[:8]}")
 
     # 解析 education
     edu_data = payload.get("education", {})
+    if not isinstance(edu_data, dict):
+        raise HTTPException(status_code=422, detail="education 必须是对象")
+    if edu_data.get("level", "本科") not in _EDUCATION_LEVELS:
+        raise HTTPException(status_code=422, detail="education.level 不是受支持的学历层次")
     education = Education(
         level=edu_data.get("level", "本科"),
         major=edu_data.get("major", ""),
@@ -133,6 +156,19 @@ async def upload_learner(payload: dict = Body(...)):
 
     # 解析 self_assessment
     sa_data = payload.get("self_assessment", {})
+    if not isinstance(sa_data, dict):
+        raise HTTPException(status_code=422, detail="self_assessment 必须是对象")
+    domain_assessments = [
+        DomainAssessment(
+            domain=item.get("domain", ""),
+            courses=[CourseSelfAssessment(**course) for course in item.get("courses", [])],
+            note=item.get("note", ""),
+        )
+        for item in sa_data.get("domain_assessments", [])
+    ]
+    courses = [CourseSelfAssessment(**course) for course in sa_data.get("courses", [])]
+    for assessment in domain_assessments:
+        courses.extend(assessment.courses)
     self_assessment = SelfAssessment(
         ml_level=sa_data.get("ml_level", ""),
         dl_level=sa_data.get("dl_level", ""),
@@ -143,13 +179,20 @@ async def upload_learner(payload: dict = Body(...)):
         position=sa_data.get("position", ""),
         strengths=sa_data.get("strengths", ""),
         weaknesses=sa_data.get("weaknesses", ""),
-        courses=[CourseSelfAssessment(**c) for c in sa_data.get("courses", [])],
+        courses=courses,
+        domain_assessments=domain_assessments,
         projects=[ProjectExperience(**p) for p in sa_data.get("projects", [])],
     )
 
     # 解析 test_records
     test_records = []
     for t in payload.get("test_records", []):
+        if t.get("knowledge_point_id") not in set(KG.all_ids()):
+            raise HTTPException(status_code=422, detail=f"未知知识点: {t.get('knowledge_point_id')}")
+        if not isinstance(t.get("is_correct"), bool):
+            raise HTTPException(status_code=422, detail="test_records.is_correct 必须是布尔值")
+        if t.get("time_spent", 60) < 0 or t.get("discrimination", 1.0) <= 0:
+            raise HTTPException(status_code=422, detail="测试时间必须非负且区分度必须为正数")
         test_records.append(TestRecord(
             knowledge_point_id=t["knowledge_point_id"],
             question_id=t.get("question_id", ""),
@@ -164,6 +207,10 @@ async def upload_learner(payload: dict = Body(...)):
     # 解析 interaction_records
     interaction_records = []
     for i in payload.get("interaction_records", []):
+        if i.get("knowledge_point_id") not in set(KG.all_ids()):
+            raise HTTPException(status_code=422, detail=f"未知知识点: {i.get('knowledge_point_id')}")
+        if i.get("type", "view") not in _INTERACTION_TYPES or i.get("duration", 60) < 0:
+            raise HTTPException(status_code=422, detail="交互类型或持续时间无效")
         interaction_records.append(InteractionRecord(
             knowledge_point_id=i["knowledge_point_id"],
             type=i.get("type", "view"),
@@ -181,6 +228,7 @@ async def upload_learner(payload: dict = Body(...)):
     )
 
     _learners[lid] = learner
+    _invalidate_profiles(lid)
     return {
         "message": f"学习者 {learner.name} 已上传",
         "learner_id": lid,
@@ -208,7 +256,7 @@ async def diagnose_learner(
         raise HTTPException(status_code=400, detail=f"章节 {ch_id} 不存在, 可用: {[c.chapter_id for c in KG.chapters]}")
 
     profile = build_profile(learner, KG, current_chapter_id=ch_id)
-    _profiles[learner_id] = profile
+    _profiles[_profile_key(learner_id, ch_id)] = profile
 
     return DiagnosisResult(
         success=True,
@@ -219,37 +267,40 @@ async def diagnose_learner(
 
 @app.get("/api/learner/{learner_id}/profile")
 async def get_profile(learner_id: str, chapter_id: Optional[str] = Query(None)):
-    profile = _profiles.get(learner_id)
+    key = _profile_key(learner_id, chapter_id)
+    profile = _profiles.get(key)
     if not profile:
         learner = _learners.get(learner_id)
         if not learner:
             raise HTTPException(status_code=404, detail="学习者不存在")
         profile = build_profile(learner, KG, current_chapter_id=chapter_id or "ch03_cnn")
-        _profiles[learner_id] = profile
+        _profiles[key] = profile
     return profile.model_dump(mode="json")
 
 
 @app.get("/api/learner/{learner_id}/gaps")
 async def get_gaps(learner_id: str):
-    profile = _profiles.get(learner_id)
+    key = _profile_key(learner_id, None)
+    profile = _profiles.get(key)
     if not profile:
         learner = _learners.get(learner_id)
         if not learner:
             raise HTTPException(status_code=404, detail="学习者不存在")
         profile = build_profile(learner, KG)
-        _profiles[learner_id] = profile
+        _profiles[key] = profile
     return {"gaps": [g.model_dump(mode="json") for g in profile.knowledge_gaps]}
 
 
 @app.get("/api/learner/{learner_id}/mastery-detail")
 async def get_mastery_detail(learner_id: str):
-    profile = _profiles.get(learner_id)
+    key = _profile_key(learner_id, None)
+    profile = _profiles.get(key)
     if not profile:
         learner = _learners.get(learner_id)
         if not learner:
             raise HTTPException(status_code=404, detail="学习者不存在")
         profile = build_profile(learner, KG)
-        _profiles[learner_id] = profile
+        _profiles[key] = profile
 
     domain_data = {}
     for kp in KG.points:
@@ -290,8 +341,13 @@ async def start_adaptive_test(learner_id: str, payload: Optional[dict] = Body(de
     if learner.education:
         from core.irt import education_prior_theta
         prior_theta = education_prior_theta(learner.education.level)
-    config = adaptive_test.build_config(payload) if payload else None
+    try:
+        config = adaptive_test.build_config(payload) if payload else None
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     result = adaptive_test.start_session(learner_id, prior_theta, _test_bank, config=config)
+    if result.get("bank_size", 0) == 0:
+        raise HTTPException(status_code=422, detail="筛选条件没有匹配的测试题")
     return result
 
 
@@ -309,12 +365,16 @@ async def get_adaptive_config():
 async def answer_adaptive_test(payload: dict = Body(...)):
     """提交答案 — 返回下一题或停止信号
 
-    请求体: {"session_id": "...", "question_id": "...", "is_correct": true, "time_spent": 45}
+    请求体: {"session_id": "...", "question_id": "...", "selected_answer": 1, "time_spent": 45}
     """
+    if "is_correct" in payload:
+        raise HTTPException(status_code=422, detail="禁止提交 is_correct，请提交 selected_answer")
+    if "selected_answer" not in payload:
+        raise HTTPException(status_code=422, detail="缺少 selected_answer")
     result = adaptive_test.submit_answer(
         session_id=payload["session_id"],
         question_id=payload["question_id"],
-        is_correct=payload["is_correct"],
+        selected_answer=payload["selected_answer"],
         time_spent=payload.get("time_spent", 60),
         test_bank=_test_bank,
     )
@@ -342,6 +402,10 @@ async def apply_adaptive_test(learner_id: str, session_id: str = Query(...)):
         raise HTTPException(status_code=404, detail="会话不存在")
     if not s.get("finished"):
         raise HTTPException(status_code=400, detail="测试尚未完成，请先结束测试")
+    if s.get("learner_id") != learner_id:
+        raise HTTPException(status_code=403, detail="测试会话不属于当前学习者")
+    if session_id in _applied_sessions:
+        return _applied_sessions[session_id]
 
     answers = s.get("answers", [])
     if not answers:
@@ -362,13 +426,16 @@ async def apply_adaptive_test(learner_id: str, session_id: str = Query(...)):
         ))
 
     learner.test_records.extend(new_records)
+    _invalidate_profiles(learner_id)
 
-    return {
+    result = {
         "message": f"已转移 {len(new_records)} 条答题记录到学习者 {learner.name}",
         "learner_id": learner_id,
         "added_count": len(new_records),
         "total_test_count": len(learner.test_records),
     }
+    _applied_sessions[session_id] = result
+    return result
 
 
 # ============================================================
@@ -377,9 +444,9 @@ async def apply_adaptive_test(learner_id: str, session_id: str = Query(...)):
 
 @app.post("/api/demo/generate")
 async def generate_mock_data():
-    global _test_bank, _learners, _profiles
+    global _test_bank, _learners, _profiles, _applied_sessions
     learners, _test_bank = generate_all_mock_data()
-    _learners.clear(); _profiles.clear()
+    _learners.clear(); _profiles.clear(); _applied_sessions.clear()
     for l in learners:
         _learners[l.id] = l
     save_mock_data(str(PROJECT_ROOT / "data"))

@@ -31,7 +31,7 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert "/api/v1/runs" in javascript.text
     assert "/api/v1/profiles/adapt" in javascript.text
     assert "profileWarnings" in javascript.text
-    assert "适配警告" in javascript.text
+    assert "画像转换摘要" in javascript.text
     assert "target_concept_id" in javascript.text
     assert "run-overview" in javascript.text
     assert "chapter_id" in javascript.text
@@ -46,7 +46,22 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert 'id="learning-workbench"' in html.text
     assert 'id="path-progress"' in html.text
     assert 'id="node-resource"' in html.text
+    assert "学习演示模式" in html.text
+    assert "正式资源模式" in html.text
+    assert "每类候选证据数" in html.text
+    assert 'data-tab="raw-view"' not in html.text
+    assert 'id="raw-view"' not in html.text
     assert "resource-requirements" in javascript.text
     assert "resource-code-line" in javascript.text
     assert "项目实践要求" in javascript.text
     assert "start-node" in javascript.text
+    assert "讲义" in javascript.text
+    assert "实践" in javascript.text
+    assert "测验" in javascript.text
+    assert "practice-review" in javascript.text
+    assert "code-editor" in javascript.text
+    assert "buildFormalLearningTabs" in javascript.text
+    assert "画像转换摘要" in javascript.text
+    assert "演示学习资源已生成" in javascript.text
+    assert "个性化计算" in javascript.text
+    assert "const rawJson" not in javascript.text

@@ -172,32 +172,6 @@ def test_declared_code_chunk_cannot_satisfy_exercise_query(resource_case) -> Non
     assert all(item.content_kind is not ContentKind.EXERCISE for item in result.candidate_evidence)
 
 
-def test_retrieval_excludes_gan_and_transposed_convolution_content(resource_case) -> None:
-    clean = KnowledgeChunk(
-        chunk_id="cnn-clean",
-        doc_id="cnn-doc",
-        source_title="CNN convolution notes",
-        heading_path=("CNN", "卷积运算"),
-        text="标准卷积使用卷积核、padding、stride 和输出尺寸公式。",
-        domain_tag="ai-knowledge",
-        difficulty="进阶",
-        token_count=20,
-    )
-    gan = KnowledgeChunk(
-        chunk_id="cnn-gan",
-        doc_id="gan-doc",
-        source_title="DCGAN image generation guide",
-        heading_path=("DCGAN", "转置卷积"),
-        text="生成器使用 ConvTranspose2d 进行上采样，判别器使用卷积。",
-        domain_tag="ai-knowledge",
-        difficulty="进阶",
-        token_count=20,
-    )
-
-    assert _is_relevant_chunk(clean, "dl.cnn.convolution")
-    assert not _is_relevant_chunk(gan, "dl.cnn.convolution")
-
-
 def test_metadata_fallback_produces_scoped_candidate_for_math_scalar(
     resource_case,
     catalog,

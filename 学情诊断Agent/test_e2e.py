@@ -1,4 +1,9 @@
 import urllib.request, json, random
+import sys
+
+if "pytest" in sys.modules:
+    import pytest
+    pytest.skip("需要显式启动学情诊断 Agent 服务后运行", allow_module_level=True)
 
 # 1. Create learner via questionnaire
 payload = json.dumps({

@@ -287,8 +287,7 @@ function renderQuestion(data){
     var labels=['A','B','C','D'];
     q.options.forEach(function(o,i){h+='<button class="option-btn" onclick="submitAnswer(\''+q.question_id+'\','+i+',\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">'+labels[i]+'. '+o+'</button>'});
   }else{
-    h+='<p style="color:#94a3b8">IRT adaptive question (simplified)</p>';
-    h+='<div style="display:flex;gap:12px;justify-content:center;margin-top:12px"><button class="option-btn" style="width:120px;text-align:center;background:#22c55e;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',0,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">CORRECT</button><button class="option-btn" style="width:120px;text-align:center;background:#ef4444;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',-1,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">WRONG</button></div>';
+    h+='<p style="color:#b45309">该题缺少服务端标准选项，暂不能提交，避免客户端自行判分。</p>';
   }
   h+='</div>';document.getElementById('questionArea').innerHTML=h;renderTheta(data.current_theta,data.question_count,data);
 }
@@ -308,14 +307,11 @@ function renderTheta(theta,qCount,stage){
 }
 
 async function submitAnswer(qid,userAnswer,kpName,kpId){
-  var q=window._tc?window._tc[qid]:null;
-  var isCorrect=false;
-  if(q&&typeof q.correct_answer!=='undefined'){isCorrect=(userAnswer===q.correct_answer)}
-  else{isCorrect=(userAnswer===0)}
   var t0=Date.now();
-  var resp=await fetch('/api/adaptive-test/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:_atSessionId,question_id:qid,is_correct:isCorrect,time_spent:Math.round((Date.now()-t0)/1000)})});
+  var resp=await fetch('/api/adaptive-test/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:_atSessionId,question_id:qid,selected_answer:userAnswer,time_spent:Math.round((Date.now()-t0)/1000)})});
   var data=await resp.json();
-  _atAnswers.push({qid:qid,kpName:kpName,kpId:kpId,correct:isCorrect,theta:data.current_theta||0,userAnswer:userAnswer});
+  if(!resp.ok||data.error){document.getElementById('atStatus').textContent=data.detail||data.error||'提交失败';return}
+  _atAnswers.push({qid:qid,kpName:kpName,kpId:kpId,correct:data.last_correct,theta:data.current_theta||0,userAnswer:userAnswer});
   renderHistory();renderQuestion(data);
 }
 

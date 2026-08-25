@@ -48,7 +48,7 @@ def _gap_confidence(mastery: float, test_count: int, gap_type: str) -> float:
         elif test_count >= 1:
             return 0.70 + (1 - mastery) * 0.05
         else:
-            return 0.85  # 远期待学但确实未接触
+            return 0.25  # 无直接证据只能建议测评，不能高置信下结论
     elif gap_type == "blocked":
         return 0.86 + min(0.04, test_count * 0.01)
     elif gap_type == "weak":
@@ -108,6 +108,10 @@ def analyze_gaps(
         interaction_count = _interaction_count_for_kp(kp.id, interactions)
         pass_rate = _test_pass_rate(kp.id, test_records)
         tc = test_count_map.get(kp.id, 0)
+
+        # 没有测试或交互证据时，不把学历先验误报成已确认盲区。
+        if tc == 0 and interaction_count == 0:
+            continue
 
         gap_type = None
         priority = "low"
@@ -234,9 +238,11 @@ def classify_error_patterns(
         "忽略条件": {"count": 0, "kp_ids": set(), "examples": []},
     }
 
+    labeled_wrong = 0
     for t in wrong_records:
         cat = t.error_pattern if t.error_pattern else None
         if cat and cat in categories:
+            labeled_wrong += 1
             categories[cat]["count"] += 1
             categories[cat]["kp_ids"].add(t.knowledge_point_id)
         else:
@@ -261,7 +267,8 @@ def classify_error_patterns(
     for cat_name in ["概念混淆", "计算错误", "逻辑跳跃", "忽略条件"]:
         cat_data = categories[cat_name]
         ratio = round(cat_data["count"] / total_wrong, 2)
-        conf = round(0.78 + min(0.12, cat_data["count"] * 0.02), 2) if cat_data["count"] > 0 else 0.0
+        coverage = labeled_wrong / len(wrong_records) if wrong_records else 0.0
+        conf = round(coverage * (0.78 + min(0.12, cat_data["count"] * 0.02)), 2) if cat_data["count"] > 0 else 0.0
 
         items.append(ErrorPatternItem(
             category=cat_name,
@@ -279,7 +286,7 @@ def classify_error_patterns(
         elif cat_data["count"] > secondary[1]:
             secondary = (cat_name, cat_data["count"])
 
-    classification_conf = 0.85  # 可后续从标注一致率动态计算
+    classification_conf = round(labeled_wrong / len(wrong_records), 2) if wrong_records else 0.0
 
     return ErrorPatterns(
         total_questions=total,

@@ -2,7 +2,7 @@ from enum import StrEnum
 from itertools import chain, repeat
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 from skillforge_kb.domain.enums import ContentKind
 from skillforge_kb.ontology.models import (
@@ -18,9 +18,13 @@ from skillforge_kb.resources.controlled_generation import (
     FakeLLMAdapter,
     GenerationPolicy,
     LectureDraft,
+    LessonBlock,
+    LLMAdapter,
     PersonalizationPolicy,
     PracticalGuideDraft,
+    PracticeExercise,
     PublicationStatus,
+    ResourceAuditor,
     ResourceGenerationBrief,
     StructuredResourceDraft,
     StudentQuizDraft,
@@ -56,6 +60,23 @@ class ResourceAgentResult(BaseModel):
     formal_package: ValidatedResourcePackage | None = None
     preview_package: CandidateLearningPackage | None = None
 
+    @model_serializer(mode="wrap")
+    def serialize_public(self, handler, info):
+        """Keep teacher answers and choice keys server-side in JSON responses."""
+        data = handler(self)
+        if info.mode == "json" and self.preview_package is not None:
+            preview = data.get("preview_package")
+            if isinstance(preview, dict):
+                draft = preview.get("draft")
+                if isinstance(draft, dict):
+                    draft.pop("teacher_guide", None)
+                    quiz = draft.get("student_quiz")
+                    if isinstance(quiz, dict):
+                        for item in quiz.get("items", []):
+                            if isinstance(item, dict):
+                                item.pop("correct_choice", None)
+        return data
+
     @model_validator(mode="after")
     def validate_mode_and_identity(self) -> "ResourceAgentResult":
         if self.mode is ResourceGenerationMode.STRICT:
@@ -82,6 +103,13 @@ class ResourceAgentResult(BaseModel):
 
 
 class ResourceGenerationAgent:
+    def __init__(self, llm_adapter: LLMAdapter | None = None) -> None:
+        self._llm_adapter = llm_adapter
+
+    @property
+    def llm_adapter(self) -> LLMAdapter | None:
+        return self._llm_adapter
+
     def generate_strict(
         self,
         handoff: ResourceHandoffContract,
@@ -119,7 +147,12 @@ class ResourceGenerationAgent:
             learner_context=_learner_context(profile, handoff.concept_id),
         )
         draft = _preview_draft(handoff, policy, selected)
-        package = ControlledResourceGenerationService(FakeLLMAdapter(draft)).generate(
+        # The first learning screen must be available immediately.  Candidate lesson
+        # structure is deterministic and evidence-bounded; the configured LLM is
+        # reserved for the learner's later code-review feedback.
+        adapter = FakeLLMAdapter(draft)
+        auditor = ResourceAuditor()
+        package = ControlledResourceGenerationService(adapter, auditor=auditor).generate(
             brief,
             notebook_passed=False,
         )
@@ -200,12 +233,7 @@ def _preview_policy(
     return GenerationPolicy.create(
         concept_id=handoff.concept_id,
         knowledge_scope=(handoff.concept_id,),
-        forbidden_scope=(
-            "transposed convolution",
-            "dcgan",
-            "textcnn",
-            "gan",
-        ),
+        forbidden_scope=(),
         learning_objectives=handoff.learning_outcomes,
         delivery_depth=handoff.delivery_depth.value,
         prerequisite_gate_passed=True,
@@ -321,6 +349,8 @@ def _preview_draft(
             difficulty=difficulty_levels[index - 1],
             prompt=_quiz_prompt(topic, outcome, kind, index),
             hints=(),
+            choices=_quiz_choices(topic, kind, index),
+            correct_choice=0,
         )
         for index, kind in enumerate(kinds, start=1)
     )
@@ -340,6 +370,7 @@ def _preview_draft(
             sections=_lecture_sections(topic, outcome, definition_text),
             claims=(lecture_claim,),
             explanation_order=policy.personalization.explanation_order_hint,
+            blocks=_lesson_blocks(topic, outcome, definition_text),
         ),
         practical_guide=PracticalGuideDraft(
             title=f"{topic}：实操指南",
@@ -347,6 +378,7 @@ def _preview_draft(
             claims=(practical_claim,),
             notebook_tasks=(code_text,),
             debug_hint_depth=policy.personalization.debugging_emphasis,
+            exercise=_practice_exercise(topic, outcome),
         ),
         student_quiz=StudentQuizDraft(
             instructions="Complete each item using the supplied learning resources.",
@@ -420,6 +452,188 @@ def _lecture_sections(topic: str, outcome: str, definition_text: str) -> tuple[s
     )
 
 
+def _lesson_blocks(topic: str, outcome: str, definition_text: str) -> tuple[LessonBlock, ...]:
+    """Build a complete lesson spine for the deterministic candidate preview."""
+    explanation = _CONCEPT_EXPLANATIONS.get(
+        topic, f"{topic}是本节点的核心概念，必须先明确输入、变换规则和输出。"
+    )
+    derivation, example, pitfall = _lesson_details(topic)
+    return (
+        LessonBlock(
+            kind="objective",
+            title="学完本节你应该能够",
+            body=(
+                f"本节的目标是：{outcome}。学习时请不要只记住名词；你需要能说清“{topic}”"
+                "接收什么输入、按什么规则处理、得到什么输出，并能在代码中验证这个过程。"
+            ),
+        ),
+        LessonBlock(
+            kind="intuition",
+            title="先建立直觉",
+            body=(
+                f"{explanation} 可以把它想成一次受规则约束的局部计算：先观察对象的组成，"
+                "再按照固定规则变换，最后检查结果是否仍符合输入与输出之间的关系。"
+            ),
+        ),
+        LessonBlock(
+            kind="definition",
+            title="正式定义与边界",
+            body=(
+                f"{definition_text} 这一定义强调三件事：对象的表示方式、允许的操作，以及结果"
+                f"应如何解释。遇到“{topic}”相关题目时，先确认这些条件，不能只凭名称套用公式。"
+            ),
+        ),
+        LessonBlock(kind="derivation", title="按步骤推导", body=derivation),
+        LessonBlock(kind="example", title="带着数值或代码走一遍", body=example),
+        LessonBlock(kind="pitfall", title="最容易出错的地方", body=pitfall),
+        LessonBlock(
+            kind="summary",
+            title="本节小结",
+            body=(
+                f"回到学习目标：{outcome}。请用一句话总结“{topic}”的输入、规则和输出；"
+                "再完成下面的代码练习。若不能解释运行结果，先回看推导步骤，而不是直接修改参数。"
+            ),
+        ),
+    )
+
+
+def _lesson_details(topic: str) -> tuple[str, str, str]:
+    details = {
+        "标量": (
+            "标量只有一个数值，因此加、减、乘、除都围绕这个单值进行。标量与向量相乘时，"
+            "向量的每个分量都乘同一个数；符号会改变方向，绝对值会改变长度。",
+            "设 s = -2.5，v = [3, 0, -1]。逐项计算 s × v，得到 [-7.5, -0.0, 2.5]。"
+            "这里没有维度扩展：一个标量只是作用到向量的每个位置。",
+            "不要把标量乘法和矩阵乘法混淆。标量乘法不要求形状匹配；它只把同一个数应用到每个元素。",
+        ),
+        "向量": (
+            "把向量写成按顺序排列的分量，例如 v = [v1, v2, v3]。相加时对应位置相加；"
+            "点积时对应位置相乘后求和，因此两个向量必须有相同长度。",
+            "令 a = [1, 2, 3]，b = [4, 0, -1]。a + b = [5, 2, 2]；"
+            "a · b = 1×4 + 2×0 + 3×(-1) = 1。",
+            "向量的逗号顺序就是维度顺序。把行向量、列向量或不同长度的向量直接相加，会得到错误或不符合预期的广播。",
+        ),
+        "矩阵": (
+            "矩阵用行和列组织数据。A 的形状记为 (m, n)：m 表示行数，n 表示列数。"
+            "逐元素运算需要对应位置存在；矩阵乘法还要求左矩阵列数等于右矩阵行数。",
+            "A = [[1, 2], [3, 4]]，B = [[5, 6], [7, 8]]。A + B 逐元素相加；"
+            "A @ B 的左上角是 1×5 + 2×7 = 19。",
+            "`*` 在 NumPy 中通常表示逐元素乘法，`@` 才表示矩阵乘法。"
+            "先打印 shape，再决定用哪个运算符。",
+        ),
+        "张量": (
+            "张量把标量、向量和矩阵推广到更多维度。深度学习中一批彩色图像常写成 "
+            "(batch, channel, height, width)，"
+            "每个轴都表达不同含义，不能因为元素个数相同就随意交换轴。",
+            "一张 RGB 图像的形状可以是 (3, 32, 32)：3 个通道，每个通道 32×32。"
+            "加入 8 张图像的批次后，形状变为 (8, 3, 32, 32)。",
+            "最常见的错误是把 HWC 图像直接传给要求 NCHW 的 PyTorch 层。"
+            "尺寸看似正确，但通道轴含义已经错位。",
+        ),
+        "卷积运算": (
+            "二维卷积层在输入特征图上滑动一个小窗口。每个位置把窗口元素与卷积核逐项相乘并求和，"
+            "得到输出特征图的一个值。padding 决定边界如何补齐，stride 决定窗口每次移动几格。",
+            "输入高度 H=5，卷积核 K=3，padding P=1，stride S=1 时，输出高度为"
+            " floor((H + 2P - K) / S) + 1 = floor((5 + 2 - 3)/1)+1 = 5。",
+            "不要只看 Conv2d 的 `out_channels`。输出空间尺寸同时受 "
+            "kernel_size、stride、padding、dilation 影响；"
+            "还要确认输入的通道数与 in_channels 一致。",
+        ),
+    }
+    return details.get(
+        topic,
+        (
+            f"先写出“{topic}”的输入类型和输出类型，再把规则拆成逐步操作。每一步都应能用一个小例子验证。",
+            f"选择一个最小输入，手工完成一次“{topic}”操作；再用代码打印输入、中间过程和输出，逐项比对预期结果。",
+            f"不要跳过输入约束。多数“{topic}”错误来自形状、类型或前置条件不满足，而不是公式本身。",
+        ),
+    )
+
+
+def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
+    exercises = {
+        "标量": PracticeExercise(
+            task=(
+                "完成标量与向量相乘：用标量 s 逐项缩放向量 v，打印结果并验证结果仍有 3 个元素。"
+                f"完成后，用一句注释说明这段代码如何帮助你达成“{outcome}”。"
+            ),
+            starter_code=(
+                "s = -2.5\n"
+                "v = [3, 0, -1]\n\n"
+                "# TODO: 将 s 乘到 v 的每个元素上\n"
+                "scaled = []\n\n"
+                "print(scaled)\n"
+                "assert len(scaled) == 3\n"
+            ),
+            expected_output="[-7.5, -0.0, 2.5]",
+            checks=(
+                "结果包含 3 个元素",
+                "每个元素都由 s 与对应 v 元素相乘得到",
+                "保留 assert 验证",
+            ),
+            required_tokens=("s", "v", "scaled", "print"),
+        ),
+        "矩阵": PracticeExercise(
+            task=(
+                "用 NumPy 分别计算逐元素乘法和矩阵乘法，打印两个结果并观察它们为什么不同。"
+                f"你的代码需要支持学习目标：{outcome}。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "a = np.array([[1, 2], [3, 4]])\n"
+                "b = np.array([[5, 6], [7, 8]])\n\n"
+                "# TODO: 分别完成逐元素乘法与矩阵乘法\n"
+                "elementwise = None\n"
+                "matmul = None\n\n"
+                "print(elementwise)\n"
+                "print(matmul)\n"
+            ),
+            expected_output="逐元素乘法 [[5, 12], [21, 32]]；矩阵乘法 [[19, 22], [43, 50]]",
+            checks=(
+                "使用 np.array 创建输入",
+                "同时输出 elementwise 与 matmul",
+                "矩阵乘法使用 @ 或 np.matmul",
+            ),
+            required_tokens=("np.array", "elementwise", "matmul", "print"),
+        ),
+        "卷积运算": PracticeExercise(
+            task=(
+                "补全一个 3×3 输入与 2×2 卷积核的单位置互相关计算。先逐元素相乘，再求和，"
+                "最后打印输出值。该练习对应深度学习框架中 Conv2d 的核心局部计算。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "image = np.array([[1, 2, 0], [0, 1, 3], [2, 2, 1]])\n"
+                "kernel = np.array([[1, 0], [0, -1]])\n"
+                "window = image[:2, :2]\n\n"
+                "# TODO: 计算 window 与 kernel 的逐元素乘积之和\n"
+                "output = None\n"
+                "print(output)\n"
+            ),
+            expected_output="输出值为 0；请写出窗口、卷积核和逐元素乘积如何得到该结果。",
+            checks=("保留 image、kernel 与 window", "使用逐元素乘法后求和", "打印 output"),
+            required_tokens=("image", "kernel", "window", "output", "print"),
+        ),
+    }
+    return exercises.get(
+        topic,
+        PracticeExercise(
+            task=(
+                f"为“{topic}”写一个最小 Python 示例：创建一个输入，完成一次核心变换并打印结果。"
+                f"用注释说明该结果如何验证学习目标：{outcome}。"
+            ),
+            starter_code=(
+                "# TODO: 创建一个最小输入并完成本节的核心变换\n"
+                "result = None\n"
+                "print(result)\n"
+            ),
+            expected_output="打印一个可解释的结果，并在注释中说明输入、操作和输出。",
+            checks=("定义输入", "计算 result", "打印 result 并解释"),
+            required_tokens=("result", "print"),
+        ),
+    )
+
+
 def _practical_steps(topic: str, outcome: str, code_text: str) -> tuple[str, ...]:
     return (
         f"准备：把“{topic}”的输入、输出和关键参数写成一行，确认它们的类型或形状。",
@@ -455,6 +669,39 @@ def _quiz_prompt(topic: str, outcome: str, kind: object, index: int) -> str:
     }
     fallback = f"[{label}] 围绕“{topic}”完成一次解释、验证或迁移。"
     return prompts.get(kind_value, fallback) + f"（第 {index} 题）"
+
+
+def _quiz_choices(topic: str, kind: object, index: int) -> tuple[str, ...]:
+    kind_value = getattr(kind, "value", str(kind))
+    if kind_value == "concept":
+        return (
+            f"准确说明{topic}的输入、规则和输出",
+            "只记住名词，不说明输入输出",
+            "把它与任意相似术语混用",
+        )
+    if kind_value == "shape_reasoning":
+        return (
+            "先检查输入形状，再代入参数公式",
+            "只看通道数，不看空间尺寸",
+            "忽略 padding 和 stride",
+        )
+    if kind_value == "code":
+        return (
+            "写出最小实现并打印输入输出",
+            "只复制代码，不验证结果",
+            "用随机结果代替计算",
+        )
+    if kind_value == "debugging":
+        return (
+            "定位输入、类型或形状约束并修正",
+            "直接删除报错代码",
+            "只增加随机打印",
+        )
+    return (
+        f"把{topic}与前置知识联系起来并解释边界",
+        "只背诵定义，不分析条件",
+        "认为任何输入都适用",
+    )
 
 
 def _evidence_gap(

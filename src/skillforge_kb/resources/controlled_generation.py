@@ -14,7 +14,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol, cast
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
@@ -169,12 +169,22 @@ class ResourceGenerationBrief(BaseModel):
     def create(
         cls, *, profile_id: str, policy: GenerationPolicy, learner_context: dict[str, Any]
     ) -> ResourceGenerationBrief:
+        typed_context: dict[str, str | int | float | tuple[str, ...]] = {
+            key: value
+            for key, value in learner_context.items()
+            if isinstance(value, (str, int, float, tuple))
+        }
         payload = {
             "profile_id": profile_id,
             "policy": policy.model_dump(mode="json"),
-            "learner_context": learner_context,
+            "learner_context": typed_context,
         }
-        return cls(**payload, brief_id=_digest("generation_brief", payload))
+        return cls(
+            profile_id=profile_id,
+            policy=policy,
+            learner_context=typed_context,
+            brief_id=_digest("generation_brief", payload),
+        )
 
 
 class TechnicalClaim(BaseModel):
@@ -186,6 +196,32 @@ class TechnicalClaim(BaseModel):
     evidence_ids: tuple[str, ...] = Field(min_length=1)
 
 
+class LessonBlock(BaseModel):
+    """A readable unit in a student-facing lesson rather than a list heading."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    kind: Literal[
+        "objective", "intuition", "definition", "derivation", "example", "pitfall", "summary"
+    ]
+    title: str = Field(min_length=1)
+    body: str = Field(min_length=40)
+    code: str | None = None
+
+
+class PracticeExercise(BaseModel):
+    """Student-facing code exercise. Reference solutions remain outside this model."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    language: Literal["python"] = "python"
+    task: str = Field(min_length=40)
+    starter_code: str = Field(min_length=1, max_length=12_000)
+    expected_output: str = Field(min_length=1)
+    checks: tuple[str, ...] = Field(min_length=1)
+    required_tokens: tuple[str, ...] = Field(min_length=1)
+
+
 class LectureDraft(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -194,6 +230,7 @@ class LectureDraft(BaseModel):
     claims: tuple[TechnicalClaim, ...] = Field(min_length=1)
     review_section_count: int = Field(default=0, ge=0)
     explanation_order: tuple[str, ...] = ()
+    blocks: tuple[LessonBlock, ...] = ()
 
 
 class PracticalGuideDraft(BaseModel):
@@ -206,6 +243,7 @@ class PracticalGuideDraft(BaseModel):
     starter_code_lines: int = Field(default=0, ge=0)
     required_core_code_lines: int = Field(default=1, ge=1)
     debug_hint_depth: int = Field(default=0, ge=0, le=3)
+    exercise: PracticeExercise | None = None
 
 
 class StudentQuizItem(BaseModel):
@@ -216,6 +254,14 @@ class StudentQuizItem(BaseModel):
     difficulty: int = Field(ge=1, le=3)
     prompt: str = Field(min_length=1)
     hints: tuple[str, ...] = ()
+    choices: tuple[str, ...] = ()
+    correct_choice: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def validate_choice(self) -> StudentQuizItem:
+        if self.correct_choice is not None and self.choices and self.correct_choice >= len(self.choices):
+            raise ValueError("correct_choice must reference a quiz choice")
+        return self
 
 
 class StudentQuizDraft(BaseModel):
@@ -486,12 +532,35 @@ def build_generation_prompt(
             + json.dumps(student_quiz.model_dump(mode="json"), ensure_ascii=False)
         )
     schema = "four material schemas" if material == "package" else f"the {material} schema"
+    schema_model = (
+        StructuredResourceDraft if material == "package" else MATERIAL_SCHEMAS[material]
+    )
+    schema_json = json.dumps(
+        schema_model.model_json_schema(), ensure_ascii=False, separators=(",", ":")
+    )
     return (
         f"MATERIAL: {material}\n"
-        f"You are a teaching-content writer. Return one JSON object matching {schema}. "
+        f"You are a teaching-content writer. Return exactly one JSON object matching {schema}. "
+        "Do not wrap it in Markdown or add commentary. Do not include keys outside the schema. "
         "Do not create release status, new evidence, new scope IDs, executable notebook core "
         "code, or a different quiz blueprint. Every technical claim must use an allowed evidence "
-        "ID and a knowledge scope ID."
+        "ID and a knowledge scope ID.\nJSON SCHEMA:\n"
+        f"{schema_json}"
+        + (
+            "\nPEDAGOGICAL REQUIREMENTS: For lecture, write seven ordered blocks with kinds "
+            "objective, intuition, definition, derivation, example, pitfall, summary. "
+            "Each body must explain the concept in complete sentences, include a concrete example, "
+            "and connect the explanation to the learner objective."
+            if material == "lecture"
+            else "\nPEDAGOGICAL REQUIREMENTS: For practical_guide, provide a Python starter_code with TODO, "
+            "an expected_output, checks, and required_tokens. The student must be able to edit the code "
+            "and submit it for static feedback; never place a reference solution in starter_code."
+            if material == "practical_guide"
+            else "\nPEDAGOGICAL REQUIREMENTS: For student_quiz, write eight answerable questions with at least "
+            "two choices each. Keep correct_choice as a server-only answer key and do not put answers in prompt or hints."
+            if material == "student_quiz"
+            else ""
+        )
         + teacher_constraint
         + "\nIMMUTABLE BRIEF:\n"
         + json.dumps(brief.model_dump(mode="json"), ensure_ascii=False)
@@ -578,10 +647,15 @@ class ResourceAuditor:
             (
                 draft.lecture.title,
                 *draft.lecture.sections,
+                *(block.title for block in draft.lecture.blocks),
+                *(block.body for block in draft.lecture.blocks),
+                *(block.code or "" for block in draft.lecture.blocks),
                 *draft.lecture.explanation_order,
                 draft.practical_guide.title,
                 *draft.practical_guide.learning_steps,
                 *draft.practical_guide.notebook_tasks,
+                draft.practical_guide.exercise.task if draft.practical_guide.exercise else "",
+                draft.practical_guide.exercise.starter_code if draft.practical_guide.exercise else "",
                 student_text,
                 *(item.answer for item in draft.teacher_guide.items),
                 *(item.error_diagnosis for item in draft.teacher_guide.items),
@@ -680,7 +754,7 @@ class ResourceAuditor:
                     hard=True,
                 )
             )
-        leakage_markers = ("答案", "正确答案", "answer:", "solution:")
+        leakage_markers = ("答案：", "答案:", "正确答案", "answer:", "solution:")
         if any(marker in student_text for marker in leakage_markers):
             findings.append(
                 AuditFinding(
@@ -782,10 +856,13 @@ class ControlledResourceGenerationService:
             raw = self._adapter.complete(prompt, repair=repair)
             return schema.model_validate_json(raw)
 
-        lecture = generate_one("lecture", LectureDraft)
-        practical = generate_one("practical_guide", PracticalGuideDraft)
-        quiz = generate_one("student_quiz", StudentQuizDraft)
-        teacher = generate_one("teacher_guide", TeacherGuideDraft, student_quiz=quiz)
+        lecture = cast(LectureDraft, generate_one("lecture", LectureDraft))
+        practical = cast(PracticalGuideDraft, generate_one("practical_guide", PracticalGuideDraft))
+        quiz = cast(StudentQuizDraft, generate_one("student_quiz", StudentQuizDraft))
+        teacher = cast(
+            TeacherGuideDraft,
+            generate_one("teacher_guide", TeacherGuideDraft, student_quiz=quiz),
+        )
         return StructuredResourceDraft(
             lecture=lecture,
             practical_guide=practical,

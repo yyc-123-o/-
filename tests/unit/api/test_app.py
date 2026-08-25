@@ -131,6 +131,26 @@ def test_invalid_request_returns_422(client: TestClient) -> None:
     assert response.status_code == 422
 
 
+def test_practice_review_returns_safe_feedback(client: TestClient, profile_payload) -> None:
+    created = client.post("/api/v1/runs", json=_request(profile_payload)).json()
+
+    response = client.post(
+        f"/api/v1/runs/{created['run_id']}/practice-review",
+        json={
+            "concept_id": "math.linear-algebra.scalar",
+            "source": "result = [1]\nprint(result)",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["execution_performed"] is False
+
+
+def test_student_resource_response_does_not_expose_teacher_answers(client: TestClient) -> None:
+    response = client.get("/api/v1/runs/run_" + "0" * 64)
+    assert response.status_code == 404
+
+
 def test_openapi_contains_platform_contracts(client: TestClient) -> None:
     schema = client.get("/openapi.json").json()
 

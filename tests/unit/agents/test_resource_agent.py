@@ -1,6 +1,7 @@
 from skillforge_kb.agents.resource_agent import (
     ResourceGenerationAgent,
     ResourceGenerationMode,
+    _preview_policy,
 )
 from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalRequest,
@@ -130,6 +131,28 @@ def test_preview_does_not_open_formal_gate(resource_case) -> None:
     assert result.publication_status == "candidate_draft"
 
 
+def test_preview_policy_does_not_carry_cnn_demo_scope_bans(resource_case) -> None:
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+
+    candidates = _candidate_retrieval(handoff).candidate_evidence
+    policy = _preview_policy(
+        _profile(handoff),
+        handoff,
+        {item.content_kind: item for item in candidates},
+    )
+
+    assert policy.forbidden_scope == ()
+
+
 def test_preview_materials_are_specific_to_node_and_question_kind(resource_case) -> None:
     brief, _ = resource_case
     handoff = _handoff_with_gate(
@@ -158,6 +181,54 @@ def test_preview_materials_are_specific_to_node_and_question_kind(resource_case)
     assert any("概念" in item.prompt for item in draft.student_quiz.items)
     assert any("形状" in item.prompt for item in draft.student_quiz.items)
     assert any("代码" in item.prompt for item in draft.student_quiz.items)
+
+
+def test_preview_contains_readable_lesson_and_editable_practice(resource_case) -> None:
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+
+    result = ResourceGenerationAgent().generate_preview(
+        _profile(handoff), handoff, _candidate_retrieval(handoff)
+    )
+    draft = result.preview_package.draft  # type: ignore[union-attr]
+
+    assert {block.kind for block in draft.lecture.blocks} == {
+        "objective", "intuition", "definition", "derivation", "example", "pitfall", "summary"
+    }
+    assert all(len(block.body) > 40 for block in draft.lecture.blocks)
+    assert draft.practical_guide.exercise.language == "python"
+    assert "TODO" in draft.practical_guide.exercise.starter_code
+    assert draft.practical_guide.exercise.checks
+    assert all(len(item.choices) >= 2 for item in draft.student_quiz.items)
+    assert all(item.correct_choice is not None for item in draft.student_quiz.items)
+
+
+def test_public_preview_json_hides_teacher_guide_and_choice_key(resource_case) -> None:
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+    result = ResourceGenerationAgent().generate_preview(
+        _profile(handoff), handoff, _candidate_retrieval(handoff)
+    )
+    public = result.model_dump(mode="json")
+    draft = public["preview_package"]["draft"]
+    assert "teacher_guide" not in draft
+    assert all("correct_choice" not in item for item in draft["student_quiz"]["items"])
 
 
 def test_preview_rejects_hard_prerequisite_block(resource_case) -> None:

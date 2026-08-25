@@ -86,6 +86,15 @@ def build_config(data: Optional[dict] = None) -> AdaptiveConfig:
     )
     if stages:
         cfg.difficulty_stages = stages
+    if cfg.max_questions < 1 or cfg.min_questions < 1 or cfg.min_questions > cfg.max_questions:
+        raise ValueError("max_questions 和 min_questions 必须为正数，且 min_questions <= max_questions")
+    if cfg.consecutive_wrong_stop < 0 or cfg.convergence_threshold < 0:
+        raise ValueError("停止条件不能为负数")
+    if not cfg.difficulty_stages:
+        raise ValueError("至少需要一个难度阶段")
+    for stage in cfg.difficulty_stages:
+        if stage.low > stage.high or not 0 <= stage.promote_accuracy <= 1 or stage.min_questions < 1:
+            raise ValueError("难度阶段范围、晋升正确率或最少题数无效")
     return cfg
 
 
@@ -125,6 +134,7 @@ class AdaptiveSession:
     bank: List[dict] = field(default_factory=list)
     current_stage: int = 0
     stage_answers: List[bool] = field(default_factory=list)
+    current_question_id: Optional[str] = None
 
 
 # 内存存储
@@ -145,6 +155,19 @@ def _filter_bank(test_bank: List[dict], config: AdaptiveConfig) -> List[dict]:
         kps = set(config.knowledge_point_ids)
         bank = [q for q in bank if q.get("knowledge_point_id") in kps]
     return bank
+
+
+def public_question(question: dict) -> dict:
+    """返回学生端题目，不泄露服务端判分和讲解字段。"""
+    private_fields = {
+        "correct_answer",
+        "correct_option",
+        "explanation",
+        "solution",
+        "rationale",
+        "answer_analysis",
+    }
+    return {key: value for key, value in question.items() if key not in private_fields}
 
 
 # ============================================================
@@ -298,11 +321,12 @@ def start_session(
 
     # 选第一道题
     q = _select_next_question(session, bank)
+    session.current_question_id = q["question_id"] if q else None
     result = {
         "session_id": sid,
         "current_theta": prior_theta,
         "question_count": 0,
-        "next_question": q,
+        "next_question": public_question(q) if q else None,
         "finished": False,
         "bank_size": len(bank),
         "category": {"domains": cfg.domains, "knowledge_point_ids": cfg.knowledge_point_ids},
@@ -314,7 +338,7 @@ def start_session(
 def submit_answer(
     session_id: str,
     question_id: str,
-    is_correct: bool,
+    selected_answer: Optional[int],
     time_spent: int,
     test_bank: List[dict],
 ) -> dict:
@@ -327,6 +351,9 @@ def submit_answer(
 
     bank = session.bank if session.bank else test_bank
 
+    if session.current_question_id != question_id:
+        return {"error": "提交的题目不是当前会话要求回答的题目"}
+
     # 找到这道题
     q = next((x for x in bank if x["question_id"] == question_id), None)
     if q is None:
@@ -334,8 +361,20 @@ def submit_answer(
     if not q:
         return {"error": "题目不存在"}
 
-    # 更新 θ
-    responses = [(q["discrimination"], q["difficulty"], is_correct)]
+    if isinstance(selected_answer, bool) or not isinstance(selected_answer, int):
+        return {"error": "selected_answer 必须是整数选项下标"}
+    if selected_answer < 0 or selected_answer >= len(q.get("options", [])):
+        return {"error": "选项无效"}
+    if "correct_answer" not in q:
+        return {"error": "必须提交题目选项，且该题必须包含服务端答案"}
+    is_correct = selected_answer == q["correct_answer"]
+
+    # 使用会话全部作答记录估计 θ；难度档只负责选题和解释，不替代 IRT。
+    responses = [
+        (answer["discrimination"], answer["difficulty"], answer["is_correct"])
+        for answer in session.answers
+    ]
+    responses.append((q["discrimination"], q["difficulty"], is_correct))
     new_theta = irt.estimate_theta(responses, prior_theta=session.current_theta)
 
     # 记录答题
@@ -361,6 +400,7 @@ def submit_answer(
 
     if should_stop:
         session.finished = True
+        session.current_question_id = None
         session.stop_reason = reason
         session.final_theta = new_theta
         result = {
@@ -371,6 +411,7 @@ def submit_answer(
             "stop_reason": reason,
             "final_theta": round(new_theta, 4),
             "answers": session.answers,
+            "last_correct": is_correct,
         }
         result.update(_stage_meta(session))
         return result
@@ -379,6 +420,7 @@ def submit_answer(
     next_q = _select_next_question(session, bank)
     if not next_q:
         session.finished = True
+        session.current_question_id = None
         session.stop_reason = "题库耗尽"
         session.final_theta = new_theta
         result = {
@@ -389,16 +431,19 @@ def submit_answer(
             "stop_reason": "题库耗尽",
             "final_theta": round(new_theta, 4),
             "answers": session.answers,
+            "last_correct": is_correct,
         }
         result.update(_stage_meta(session))
         return result
 
+    session.current_question_id = next_q["question_id"]
     result = {
         "session_id": session_id,
         "current_theta": round(new_theta, 4),
         "question_count": len(session.answers),
-        "next_question": next_q,
+        "next_question": public_question(next_q),
         "finished": False,
+        "last_correct": is_correct,
     }
     result.update(_stage_meta(session))
     return result
@@ -418,6 +463,7 @@ def get_session(session_id: str) -> Optional[dict]:
         "finished": s.finished,
         "stop_reason": s.stop_reason,
         "final_theta": round(s.final_theta, 4) if s.final_theta else None,
+        "current_question_id": s.current_question_id,
         "answers": s.answers,
     }
     result.update(_stage_meta(s))

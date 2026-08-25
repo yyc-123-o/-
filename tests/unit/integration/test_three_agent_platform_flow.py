@@ -44,6 +44,28 @@ def _cnn_ready_profile(project_root: Path) -> LearnerProfileSnapshot:
     return LearnerProfileSnapshot.model_validate(payload)
 
 
+def test_default_service_does_not_load_cnn_demo_candidate_corpus(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = Path(__file__).parents[3]
+    loaded_paths: list[Path] = []
+    original_load_many = KnowledgeCorpus.load_many
+
+    def capture_loaded_paths(paths: tuple[Path, ...]) -> KnowledgeCorpus:
+        loaded_paths.extend(paths)
+        return original_load_many(paths)
+
+    monkeypatch.setattr(
+        KnowledgeCorpus,
+        "load_many",
+        staticmethod(capture_loaded_paths),
+    )
+
+    build_default_platform_service(project_root)
+
+    assert loaded_paths == [project_root / "data" / "index_chunks.jsonl"]
+
+
 def test_strict_run_blocks_without_published_evidence() -> None:
     project_root = Path(__file__).parents[3]
     profile = _cnn_ready_profile(project_root)
@@ -83,6 +105,32 @@ def test_candidate_preview_completes_without_publish_rights() -> None:
     assert first.resources.formal_package is None
     assert first.resources.preview_package is not None
     assert replay == first
+
+
+def test_cnn_node_uses_the_same_metadata_query_template_as_every_node() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = _cnn_ready_profile(project_root)
+    service = build_default_platform_service(project_root)
+
+    result = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="metadata-query-template-e2e",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    assert result.handoff is not None
+    assert result.retrieval is not None
+    scope = (
+        f"{result.handoff.concept_id} {result.handoff.chapter_id} "
+        f"{result.handoff.section_id} {result.handoff.delivery_depth.value}"
+    )
+    assert result.retrieval.request.rewritten_queries == (
+        f"{scope} definition concept",
+        f"{scope} implementation code",
+        f"{scope} exercise assessment",
+    )
 
 
 def test_completing_current_node_advances_the_existing_learning_run() -> None:
@@ -160,6 +208,90 @@ def test_assessment_updates_profile_and_replans_depth_before_advancing() -> None
     assert updated.handoff is not None
     assert updated.handoff.concept_id == "math.linear-algebra.vector"
     assert updated.handoff.path_id == initial.handoff.path_id
+
+
+def test_correct_candidate_quiz_choices_advance_the_learning_node() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-CANDIDATE-QUIZ-CORRECT-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="candidate-quiz-correct",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.resources is not None
+    assert initial.resources.preview_package is not None
+    assert initial.resources.preview_package.draft is not None
+    answers = {
+        item.question_id: item.correct_choice
+        for item in initial.resources.preview_package.draft.student_quiz.items
+    }
+
+    updated = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "candidate-quiz-correct-1",
+            "concept_id": "math.linear-algebra.scalar",
+            "score": 0.0,
+            "responses": answers,
+            "response_time_ms": 40000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.vector"
+
+
+def test_incorrect_candidate_quiz_choices_keep_the_learning_node_open() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-CANDIDATE-QUIZ-INCORRECT-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="candidate-quiz-incorrect",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.resources is not None
+    assert initial.resources.preview_package is not None
+    assert initial.resources.preview_package.draft is not None
+    answers = {
+        item.question_id: 1 - item.correct_choice
+        for item in initial.resources.preview_package.draft.student_quiz.items
+    }
+
+    updated = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "candidate-quiz-incorrect-1",
+            "concept_id": "math.linear-algebra.scalar",
+            "score": 1.0,
+            "responses": answers,
+            "response_time_ms": 40000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+
+    assert updated.planning is not None
+    assert updated.planning.current_node is not None
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.scalar"
 
 
 def test_failed_assessment_keeps_node_open_and_records_error_pattern() -> None:

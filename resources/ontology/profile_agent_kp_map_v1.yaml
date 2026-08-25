@@ -1,6 +1,12 @@
 version: profile-agent-kp-map-v1
 graph_version: ai-course-v1
 mappings:
+  kp_001: math.calculus.chain-rule
+  kp_021: ml.data.train-validation-test-split
+  kp_022: ml.data.feature-label
+  kp_024: dl.practice.optimization-diagnostics
+  kp_025: rag.evaluation.ablation-study
+  kp_026: math.probability.random-variable
   kp_003: math.probability.probability-distribution
   kp_004: math.linear-algebra.matrix-operations
   kp_005: math.calculus.derivative-gradient

@@ -15,6 +15,7 @@ from skillforge_kb.platform.models import (
     build_request_digest,
     build_run_id,
 )
+from skillforge_kb.platform.practice_review import PracticeReviewResult
 from skillforge_kb.platform.repository import InMemoryPlatformRunRepository
 
 
@@ -53,6 +54,14 @@ class StubPlatformService:
 
     def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
         raise ValueError("stub service does not support learning node selection")
+
+    def review_practice(self, run_id: str, submission) -> PracticeReviewResult:
+        return PracticeReviewResult(
+            concept_id=submission.concept_id,
+            accepted=True,
+            feedback="静态检查通过。",
+            next_step="解释输出结果。",
+        )
 
 
 @pytest.fixture

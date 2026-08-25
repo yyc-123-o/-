@@ -19,12 +19,6 @@ from .retrieval_agent_models import (
     RetrievedEvidence,
 )
 
-_QUERY_TERMS: dict[ContentKind, str] = {
-    ContentKind.DEFINITION: "卷积运算 CNN 互相关 卷积核 输入输出通道 padding stride 输出尺寸",
-    ContentKind.CODE: "Python PyTorch nn.Conv2d 卷积 输入输出 shape 参数",
-    ContentKind.EXERCISE: "卷积输出尺寸计算 卷积核参数量 padding stride 练习 答案 解析",
-}
-
 
 class DomainRetrievalAgent:
     """Build a typed, candidate-safe retrieval result for one planner node."""
@@ -236,17 +230,12 @@ class DomainRetrievalAgent:
     ) -> tuple[RetrievedEvidence, ...]:
         rows: list[RetrievedEvidence] = []
         for index, content_kind in enumerate(required_kinds):
-            anchors: tuple[str, ...]
-            if request.concept_id == "dl.cnn.convolution":
-                query_text = _QUERY_TERMS.get(content_kind, request.original_query)
-                anchors = (request.concept_id, "CNN", "卷积")
-            else:
-                query_text = (
-                    request.rewritten_queries[index]
-                    if index < len(request.rewritten_queries)
-                    else f"{request.original_query} {content_kind.value}"
-                )
-                anchors = self._concept_anchors(request)
+            query_text = (
+                request.rewritten_queries[index]
+                if index < len(request.rewritten_queries)
+                else f"{request.original_query} {content_kind.value}"
+            )
+            anchors = self._concept_anchors(request)
             query = KnowledgeQuery(
                 query=query_text,
                 top_k=request.top_k,
@@ -342,23 +331,13 @@ def _sort_evidence(items: Iterable[RetrievedEvidence]) -> tuple[RetrievedEvidenc
 
 
 _CODE_MARKERS = re.compile(
-    r"(?:```|\b(?:import|from|def|class|return)\b|nn\.Conv2d|torch\.|numpy\.|np\.)",
+    r"(?:```|\b(?:import|from|def|class|return)\b|torch\.|numpy\.|np\.)",
     re.IGNORECASE,
 )
 _EXERCISE_MARKERS = re.compile(
     r"(?:练习|习题|题目|请计算|答案|解析|作答|选择题|填空题|exercise|question|solution)",
     re.IGNORECASE,
 )
-_CNN_EXCLUDED_MARKERS = re.compile(
-    r"(?:GAN|DCGAN|TextCNN|ConvTranspose|转置卷积|生成器|判别器)",
-    re.IGNORECASE,
-)
-_CNN_RELEVANT_MARKERS = re.compile(
-    r"(?:卷积|互相关|卷积核|convolution|conv2d|padding|stride|输出尺寸)",
-    re.IGNORECASE,
-)
-
-
 def _infer_content_kind(chunk: KnowledgeChunk) -> ContentKind:
     """Return the declared kind or a conservative legacy-chunk classification."""
     if chunk.content_kind is not None:
@@ -379,20 +358,7 @@ def _is_relevant_chunk(
 ) -> bool:
     """Reject lexical false positives before they become typed evidence."""
     searchable = " ".join((*chunk.heading_path, chunk.source_title, chunk.text))
-    if concept_id != "dl.cnn.convolution":
-        # The legacy corpus has no canonical concept field. Do not let a
-        # CNN-heavy hit satisfy a different node merely because the platform
-        # query used generic retrieval terms.
-        return not (
-            _CNN_RELEVANT_MARKERS.search(searchable)
-            and not re.search(re.escape(concept_id), searchable, re.IGNORECASE)
-        ) and (
-            not concept_terms
-            or any(
-                re.search(re.escape(term), searchable, re.IGNORECASE)
-                for term in concept_terms
-            )
-        )
-    if _CNN_EXCLUDED_MARKERS.search(searchable):
-        return False
-    return bool(_CNN_RELEVANT_MARKERS.search(searchable))
+    return not concept_terms or any(
+        re.search(re.escape(term), searchable, re.IGNORECASE)
+        for term in concept_terms
+    )

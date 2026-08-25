@@ -17,7 +17,6 @@ const topKInput = document.getElementById("top-k");
 const runStatus = document.getElementById("run-status");
 const runId = document.getElementById("run-id");
 const publicationStatus = document.getElementById("publication-status");
-const rawJson = document.getElementById("raw-json");
 
 profileFile.addEventListener("change", handleProfileFile);
 targetConceptInput.addEventListener("input", () => {
@@ -122,18 +121,52 @@ function renderProfileSummary() {
     textElement("span", `画像版本 ${state.profile.schema_version}`),
   );
   if (state.profileWarnings.length > 0) {
+    const groups = groupProfileWarnings(state.profileWarnings);
     const details = document.createElement("details");
     details.className = "profile-warnings";
     details.append(
-      textElement("summary", `适配警告 ${state.profileWarnings.length} 条`),
+      textElement("summary", "画像转换摘要"),
     );
+    const summary = document.createElement("p");
+    summary.className = "profile-conversion-summary";
+    const facts = [
+      `${state.profile.knowledge_mastery.length} 项已映射到课程图谱`,
+      groups.unmapped.length ? `${groups.unmapped.length} 项暂未纳入当前图谱` : null,
+      groups.unassessed.length ? `${groups.unassessed.length} 项未测评，不使用其数值` : null,
+      groups.version.length ? "图谱版本已自动匹配" : null,
+    ].filter(Boolean);
+    summary.textContent = facts.join("；");
+    details.append(summary);
     const list = document.createElement("ul");
-    state.profileWarnings.forEach((warning) => {
-      list.append(textElement("li", `${warning.legacy_id}: ${warning.reason}`));
+    [...groups.unmapped, ...groups.unassessed, ...groups.other].forEach((warning) => {
+      list.append(textElement("li", profileWarningLabel(warning)));
     });
-    details.append(list);
+    if (list.children.length) details.append(list);
     profileSummary.append(details);
   }
+}
+
+function groupProfileWarnings(warnings) {
+  const groups = { version: [], unmapped: [], unassessed: [], other: [] };
+  warnings.forEach((warning) => {
+    const reason = String(warning.reason || "");
+    if (reason.includes("graph_version inferred")) groups.version.push(warning);
+    else if (reason.includes("unmapped") || reason.includes("composite")) groups.unmapped.push(warning);
+    else if (reason.includes("numeric mastery discarded")) groups.unassessed.push(warning);
+    else groups.other.push(warning);
+  });
+  return groups;
+}
+
+function profileWarningLabel(warning) {
+  const reason = String(warning.reason || "");
+  if (reason.includes("numeric mastery discarded")) {
+    return `${warning.legacy_id}：画像标记为未测评，掌握度数值不参与个性化决策。`;
+  }
+  if (reason.includes("error pattern references unmapped")) {
+    return `${warning.legacy_id}：对应错误模式未纳入当前课程图谱。`;
+  }
+  return `${warning.legacy_id}：该知识点暂未纳入当前课程图谱，因此不参与路径决策。`;
 }
 
 function resetProfileError() {
@@ -201,7 +234,6 @@ function renderResult(result) {
   renderPath(result);
   renderEvidence(result);
   renderResources(result);
-  rawJson.textContent = JSON.stringify(result, null, 2);
 }
 
 function renderPipeline(steps, terminalStatus) {
@@ -416,6 +448,7 @@ function selectPathNode(result, node) {
     node.reason_codes?.length
       ? textElement("p", `规划依据：${node.reason_codes.map(reasonCodeLabel).join("、")}`, "node-reasons")
       : document.createDocumentFragment(),
+    isCurrent ? personalizationPanel(result) : document.createDocumentFragment(),
     textElement("h3", "学习目标"),
     isCurrent && result.handoff.learning_outcomes?.length
       ? textElement("p", result.handoff.learning_outcomes.join("；"))
@@ -462,6 +495,41 @@ function selectPathNode(result, node) {
     actions.append(complete);
   }
   detail.append(actions);
+}
+
+function personalizationPanel(result) {
+  const adaptation = result.handoff?.node_adaptation || result.planning?.current_adaptation;
+  if (!adaptation) return document.createDocumentFragment();
+  const section = document.createElement("section");
+  section.className = "personalization-panel";
+  section.append(textElement("h3", "个性化计算"));
+  const readiness = Math.round((adaptation.readiness_score || 0) * 100);
+  const support = Math.round((adaptation.support_need_score || 0) * 100);
+  section.append(
+    textElement("p", `当前交付深度为 ${adaptation.delivery_depth}；准备度 ${readiness}%；学习支持强度为 ${support}%（${supportIntensityLabel(adaptation.support_intensity)}）。`),
+  );
+  const factors = document.createElement("ul");
+  const labels = {
+    mastery_gap: "掌握度缺口",
+    error_risk: "错误风险",
+    ability_gap: "能力匹配缺口",
+    conservative_evidence_floor: "证据不足保护项",
+  };
+  (adaptation.support_contributions || []).forEach((item) => {
+    const contribution = Math.round(item.contribution * 100);
+    factors.append(textElement("li", `${labels[item.factor] || item.factor}：${contribution}%`));
+  });
+  section.append(factors);
+  return section;
+}
+
+function supportIntensityLabel(value) {
+  return {
+    compact: "紧凑",
+    standard: "标准",
+    scaffolded: "分步引导",
+    remediation: "补救学习",
+  }[value] || value || "标准";
 }
 
 function isStartableNode(node) {
@@ -565,6 +633,7 @@ function renderEvidence(result) {
     return;
   }
   target.append(
+    retrievalGuide(result, retrieval),
     evidenceSection("正式证据", retrieval.evidence || []),
     evidenceSection("候选证据", retrieval.candidate_evidence || []),
   );
@@ -664,40 +733,260 @@ function renderResources(result) {
     workbench.append(notice);
   }
   if (result.resources.formal_package) {
-    result.resources.formal_package.artifacts.forEach((artifact) => {
-      stack.append(resourceCard(artifact.resource_type, artifact.items.map((item) => item.text)));
-    });
+    stack.append(buildFormalLearningTabs(result, result.resources.formal_package.artifacts));
   } else {
     const draft = result.resources.preview_package?.draft;
     if (draft) {
-      stack.append(
-        resourceCard(draft.lecture.title || "讲义", draft.lecture.sections, "lecture"),
-        resourceCard(
-          draft.practical_guide.title || "实操指南",
-          [...draft.practical_guide.learning_steps, ...draft.practical_guide.notebook_tasks],
-          "practical_guide",
-        ),
-      );
+      stack.append(buildLearningTabs(result, draft));
     }
   }
-  if (result.handoff?.required_resource_types?.includes("project")) {
-    stack.append(
-      resourceCard(
-        "项目实践要求",
-        [
-          `项目目标：将“${conceptLabel(result.handoff.concept_id)}”应用到一个最小可验证任务。`,
-          "交付物：可运行代码、关键结果记录、失败原因与改进说明。",
-          `验收点：能够解释“${conceptLabel(result.handoff.concept_id)}”的输入、输出和适用边界。`,
-        ],
-        "project",
-      ),
-    );
-  }
-  const assessmentItems = assessmentItemsFor(result);
-  if (assessmentItems.length > 0) {
-    stack.append(buildAssessmentForm(result, assessmentItems));
-  }
   workbench.append(stack);
+}
+
+function retrievalGuide(result, retrieval) {
+  const guide = document.createElement("section");
+  guide.className = "retrieval-guide";
+  guide.append(textElement("h2", "领域检索如何参与学习"));
+  const conceptId = result.handoff?.concept_id || retrieval.request.concept_id;
+  guide.append(
+    textElement("p", `课程图谱先定位当前知识点“${conceptLabel(conceptId)}”及其章节、先修关系和交付深度；文本库再按定义、代码、练习三类检索候选片段。`),
+    textElement("p", `本次每类候选证据上限为 ${retrieval.request.top_k} 条。候选片段可以辅助生成学习资源；只有已审核且许可合规的正式证据才能进入正式资源模式。`),
+  );
+  return guide;
+}
+
+function buildFormalLearningTabs(result, artifacts) {
+  const byType = Object.fromEntries(
+    (Array.isArray(artifacts) ? artifacts : []).map((artifact) => [artifact.resource_type, artifact]),
+  );
+  const lecture = byType.lecture;
+  const practical = byType.practical_guide;
+  const assessment = byType.assessment;
+  const lesson = {
+    title: lecture?.title || "课程讲义",
+    blocks: (lecture?.items || []).map((item, index) => ({
+      kind: index === 0 ? "objective" : index === (lecture.items.length - 1) ? "summary" : "definition",
+      title: item.title || `学习内容 ${index + 1}`,
+      body: item.text || item.excerpt || "当前讲义内容暂不可用。",
+      code: item.code || null,
+    })),
+  };
+  if (!lesson.blocks.length) {
+    lesson.blocks.push({
+      kind: "summary",
+      title: "讲义内容待补齐",
+      body: "当前节点尚未生成可展示的讲义条目，请返回课程规划检查资源类型和证据门禁。",
+    });
+  }
+  const projectRequirement = result.handoff?.required_resource_types?.includes("project")
+    ? "项目实践要求：将当前知识点应用到一个最小可验证任务，提交代码、关键结果、失败原因与改进说明。"
+    : null;
+  const practice = {
+    title: practical?.title || "代码实践",
+    learning_steps: [
+      ...(practical?.items || []).map((item) => item.text || item.excerpt || ""),
+      ...(projectRequirement ? [projectRequirement] : []),
+    ].filter(Boolean),
+    notebook_tasks: [],
+    exercise: {
+      language: "python",
+      task: projectRequirement || "根据本节讲义完成一个最小可运行示例，并在编辑器中记录输入、输出与解释。",
+      starter_code: "# TODO: 根据讲义完成当前知识点的最小实现\nresult = None\nprint(result)\n",
+      expected_output: "请根据讲义中的示例填写并解释输出。",
+      checks: ["代码包含输入与结果", "打印结果", "解释结果与知识点的关系"],
+      required_tokens: ["result", "print"],
+    },
+  };
+  const shell = document.createElement("section");
+  shell.className = "learning-tabs";
+  const tabList = document.createElement("div");
+  tabList.className = "learning-tab-list";
+  tabList.setAttribute("role", "tablist");
+  const panel = document.createElement("div");
+  panel.className = "learning-tab-panel";
+  const tabs = [
+    ["lesson", "讲义", () => buildLessonPanel(lesson)],
+    ["practice", "实践", () => buildPracticePanel(result, practice)],
+    ["assessment", "测验", () => buildAssessmentPanel(result)],
+  ];
+  const show = (key) => {
+    panel.replaceChildren();
+    tabs.forEach(([tabKey, label, build]) => {
+      const button = tabList.querySelector(`[data-learning-tab="${tabKey}"]`);
+      button?.classList.toggle("is-active", tabKey === key);
+      button?.setAttribute("aria-selected", String(tabKey === key));
+      if (tabKey === key) panel.append(build());
+    });
+  };
+  tabs.forEach(([key, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "learning-tab";
+    button.dataset.learningTab = key;
+    button.setAttribute("role", "tab");
+    button.textContent = label;
+    button.addEventListener("click", () => show(key));
+    tabList.append(button);
+  });
+  shell.append(tabList, panel);
+  show("lesson");
+  return shell;
+}
+
+function buildLearningTabs(result, draft) {
+  const shell = document.createElement("section");
+  shell.className = "learning-tabs";
+  const tabList = document.createElement("div");
+  tabList.className = "learning-tab-list";
+  tabList.setAttribute("role", "tablist");
+  const panel = document.createElement("div");
+  panel.className = "learning-tab-panel";
+  const tabs = [
+    ["lesson", "讲义", () => buildLessonPanel(draft.lecture)],
+    ["practice", "实践", () => buildPracticePanel(result, draft.practical_guide)],
+    ["assessment", "测验", () => buildAssessmentPanel(result)],
+  ];
+  const show = (key) => {
+    panel.replaceChildren();
+    tabs.forEach(([tabKey, label, build]) => {
+      const button = tabList.querySelector(`[data-learning-tab="${tabKey}"]`);
+      button?.classList.toggle("is-active", tabKey === key);
+      button?.setAttribute("aria-selected", String(tabKey === key));
+      if (tabKey === key) panel.append(build());
+    });
+  };
+  tabs.forEach(([key, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "learning-tab";
+    button.dataset.learningTab = key;
+    button.setAttribute("role", "tab");
+    button.textContent = label;
+    button.addEventListener("click", () => show(key));
+    tabList.append(button);
+  });
+  shell.append(tabList, panel);
+  show("lesson");
+  return shell;
+}
+
+function buildLessonPanel(lecture) {
+  const article = document.createElement("article");
+  article.className = "lesson-article";
+  article.append(textElement("h2", lecture.title));
+  const blocks = Array.isArray(lecture.blocks) && lecture.blocks.length
+    ? lecture.blocks
+    : (lecture.sections || []).map((body, index) => ({ kind: "summary", title: `学习要点 ${index + 1}`, body }));
+  blocks.forEach((block, index) => {
+    const section = document.createElement("section");
+    section.className = `lesson-block lesson-${block.kind || "summary"}`;
+    const folio = textElement("span", String(index + 1).padStart(2, "0"), "lesson-folio");
+    const copy = document.createElement("div");
+    copy.append(textElement("h3", block.title), textElement("p", block.body));
+    if (block.code) copy.append(codeBlock(block.code));
+    section.append(folio, copy);
+    article.append(section);
+  });
+  return article;
+}
+
+function buildPracticePanel(result, guide) {
+  const exercise = guide.exercise;
+  if (!exercise) {
+    const section = document.createElement("section");
+    section.className = "practice-lab practice-steps-only";
+    section.append(textElement("h2", guide.title || "代码实践"));
+    const steps = document.createElement("ol");
+    [...(guide.learning_steps || []), ...(guide.notebook_tasks || [])].forEach((step) => {
+      steps.append(textElement("li", step));
+    });
+    if (!steps.children.length) {
+      steps.append(textElement("li", "当前节点暂未提供实践步骤，请检查资源生成结果。"));
+    }
+    section.append(steps);
+    return section;
+  }
+  const section = document.createElement("section");
+  section.className = "practice-lab";
+  const header = document.createElement("header");
+  header.append(textElement("h2", guide.title || "代码实践"), textElement("p", exercise.task));
+  const grid = document.createElement("div");
+  grid.className = "practice-grid";
+  const editor = document.createElement("textarea");
+  editor.className = "code-editor";
+  editor.name = "practice-source";
+  editor.spellcheck = false;
+  editor.value = exercise.starter_code;
+  editor.setAttribute("aria-label", "Python 代码编辑器");
+  const side = document.createElement("aside");
+  side.className = "practice-notes";
+  side.append(
+    textElement("h3", "预期观察"),
+    codeBlock(exercise.expected_output),
+    textElement("h3", "检查清单"),
+  );
+  const checks = document.createElement("ul");
+  (exercise.checks || []).forEach((check) => checks.append(textElement("li", check)));
+  side.append(checks);
+  grid.append(editor, side);
+  const actions = document.createElement("div");
+  actions.className = "practice-actions";
+  const review = document.createElement("button");
+  review.type = "button";
+  review.className = "primary-action compact-action";
+  review.textContent = "检查代码";
+  const feedback = document.createElement("div");
+  feedback.className = "practice-feedback";
+  review.addEventListener("click", () => submitPracticeReview(result, editor, review, feedback));
+  actions.append(review, textElement("span", "代码只作静态分析，不会在服务器执行。", "practice-safety"));
+  section.append(header, grid, actions, feedback);
+  return section;
+}
+
+async function submitPracticeReview(result, editor, button, feedback) {
+  button.disabled = true;
+  button.textContent = "正在检查";
+  feedback.replaceChildren();
+  try {
+    const response = await fetch(`/api/v1/runs/${encodeURIComponent(result.run_id)}/practice-review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ concept_id: result.handoff.concept_id, source: editor.value }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail?.message || "代码检查失败");
+    feedback.classList.toggle("is-passed", payload.accepted);
+    feedback.classList.toggle("is-needs-revision", !payload.accepted);
+    feedback.append(
+      textElement("strong", payload.accepted ? "静态检查通过" : "请修改后再试"),
+      textElement("p", payload.feedback),
+    );
+    if (payload.issues?.length) {
+      const issues = document.createElement("ul");
+      payload.issues.forEach((issue) => issues.append(textElement("li", issue.message)));
+      feedback.append(issues);
+    }
+    feedback.append(textElement("p", `下一步：${payload.next_step}`, "practice-next-step"));
+  } catch (error) {
+    feedback.className = "practice-feedback is-needs-revision";
+    feedback.append(textElement("p", error instanceof Error ? error.message : "代码检查失败"));
+  } finally {
+    button.disabled = false;
+    button.textContent = "检查代码";
+  }
+}
+
+function buildAssessmentPanel(result) {
+  const items = assessmentItemsFor(result);
+  if (!items.length) return emptyState("当前节点没有可用测验题目");
+  return buildAssessmentForm(result, items);
+}
+
+function codeBlock(value) {
+  const pre = document.createElement("pre");
+  pre.className = "resource-code-line";
+  pre.textContent = value;
+  return pre;
 }
 
 function conceptLabel(conceptId) {
@@ -723,7 +1012,7 @@ function resourceIdentity(result) {
     textElement("h2", handoff?.concept_id || resource?.concept_id || "当前节点"),
     textElement("p", handoff ? `${chapterLabel(handoff.chapter_id)} / ${sectionLabel(handoff.section_id)} · 第 ${handoff.sequence} 节` : "等待课程交接"),
   );
-  const badge = textElement("strong", resource ? `${resource.depth} · ${resource.publication_status === "formal" ? "正式资源" : "候选预览"}` : "资源门禁");
+  const badge = textElement("strong", resource ? `${resource.depth} · ${resource.publication_status === "formal" ? "正式资源" : "学习演示资源"}` : "资源审核状态");
   badge.className = `workbench-badge ${resource?.publication_status === "formal" ? "is-formal" : "is-candidate"}`;
   card.append(copy, badge);
   return card;
@@ -733,10 +1022,18 @@ function generationGate(result) {
   const gate = result.handoff?.generation_gate;
   const evidenceGap = result.evidence_gap || result.retrieval?.evidence_gap;
   const notice = document.createElement("div");
+  if (result.resources?.publication_status === "candidate_draft") {
+    notice.className = "gate-notice gate-candidate";
+    notice.append(
+      textElement("strong", "演示学习资源已生成"),
+      textElement("span", "当前资源基于课程图谱和候选证据生成，可用于学习、实践与测验；未作为正式发布资料。"),
+    );
+    return notice;
+  }
   notice.className = gate?.allowed ? "gate-notice gate-open" : "gate-notice gate-closed";
   notice.append(
-    textElement("strong", gate?.allowed ? "资源生成门禁已通过" : "资源生成门禁未完全通过"),
-    textElement("span", gate?.allowed ? "当前内容可以进入正式资源流程。" : (evidenceGap?.message || "正式证据仍需审核；当前仅展示候选预览。")),
+    textElement("strong", gate?.allowed ? "正式资源证据已就绪" : "正式资源待证据审核"),
+    textElement("span", gate?.allowed ? "当前内容可生成正式发布资源。" : (evidenceGap?.message || "当前知识点缺少已审核、许可合规的正式证据。")),
   );
   return notice;
 }
@@ -767,6 +1064,7 @@ function assessmentItemsFor(result) {
       prompt: item.prompt,
       difficulty: item.difficulty,
       kind: item.kind,
+      choices: item.choices || [],
     }));
   }
   const artifacts = result.resources?.formal_package?.artifacts || [];
@@ -798,23 +1096,42 @@ function buildAssessmentForm(result, items) {
       textElement("span", item.kind || "assessment", "question-kind"),
       textElement("p", item.prompt),
     );
+    if (item.choices?.length) {
+      const choices = document.createElement("div");
+      choices.className = "quiz-choices";
+      item.choices.forEach((choice, index) => {
+        const label = document.createElement("label");
+        label.className = "quiz-choice";
+        const input = document.createElement("input");
+        input.type = "radio";
+        input.name = `answer-${item.questionId}`;
+        input.value = String(index);
+        input.required = true;
+        label.append(input, textElement("span", choice));
+        choices.append(label);
+      });
+      question.append(choices);
+    }
     questions.append(question);
   });
   form.append(questions);
 
   const fields = document.createElement("div");
   fields.className = "assessment-fields";
-  const score = document.createElement("input");
-  score.type = "range";
-  score.min = "0";
-  score.max = "100";
-  score.value = "60";
-  score.name = "score";
-  const scoreOutput = textElement("output", "60 分");
-  score.addEventListener("input", () => {
-    scoreOutput.textContent = `${score.value} 分`;
-  });
-  fields.append(fieldWithLabel("自评得分", score, scoreOutput));
+  const hasChoices = items.some((item) => item.choices?.length);
+  if (!hasChoices) {
+    const score = document.createElement("input");
+    score.type = "range";
+    score.min = "0";
+    score.max = "100";
+    score.value = "60";
+    score.name = "score";
+    const scoreOutput = textElement("output", "60 分");
+    score.addEventListener("input", () => {
+      scoreOutput.textContent = `${score.value} 分`;
+    });
+    fields.append(fieldWithLabel("自评得分", score, scoreOutput));
+  }
 
   const hints = document.createElement("input");
   hints.type = "number";
@@ -873,10 +1190,15 @@ async function submitAssessment(event, result, form) {
     submit.textContent = "正在更新画像";
   }
   const data = new FormData(form);
-  const score = Number(data.get("score")) / 100;
   const hintCount = Number(data.get("hint_count"));
   const attemptCount = Number(data.get("attempt_count"));
   const errorKind = String(data.get("error_kind") || "");
+  const responses = {};
+  form.querySelectorAll('input[type="radio"]:checked').forEach((input) => {
+    responses[input.name.replace("answer-", "")] = Number(input.value);
+  });
+  const hasSelectedResponses = Object.keys(responses).length > 0;
+  const score = hasSelectedResponses ? null : Number(data.get("score") || 0) / 100;
   const startedAt = Number(form.dataset.startedAt || Date.now());
   const responseTimeMs = Math.max(0, Date.now() - startedAt);
   const assessmentId = state.assessmentId || `web-assessment-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -892,7 +1214,8 @@ async function submitAssessment(event, result, form) {
         response_time_ms: responseTimeMs,
         hint_count: hintCount,
         attempt_count: attemptCount,
-        error_kind: score >= 0.6 ? null : errorKind || null,
+        error_kind: hasSelectedResponses || score >= 0.6 ? null : errorKind || null,
+        responses,
       }),
     });
     const payload = await response.json();

@@ -84,11 +84,14 @@ _COURSE_DOMAIN_MAP = {
 
 def _self_assessed_domain_hints(sa) -> Dict[str, dict]:
     """把分课程自评映射为领域级自评结论 (数学/机器学习/深度学习/编程)"""
-    if not sa or not sa.courses:
+    if not sa:
         return {}
 
     domain_scores: Dict[str, List[float]] = {}
-    for course in sa.courses:
+    courses = list(sa.courses)
+    for assessment in getattr(sa, "domain_assessments", ()):
+        courses.extend(assessment.courses)
+    for course in courses:
         score = _COURSE_LEVEL_SCORE.get(course.level, 0.0)
         for domain, names in _COURSE_DOMAIN_MAP.items():
             if course.name in names:
@@ -99,6 +102,16 @@ def _self_assessed_domain_hints(sa) -> Dict[str, dict]:
         mean = sum(scores) / len(scores)
         level = "强" if mean >= 0.70 else "中" if mean >= 0.40 else "弱"
         hints[domain] = {"mean": round(mean, 2), "level": level, "n_courses": len(scores)}
+    for assessment in getattr(sa, "domain_assessments", ()):
+        if not assessment.courses:
+            continue
+        scores = [_COURSE_LEVEL_SCORE.get(course.level, 0.0) for course in assessment.courses]
+        mean = sum(scores) / len(scores)
+        level = "强" if mean >= 0.70 else "中" if mean >= 0.40 else "弱"
+        hints.setdefault(
+            assessment.domain or "未命名领域",
+            {"mean": round(mean, 2), "level": level, "n_courses": len(scores)},
+        )
     return hints
 
 
@@ -116,7 +129,11 @@ def _compute_status_distribution(status_map: Dict[str, str]) -> Dict[str, Status
 # 各子模块构建函数
 # ============================================================
 
-def _build_learning_scope(kg: KnowledgeGraph, current_chapter_id: str = "ch03_cnn") -> LearningScope:
+def _build_learning_scope(
+    kg: KnowledgeGraph,
+    current_chapter_id: str = "ch03_cnn",
+    mastery_map: Dict[str, float] | None = None,
+) -> LearningScope:
     """构建章节级学习范围"""
     ch = kg.get_chapter(current_chapter_id)
     if not ch:
@@ -131,6 +148,8 @@ def _build_learning_scope(kg: KnowledgeGraph, current_chapter_id: str = "ch03_cn
     primary_kp = kg.get(ch.primary_kp_id)
     successors = kg.get_chapter_successors(current_chapter_id)
 
+    primary_mastery = (mastery_map or {}).get(ch.primary_kp_id, 0.0)
+    target_depth = "入门" if primary_mastery < 0.40 else "进阶" if primary_mastery < 0.75 else "复习"
     return LearningScope(
         scope_type="chapter",
         chapter_id=ch.chapter_id,
@@ -138,9 +157,9 @@ def _build_learning_scope(kg: KnowledgeGraph, current_chapter_id: str = "ch03_cn
         chapter_order=ch.chapter_order,
         primary_kp_id=ch.primary_kp_id,
         primary_kp_name=primary_kp.name if primary_kp else "",
-        target_depth="进阶",
+        target_depth=target_depth,
         estimated_hours=ch.estimated_hours,
-        resource_generation_target=f"为该章节生成3类资源（讲义/实操指南/测试题），均按进阶层输出",
+        resource_generation_target=f"为该章节生成3类资源（讲义/实操指南/测试题），均按{target_depth}层输出",
         predecessor_kp_ids=ch.predecessor_kp_ids,
         co_requisite_kp_ids=ch.co_requisite_kp_ids,
         successor_chapters=[
@@ -186,7 +205,11 @@ def _build_knowledge_mastery(
         points[kp.id] = KpMasteryPoint(
             name=kp.name,
             domain=kp.domain,
-            mastery=round(mastery_map.get(kp.id, 0.0), 4),
+            mastery=(
+                round(mastery_map.get(kp.id, 0.0), 4)
+                if test_count_map.get(kp.id, 0) > 0
+                else None
+            ),
             status=status_map.get(kp.id, "unexplored"),
             theta_kp=round(theta_map.get(kp.id, 0.0), 2),
             test_count=test_count_map.get(kp.id, 0),
@@ -295,6 +318,7 @@ def _build_learning_preferences(
     project_driven = len(projects) > 0
     target_project = " → ".join([p.name for p in projects[:3]]) if projects else ""
 
+    weekly_hours = int(getattr(sa, "weekly_hours", 10) or 10)
     return LearningPreferences(
         format=FormatPreference(
             content_order=["概念直觉理解", "数学推导", "代码实战", "面试考点"],
@@ -312,7 +336,7 @@ def _build_learning_preferences(
             prefers_math_formulas=True,
         ),
         pace=PacePreference(
-            weekly_hours=10,
+            weekly_hours=max(1, weekly_hours),
             session_attention_minutes=50,
             avg_test_time_seconds=avg_time,
             learning_pace_inferred=pace_inferred,
@@ -332,12 +356,18 @@ def _build_learning_preferences(
     )
 
 
-def _build_depth_labels(kg: KnowledgeGraph, mastery_map: Dict[str, float]) -> List[DepthLabel]:
+def _build_depth_labels(
+    kg: KnowledgeGraph,
+    mastery_map: Dict[str, float],
+    test_count_map: Dict[str, int] | None = None,
+) -> List[DepthLabel]:
     """根据掌握度自动分配深度标签"""
     labels: List[DepthLabel] = []
     for kp in kg.points:
         m = mastery_map.get(kp.id, 0.0)
-        if m >= 0.75:
+        if (test_count_map or {}).get(kp.id, 0) == 0:
+            depth, rationale = "entry", "未测评，先安排诊断题后再确定学习深度"
+        elif m >= 0.75:
             depth, rationale = "skip", f"mastery={m:.2f} 已掌握"
         elif m >= 0.60:
             depth, rationale = "review", f"mastery={m:.2f} 需简单回顾"
@@ -374,134 +404,72 @@ def _build_resource_hints(
     ) / max(1, sum(1 for kp in kg.points if kp.domain in ml_domains))
 
     depth_rationale = (
-        f"学习者ML基础{'扎实' if ml_mean_val > 0.55 else '一般' if ml_mean_val > 0.35 else '薄弱'}"
-        f"(ML相关均值{ml_mean_val:.2f})，"
-        f"{'有能力接受原理级讲解' if ml_mean_val > 0.45 else '建议从基础讲起'}，"
-        f"但PyTorch经验不足需配足代码实操"
+        f"基础相关知识均值={ml_mean_val:.2f}；"
+        f"按当前主节点掌握度和测试证据生成{learning_scope.target_depth}内容"
     )
 
-    # 按章节预设不同提示
-    if ch_id == "ch03_cnn":
-        return ResourceGenerationHints(
-            scope="chapter",
-            scope_note="以下提示针对完整章节 ch03_cnn（卷积神经网络CNN/进阶层），资源生成Agent需据此生成该章的全部3类资源，而非仅针对某个单一知识点",
-            target_chapter_id="ch03_cnn",
-            target_chapter_name="卷积神经网络（CNN）",
-            target_depth="进阶",
-            depth_rationale=depth_rationale,
-            lecture_notes=LectureNotesHints(
-                must_include=[
-                    "卷积运算的数学定义（互相关 vs 卷积的区别）",
-                    "CNN各层详解：卷积层（kernel/filter/stride/padding）、池化层（max/avg/global）、全连接层",
-                    "感受野（Receptive Field）的定义、计算公式与直观理解",
-                    "参数共享与局部连接 — CNN vs MLP 的参数量对比表",
-                    "特征图可视化：浅层检测边缘/纹理，深层检测语义",
-                    "BatchNorm原理",
-                    "Dropout在CNN中的特殊用法",
-                    "1×1卷积的三种用途：降维/升维/跨通道信息融合",
-                    "常见训练技巧：数据标准化、学习率warmup、梯度裁剪",
-                ],
-                avoid=[
-                    "纯代码堆砌而无原理铺垫",
-                    "跳过'为什么CNN适合图像'的论证（回应错误模式'逻辑跳跃'）",
-                ],
-                comparison_tables=[
-                    "CNN vs MLP (参数量/平移不变性/计算复杂度)",
-                    "Average Pooling vs Max Pooling vs Global Pooling",
-                    "Valid Padding vs Same Padding (输出尺寸对比)",
-                    "BatchNorm vs LayerNorm vs InstanceNorm",
-                    "各激活函数在CNN中的适用场景 (ReLU/LeakyReLU/GELU)",
-                ],
-                error_pattern_attention="特别注意区分'卷积'与'互相关'操作、区分BatchNorm的training/eval模式，这两个是高频概念混淆点",
-                estimated_pages="12-15页（含图）",
-            ),
-            practical_guide=PracticalGuideHints(
-                must_include=[
-                    "PyTorch nn.Conv2d / nn.MaxPool2d / nn.BatchNorm2d 的逐参数详解",
-                    "从零构建一个LeNet-5风格CNN（CIFAR-10数据集），完整可运行",
-                    "每一层输入输出shape用注释标注",
-                    "训练循环：含loss曲线/accuracy曲线的实时可视化代码",
-                    "常见Bug调试指南：维度不匹配、out of memory、NaN loss",
-                    "使用torchsummary或手写代码打印每层参数量",
-                    "特征图可视化：注册hook提取中间层输出并绘图",
-                ],
-                code_style="Jupyter Notebook分段式，每段不超过30行，Markdown + Code Cell交替，函数/类有完整docstring",
-                dataset="CIFAR-10（32×32×3, 10类, 5万训练+1万测试）",
-                framework="PyTorch 2.x",
-                estimated_cells="15-20 cells",
-            ),
-            test_questions=TestQuestionsHints(
-                total=10,
-                distribution={
-                    "概念理解（选择题/判断题）": 3,
-                    "计算推导（输出尺寸/参数量/感受野）": 3,
-                    "代码填空（PyTorch CNN层定义）": 2,
-                    "综合分析（给定场景选架构并论证）": 2,
-                },
-                difficulty={
-                    "easy": {"count": 3, "target_accuracy": ">80%"},
-                    "medium": {"count": 4, "target_accuracy": "60-80%"},
-                    "hard": {"count": 3, "target_accuracy": "40-60%"},
-                },
-                target_overall_accuracy_range=[0.60, 0.85],
-                error_pattern_mitigations=[
-                    "概念理解题：设置2个以上易混淆干扰项（回应'概念混淆'弱点）",
-                    "计算推导题：要求写出中间步骤（回应'逻辑跳跃'弱点）",
-                    "代码填空题：在kernel_size/stride/padding处留空",
-                    "综合分析题：题干中用**加粗**突出约束条件（回应'忽略条件'弱点）",
-                ],
-                must_cover=[
-                    "卷积核参数计算（in_channels × out_channels × kH × kW）",
-                    "输出尺寸公式 ⌊(W−F+2P)/S⌋+1",
-                    "1×1卷积的作用与计算",
-                    "BatchNorm的training/eval行为差异",
-                    "感受野递推公式",
-                    "参数量最大的层（全连接层）",
-                ],
-                estimated_time_minutes=45,
-            ),
-        )
-    else:
-        # 通用章节提示
-        return ResourceGenerationHints(
-            scope="chapter",
-            scope_note=f"针对章节 {ch_id} 的通用资源生成提示",
-            target_chapter_id=ch_id,
-            target_chapter_name=learning_scope.chapter_name,
-            target_depth=learning_scope.target_depth,
-            depth_rationale="基于学习者画像自动分配",
-            lecture_notes=LectureNotesHints(),
-            practical_guide=PracticalGuideHints(),
-            test_questions=TestQuestionsHints(),
-        )
+    # 章节提示统一由当前主节点和画像动态生成。
+    kp = kg.get(learning_scope.primary_kp_id)
+    topic = kp.name if kp else learning_scope.primary_kp_name or "当前知识点"
+    description = kp.description if kp else ""
+    error_names = [item.category for item in error_patterns.items if item.count > 0]
+    attention = (
+        "；".join(error_names) + "相关错误需要逐步解释和反例练习"
+        if error_names
+        else "当前没有足够错误记录，先用形成性测验确认理解"
+    )
+    requirements = [
+        f"解释{topic}的定义、输入、核心过程和输出",
+        f"结合课程图谱描述：{description}",
+    ]
+    if learning_scope.predecessor_kp_ids:
+        requirements.append(f"回顾前置知识：{', '.join(learning_scope.predecessor_kp_ids)}")
+    return ResourceGenerationHints(
+        scope="chapter",
+        scope_note=(
+            f"针对{learning_scope.chapter_name}的主节点"
+            f"{learning_scope.primary_kp_id}生成三类学习资源"
+        ),
+        target_chapter_id=ch_id,
+        target_chapter_name=learning_scope.chapter_name,
+        target_depth=learning_scope.target_depth,
+        depth_rationale=depth_rationale,
+        lecture_notes=LectureNotesHints(
+            must_include=requirements,
+            avoid=["只罗列术语而不解释推理过程", "跳过前置条件和输入输出边界"],
+            comparison_tables=["当前知识点与其前置知识的差异"],
+            error_pattern_attention=attention,
+            estimated_pages="6-10页（按深度和学习目标调整）",
+        ),
+        practical_guide=PracticalGuideHints(
+            must_include=[
+                f"用最小可运行示例实现{topic}",
+                "打印输入、中间结果和输出并解释形状",
+            ],
+            code_style="分步 Python 单元，每段包含目标、代码、预期输出和检查条件",
+            dataset="使用可复现的最小合成数据，避免依赖未声明的外部数据",
+            framework="Python；按学习者画像中的框架偏好调整",
+            estimated_cells="6-12 cells",
+        ),
+        test_questions=TestQuestionsHints(
+            total=8,
+            distribution={"概念理解": 3, "步骤/计算": 2, "代码或形状": 2, "综合迁移": 1},
+            difficulty={
+                "easy": {"count": 3},
+                "medium": {"count": 3},
+                "hard": {"count": 2},
+            },
+            target_overall_accuracy_range=[0.60, 0.85],
+            error_pattern_mitigations=[f"针对{attention}"],
+            must_cover=[topic, *learning_scope.predecessor_kp_ids],
+            estimated_time_minutes=30,
+        ),
+    )
 
 
 def _build_prior_chapters() -> List[PriorChapter]:
-    """构建前序章节表现（模拟数据）"""
-    return [
-        PriorChapter(
-            chapter_id="ch01_foundation",
-            chapter_name="数学与编程基础回顾",
-            accuracy=0.92,
-            time_spent_hours=2.0,
-            depth_assigned="review",
-            kps_covered=["kp_001", "kp_002", "kp_005", "kp_021"],
-            error_patterns_observed=[],
-            completed_at="2026-07-20T16:00:00Z",
-            conclusion="基础扎实，快速跳过，仅做验证性测试",
-        ),
-        PriorChapter(
-            chapter_id="ch02_ml_review",
-            chapter_name="机器学习核心回顾+神经网络入门",
-            accuracy=0.71,
-            time_spent_hours=6.0,
-            depth_assigned="advanced",
-            kps_covered=["kp_006", "kp_008", "kp_011", "kp_015", "kp_016"],
-            error_patterns_observed=["概念混淆", "逻辑跳跃"],
-            completed_at="2026-07-30T15:00:00Z",
-            conclusion="ML基础表现良好，神经网络基础掌握度中等偏下，概念对比能力需加强。本章错误模式已反映在当前resource_generation_hints中。",
-        ),
-    ]
+    """Return only observed chapter history; current records are KP-scoped."""
+    return []
 
 
 def _build_evidence(
@@ -527,21 +495,24 @@ def _build_evidence(
         confidence=0.90,
     ))
 
-    # CNN掌握度
-    cnn_mastery = mastery_map.get("kp_012", 0.0)
-    evidence.append(EvidenceRecord(
-        claim=f"CNN mastery={cnn_mastery:.2f}, status=not_learned",
-        source="irt_estimation",
-        detail=f"自适应测试: kp_012共2道题，MLE估计θ，数据稀疏已使用学历先验做L2正则",
-        confidence=0.70,
-    ))
+    # 每个结论按实际测试覆盖生成，不能为某个历史样例节点单独写证据。
+    tested_by_kp: Dict[str, List[TestRecord]] = {}
+    for record in learner.test_records:
+        tested_by_kp.setdefault(record.knowledge_point_id, []).append(record)
+    for kp_id, records in sorted(tested_by_kp.items(), key=lambda item: item[0]):
+        evidence.append(EvidenceRecord(
+            claim=f"{kp_id} 掌握度={mastery_map.get(kp_id, 0.0):.2f}",
+            source="irt_estimation",
+            detail=f"该知识点实际测试 {len(records)} 题；使用题目难度、区分度和作答结果估计",
+            confidence=0.70 if len(records) < 3 else 0.85,
+        ))
 
     # 错误模式
     if error_patterns.primary_weakness:
         evidence.append(EvidenceRecord(
             claim=f"主要错误模式={error_patterns.primary_weakness}({error_patterns.primary_weakness_ratio:.0%})",
             source="answer_history",
-            detail=f"{error_patterns.total_questions}题中{error_patterns.total_wrong}道错题自动分类。双标注一致率=0.87",
+            detail=f"{error_patterns.total_questions}题中{error_patterns.total_wrong}道错题自动分类；未提供人工双标注。",
             confidence=error_patterns.classification_confidence,
         ))
 
@@ -627,8 +598,7 @@ def _build_diagnosis_summary(
     short = (
         f"{learner.name}({learner.education.level}{learner.education.major}) — "
         f"θ={global_theta:.2f} {level_cn} — "
-        f"ML基础扎实、DL刚入门 — "
-        f"当前学习CNN(进阶) — "
+        f"当前学习范围由知识点掌握度与章节参数决定 — "
         f"主要错误模式: {primary_err}({primary_err_ratio:.0%})"
     )
 
@@ -696,7 +666,7 @@ def build_profile(
     )
 
     # 8. 子模块构建
-    learning_scope = _build_learning_scope(kg, current_chapter_id)
+    learning_scope = _build_learning_scope(kg, current_chapter_id, mastery_map)
     knowledge_mastery = _build_knowledge_mastery(
         kg, mastery_map, theta_map, test_count_map, confidence_map, status_map,
         global_theta, overall_accuracy,
@@ -705,7 +675,7 @@ def build_profile(
     learning_preferences = _build_learning_preferences(
         learner.test_records, learner.interaction_records, learner.self_assessment
     )
-    depth_labels = _build_depth_labels(kg, mastery_map)
+    depth_labels = _build_depth_labels(kg, mastery_map, test_count_map)
     resource_hints = _build_resource_hints(kg, learning_scope, error_patterns, mastery_map)
     prior_chapters = _build_prior_chapters()
     evidence = _build_evidence(global_theta, mastery_map, error_patterns, gaps, learner)
@@ -759,6 +729,6 @@ def build_profile(
             "total_test_count": total_tests,
             "total_interaction_count": len(learner.interaction_records),
             "diagnosed_at": now_str,
-            "next_suggested_diagnosis": "ch03_cnn完成后（预计2026-08-08）",
+            "next_suggested_diagnosis": "完成当前章节后，根据最新测评记录重新诊断",
         },
     )

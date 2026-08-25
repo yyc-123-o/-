@@ -24,6 +24,7 @@ from skillforge_kb.assessment import AssessmentEvent, AssessmentLedger, apply_as
 from skillforge_kb.evidence.manifest import EvidenceIndex
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.planning.models import PathStatus
+from skillforge_kb.resources.controlled_generation import PracticeExercise
 from skillforge_kb.resources.evidence_bundle import build_evidence_bundle
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import ResourceBrief
@@ -38,6 +39,7 @@ from .models import (
     PlatformStage,
     PlatformStepRecord,
     PlatformStepStatus,
+    PracticeReviewSubmission,
     build_payload_digest,
     build_request_digest,
     build_run_id,
@@ -50,6 +52,7 @@ from .ports import (
     ResourceAgentPort,
     RetrievalAgentPort,
 )
+from .practice_review import PracticeReviewResult, review_practice_submission
 
 
 class PlatformGraphState(TypedDict, total=False):
@@ -84,6 +87,7 @@ class PlatformGraphDependencies:
     evidence_index: EvidenceIndex
     clock: Clock
     catalog: OntologyCatalog | None = None
+    practice_llm: object | None = None
 
 
 class PlatformService:
@@ -157,6 +161,7 @@ class PlatformService:
             if self._dependencies.catalog is None:
                 raise ValueError("assessment updates are not configured")
             submission = AssessmentSubmission.model_validate(submission)
+            submission = self._grade_candidate_quiz(existing, submission)
             submission_digest = build_payload_digest(
                 submission.model_dump(mode="json")
             )
@@ -247,6 +252,98 @@ class PlatformService:
                 result,
             )
             return result
+
+    @staticmethod
+    def _grade_candidate_quiz(
+        existing: PlatformRunResult,
+        submission: AssessmentSubmission,
+    ) -> AssessmentSubmission:
+        """Use server-only preview answer keys when the learner selected options."""
+        if not submission.responses:
+            if submission.score is None:
+                raise ValueError("assessment score is required without selected responses")
+            return submission
+        preview = existing.resources.preview_package if existing.resources else None
+        draft = preview.draft if preview is not None else None
+        if draft is None:
+            raise ValueError("selected responses are unavailable for this assessment")
+        answer_key = {
+            item.question_id: item.correct_choice
+            for item in draft.student_quiz.items
+            if item.correct_choice is not None
+        }
+        if not answer_key:
+            raise ValueError("current assessment has no server-side answer key")
+        submitted_ids = set(submission.responses)
+        expected_ids = set(answer_key)
+        if submitted_ids != expected_ids:
+            missing = sorted(expected_ids - submitted_ids)
+            unknown = sorted(submitted_ids - expected_ids)
+            if missing:
+                raise ValueError(f"assessment responses are missing: {missing[0]}")
+            raise ValueError(f"assessment response is unknown: {unknown[0]}")
+        correct_count = sum(
+            submission.responses[question_id] == correct_choice
+            for question_id, correct_choice in answer_key.items()
+        )
+        return submission.model_copy(
+            update={
+                "score": correct_count / len(answer_key),
+                "error_kind": None,
+            }
+        )
+
+    def review_practice(
+        self,
+        run_id: str,
+        submission: PracticeReviewSubmission | dict[str, object],
+    ) -> PracticeReviewResult:
+        with self._lock:
+            existing = self._repository.get(run_id)
+            if existing is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            submission = PracticeReviewSubmission.model_validate(submission)
+            planning = existing.planning
+            if (
+                existing.status is not PlatformRunStatus.COMPLETED
+                or existing.resources is None
+                or planning is None
+                or planning.current_node is None
+            ):
+                raise ValueError("practice review is only available for a ready learning node")
+            if planning.current_node.concept_id != submission.concept_id:
+                raise ValueError("practice concept does not match the current learning node")
+            preview = existing.resources.preview_package
+            exercise = (
+                preview.draft.practical_guide.exercise
+                if preview is not None and preview.draft is not None
+                else None
+            )
+            if exercise is None:
+                exercise = PracticeExercise(
+                    task=(
+                        "根据当前讲义完成一个最小 Python 示例，创建输入、执行当前知识点的核心变换、"
+                        "打印结果，并用一句话解释输出。"
+                    ),
+                    starter_code=(
+                        "# TODO: 根据当前讲义完成最小实现\n"
+                        "result = None\n"
+                        "print(result)\n"
+                    ),
+                    expected_output="请根据讲义中的示例填写并解释输出。",
+                    checks=(
+                        "代码包含输入与结果",
+                        "打印结果",
+                        "解释结果与当前知识点的关系",
+                    ),
+                    required_tokens=("result", "print"),
+                )
+            return review_practice_submission(
+                concept_id=submission.concept_id,
+                source=submission.source,
+                exercise=exercise,
+                llm=cast(object, self._dependencies.practice_llm),
+            )
 
     def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
         with self._lock:
@@ -374,22 +471,15 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
         handoff = state["handoff"]
         request = state["request"]
         try:
-            if handoff.concept_id == "dl.cnn.convolution":
-                rewritten_queries = (
-                    "卷积运算 CNN padding stride 输出尺寸",
-                    "PyTorch nn.Conv2d 输入输出 shape 参数",
-                    "卷积输出尺寸 参数量 padding stride 练习 答案",
-                )
-            else:
-                scope = (
-                    f"{handoff.concept_id} {handoff.chapter_id} "
-                    f"{handoff.section_id} {handoff.delivery_depth.value}"
-                )
-                rewritten_queries = (
-                    f"{scope} definition concept",
-                    f"{scope} implementation code",
-                    f"{scope} exercise assessment",
-                )
+            scope = (
+                f"{handoff.concept_id} {handoff.chapter_id} "
+                f"{handoff.section_id} {handoff.delivery_depth.value}"
+            )
+            rewritten_queries = (
+                f"{scope} definition concept",
+                f"{scope} implementation code",
+                f"{scope} exercise assessment",
+            )
             retrieval_request = DomainRetrievalRequest(
                 original_query=(
                     f"{handoff.concept_id} {handoff.delivery_depth.value}"

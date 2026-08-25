@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
+
+from pydantic import SecretStr
 
 from skillforge_kb.agents.planning_agent import CoursePlanningAgent
 from skillforge_kb.agents.planning_agent_models import CoursePlanningAgentResult
 from skillforge_kb.agents.resource_agent import ResourceGenerationAgent
 from skillforge_kb.agents.retrieval_agent import DomainRetrievalAgent
+from skillforge_kb.config import Settings
 from skillforge_kb.evidence.manifest import EvidenceIndex, load_evidence_index
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.concept_attributes import load_concept_attributes
@@ -17,6 +21,7 @@ from skillforge_kb.ontology.resource_blueprints import (
 )
 from skillforge_kb.ontology.validation import validate_catalog
 from skillforge_kb.resources.briefs import ResourceBriefBuilder
+from skillforge_kb.resources.controlled_generation import OpenAICompatibleLLMAdapter
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.retrieval.bm25 import Bm25KnowledgeRetriever
 from skillforge_kb.retrieval.corpus import KnowledgeCorpus
@@ -35,7 +40,6 @@ class DefaultPlatformPaths:
     evidence_file: Path
     profile_agent_map_file: Path
     knowledge_file: Path
-    candidate_knowledge_file: Path
 
     @classmethod
     def from_project_root(cls, root: Path) -> "DefaultPlatformPaths":
@@ -52,9 +56,6 @@ class DefaultPlatformPaths:
                 root / "resources" / "ontology" / "profile_agent_kp_map_v1.yaml"
             ),
             knowledge_file=root / "data" / "index_chunks.jsonl",
-            candidate_knowledge_file=(
-                root / "resources" / "knowledge" / "cnn_convolution_candidates.jsonl"
-            ),
         )
 
 
@@ -111,10 +112,7 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
     attributes = load_concept_attributes(catalog, paths.attributes_file)
     blueprints = load_resource_blueprints(catalog, paths.blueprints_file)
     evidence_index = load_evidence_index(catalog, paths.evidence_file)
-    corpus_paths: tuple[Path, ...] = (paths.knowledge_file,)
-    if paths.candidate_knowledge_file.is_file():
-        corpus_paths = (*corpus_paths, paths.candidate_knowledge_file)
-    corpus = KnowledgeCorpus.load_many(corpus_paths)
+    corpus = KnowledgeCorpus.load_many((paths.knowledge_file,))
     planning_agent = CoursePlanningAgent.create(catalog, attributes)
     retrieval_agent = DomainRetrievalAgent(
         corpus,
@@ -122,14 +120,26 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         evidence_index,
         catalog=catalog,
     )
+    settings = Settings()
+    llm_adapter = (
+        OpenAICompatibleLLMAdapter(
+            base_url=cast(str, settings.llm_base_url),
+            api_key=cast(SecretStr, settings.llm_api_key),
+            model_name=cast(str, settings.llm_model),
+            timeout_seconds=settings.llm_timeout_seconds,
+        )
+        if settings.llm_configured
+        else None
+    )
     dependencies = PlatformGraphDependencies(
         planning_agent=planning_agent,
         retrieval_agent=retrieval_agent,
-        resource_agent=ResourceGenerationAgent(),
+        resource_agent=ResourceGenerationAgent(llm_adapter=llm_adapter),
         handoff_factory=ResourceHandoffFactory(catalog, blueprints, evidence_index),
         evidence_index=evidence_index,
         clock=SystemClock(),
         catalog=catalog,
+        practice_llm=llm_adapter,
     )
     return PlatformService(dependencies, InMemoryPlatformRunRepository())
 

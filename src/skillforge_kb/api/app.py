@@ -12,7 +12,9 @@ from skillforge_kb.platform.models import (
     PlatformRunRequest,
     PlatformRunResult,
     PlatformStepRecord,
+    PracticeReviewSubmission,
 )
+from skillforge_kb.platform.practice_review import PracticeReviewResult
 from skillforge_kb.platform.repository import IdempotencyConflict
 
 
@@ -36,6 +38,10 @@ class PlatformApplicationService(Protocol):
     ) -> PlatformRunResult: ...
 
     def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult: ...
+
+    def review_practice(
+        self, run_id: str, submission: PracticeReviewSubmission | dict[str, object]
+    ) -> PracticeReviewResult: ...
 
 
 class ProfileAdaptationService(Protocol):
@@ -175,6 +181,24 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "invalid_assessment", "message": str(exc)},
+            ) from exc
+
+    @app.post(
+        "/api/v1/runs/{run_id}/practice-review",
+        response_model=PracticeReviewResult,
+    )
+    def review_practice(
+        run_id: str,
+        submission: PracticeReviewSubmission,
+    ) -> PracticeReviewResult:
+        try:
+            return service.review_practice(run_id, submission)
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_practice_submission", "message": str(exc)},
             ) from exc
 
     @app.post("/api/v1/runs/{run_id}/start-node", response_model=PlatformRunResult)
