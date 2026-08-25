@@ -21,6 +21,11 @@ class ExecutionMode(StrEnum):
     CANDIDATE_PREVIEW = "candidate_preview"
 
 
+class AssessmentModel(StrEnum):
+    RULE = "rule"
+    BKT = "bkt"
+
+
 class PlatformRunStatus(StrEnum):
     PENDING = "pending"
     PLANNING = "planning"
@@ -54,6 +59,7 @@ class PlatformRunRequest(BaseModel):
     profile: LearnerProfileSnapshot
     idempotency_key: str = Field(min_length=1, max_length=128)
     execution_mode: ExecutionMode = ExecutionMode.STRICT
+    assessment_model: AssessmentModel = AssessmentModel.RULE
     top_k: int = Field(default=5, ge=1, le=20)
     target_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
     start_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)

@@ -1,6 +1,8 @@
 import pytest
+from pydantic import ValidationError
 
 from skillforge_kb.platform.models import (
+    AssessmentModel,
     ExecutionMode,
     PlatformRunRequest,
     PlatformRunResult,
@@ -8,6 +10,29 @@ from skillforge_kb.platform.models import (
     build_request_digest,
     build_run_id,
 )
+
+
+def test_assessment_model_defaults_to_rule(profile) -> None:
+    request = PlatformRunRequest(profile=profile, idempotency_key="model-default")
+
+    assert request.assessment_model is AssessmentModel.RULE
+
+
+def test_bkt_model_changes_request_digest_but_not_run_id(profile) -> None:
+    rule = PlatformRunRequest(profile=profile, idempotency_key="model-digest")
+    bkt = rule.model_copy(update={"assessment_model": AssessmentModel.BKT})
+
+    assert build_request_digest(rule) != build_request_digest(bkt)
+    assert build_run_id(rule) == build_run_id(bkt)
+
+
+def test_invalid_assessment_model_is_rejected(profile) -> None:
+    with pytest.raises(ValidationError):
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="model-invalid",
+            assessment_model="unsupported",
+        )
 
 
 def test_request_builds_stable_digest_and_run_id(profile) -> None:
