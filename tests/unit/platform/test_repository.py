@@ -3,13 +3,16 @@ from datetime import UTC, datetime
 import pytest
 
 from skillforge_kb.evaluation.knowledge_tracing import KnowledgeTracingObservation
-
 from skillforge_kb.platform.models import (
     PlatformRunRequest,
     PlatformRunResult,
     PlatformRunStatus,
     build_request_digest,
     build_run_id,
+)
+from skillforge_kb.platform.repository import (
+    IdempotencyConflict,
+    InMemoryPlatformRunRepository,
 )
 
 
@@ -23,10 +26,6 @@ def _observation(assessment_id: str = "assessment-1", probability: float = 0.2):
         correct=True,
         observed_at=datetime(2026, 8, 26, tzinfo=UTC),
     )
-from skillforge_kb.platform.repository import (
-    IdempotencyConflict,
-    InMemoryPlatformRunRepository,
-)
 
 
 def _result(request: PlatformRunRequest) -> PlatformRunResult:
