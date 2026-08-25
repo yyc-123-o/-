@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
+from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
 from skillforge_kb.platform.models import (
     AssessmentSubmission,
     PlatformRunRequest,
@@ -42,6 +43,11 @@ class PlatformApplicationService(Protocol):
     def review_practice(
         self, run_id: str, submission: PracticeReviewSubmission | dict[str, object]
     ) -> PracticeReviewResult: ...
+
+    def evaluate_profile_knowledge_tracing(
+        self,
+        profile_id: str,
+    ) -> tuple[KnowledgeTracingEvaluationReport, ...]: ...
 
 
 class ProfileAdaptationService(Protocol):
@@ -101,6 +107,32 @@ def create_app(
                 },
             ) from exc
         return adapted.model_dump(mode="json")
+
+    @app.get(
+        "/api/v1/profiles/{profile_id}/knowledge-tracing/evaluation",
+        response_model=list[KnowledgeTracingEvaluationReport],
+    )
+    def evaluate_profile_knowledge_tracing(
+        profile_id: str,
+    ) -> list[KnowledgeTracingEvaluationReport]:
+        try:
+            return list(service.evaluate_profile_knowledge_tracing(profile_id))
+        except ValueError as exc:
+            if str(exc) == "no prediction observations":
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={
+                        "code": "knowledge_tracing_not_found",
+                        "message": str(exc),
+                    },
+                ) from exc
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "invalid_knowledge_tracing_evaluation",
+                    "message": str(exc) or type(exc).__name__,
+                },
+            ) from exc
 
     @app.get("/", response_class=FileResponse, include_in_schema=False)
     def console() -> FileResponse:

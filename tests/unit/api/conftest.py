@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from skillforge_kb.agents.retrieval_agent_models import EvidenceGap
 from skillforge_kb.api.app import create_app
 from skillforge_kb.domain.enums import ContentKind
+from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
 from skillforge_kb.platform.models import (
     PlatformRunRequest,
@@ -22,6 +23,7 @@ from skillforge_kb.platform.repository import InMemoryPlatformRunRepository
 class StubPlatformService:
     def __init__(self) -> None:
         self.repository = InMemoryPlatformRunRepository()
+        self.evaluation_reports: tuple[KnowledgeTracingEvaluationReport, ...] = ()
 
     def run(self, request: PlatformRunRequest) -> PlatformRunResult:
         existing = self.repository.reserve(request)
@@ -62,6 +64,14 @@ class StubPlatformService:
             feedback="静态检查通过。",
             next_step="解释输出结果。",
         )
+
+    def evaluate_profile_knowledge_tracing(
+        self,
+        profile_id: str,
+    ) -> tuple[KnowledgeTracingEvaluationReport, ...]:
+        if not self.evaluation_reports:
+            raise ValueError("no prediction observations")
+        return self.evaluation_reports
 
 
 @pytest.fixture

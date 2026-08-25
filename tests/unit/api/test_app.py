@@ -1,8 +1,13 @@
 from pathlib import Path
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
 from skillforge_kb.api.app import create_app
+from skillforge_kb.evaluation import (
+    KnowledgeTracingObservation,
+    evaluate_knowledge_tracing,
+)
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.profile_agent_adapter import LearnerProfileAgentAdapter
 
@@ -156,6 +161,47 @@ def test_openapi_contains_platform_contracts(client: TestClient) -> None:
 
     assert "PlatformRunRequest" in schema["components"]["schemas"]
     assert "PlatformRunResult" in schema["components"]["schemas"]
+
+
+def test_knowledge_tracing_evaluation_returns_reports(
+    client: TestClient,
+    service,
+    profile,
+) -> None:
+    service.evaluation_reports = (
+        evaluate_knowledge_tracing(
+            (
+                KnowledgeTracingObservation(
+                    observation_id="api-observation-1",
+                    profile_id=profile.profile_id,
+                    concept_id="ml.optimization.gradient-descent",
+                    model_version="bkt.v1",
+                    predicted_mastery=0.2,
+                    correct=True,
+                    observed_at=datetime(2026, 8, 26, tzinfo=UTC),
+                ),
+            )
+        ),
+    )
+
+    response = client.get(
+        f"/api/v1/profiles/{profile.profile_id}/knowledge-tracing/evaluation"
+    )
+
+    assert response.status_code == 200
+    assert response.json()[0]["model_version"] == "bkt.v1"
+
+
+def test_knowledge_tracing_evaluation_without_observations_returns_404(
+    client: TestClient,
+    profile,
+) -> None:
+    response = client.get(
+        f"/api/v1/profiles/{profile.profile_id}/knowledge-tracing/evaluation"
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "knowledge_tracing_not_found"
 
 
 def test_unexpected_runtime_failure_returns_503(profile_payload: dict[str, object]) -> None:
