@@ -2,7 +2,7 @@ import pytest
 from datetime import UTC, datetime
 from pydantic import ValidationError
 
-from skillforge_kb.assessment import AssessmentEvent
+from skillforge_kb.assessment import AssessmentEvent, apply_assessment_event
 from skillforge_kb.assessment.bkt import (
     BktParameters,
     apply_bkt_event,
@@ -99,3 +99,18 @@ def test_bkt_event_scope_failures_do_not_mutate_ledger(catalog, ledger, field) -
         apply_bkt_event(catalog, ledger, event_factory(**{field: values[field]}))
 
     assert ledger.processed_event_ids == ()
+
+
+def test_bkt_symbols_are_public() -> None:
+    from skillforge_kb.assessment import BktParameters as PublicParameters
+    from skillforge_kb.assessment import apply_bkt_event as public_apply_bkt_event
+
+    assert PublicParameters().model_version == "bkt.v1"
+    assert callable(public_apply_bkt_event)
+
+
+def test_rule_based_update_remains_unchanged(catalog, ledger) -> None:
+    result = apply_assessment_event(catalog, ledger, event_factory(correct=True))
+
+    assert result.policy_version == "rule-based-assessment.v1"
+    assert result.mastery_after[0][1] == pytest.approx(0.56)
