@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from hashlib import sha256
 from math import isfinite, log
+from pathlib import Path
 from typing import Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
@@ -85,6 +86,16 @@ class KnowledgeTracingEvaluationReport(BaseModel):
         return self
 
 
+class KnowledgeTracingComparison(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    data_version: str = Field(min_length=1)
+    observation_ids: tuple[str, ...] = Field(min_length=1)
+    baseline_model: str = Field(min_length=1)
+    ranking: tuple[str, ...] = Field(min_length=2)
+    metric_deltas: dict[str, dict[str, float | None]]
+
+
 def evaluate_knowledge_tracing(
     observations: Sequence[KnowledgeTracingObservation],
     *,
@@ -143,6 +154,57 @@ def build_knowledge_tracing_report_digest(payload: object) -> str:
     return f"knowledge_tracing_evaluation_{sha256(canonical.encode('utf-8')).hexdigest()}"
 
 
+def compare_knowledge_tracing_reports(
+    reports: Sequence[KnowledgeTracingEvaluationReport],
+) -> KnowledgeTracingComparison:
+    validated = tuple(
+        KnowledgeTracingEvaluationReport.model_validate(report.model_dump())
+        for report in reports
+    )
+    if len(validated) < 2:
+        raise ValueError("knowledge tracing comparison requires at least two reports")
+    first = validated[0]
+    observation_ids = tuple(item.observation_id for item in first.observations)
+    expected_ids = set(observation_ids)
+    for report in validated[1:]:
+        report_ids = tuple(item.observation_id for item in report.observations)
+        if set(report_ids) != expected_ids:
+            raise ValueError("knowledge tracing reports must share observation IDs")
+        if report.data_version != first.data_version:
+            raise ValueError("knowledge tracing reports must share data version")
+    ranking = tuple(
+        report.model_version
+        for report in sorted(
+            validated,
+            key=lambda item: (
+                item.metrics.brier_score,
+                item.metrics.log_loss,
+                item.model_version,
+            ),
+        )
+    )
+    baseline = next(report for report in validated if report.model_version == ranking[0])
+    deltas = {
+        report.model_version: {
+            "brier_score": report.metrics.brier_score - baseline.metrics.brier_score,
+            "log_loss": report.metrics.log_loss - baseline.metrics.log_loss,
+            "auc": (
+                None
+                if report.metrics.auc is None or baseline.metrics.auc is None
+                else report.metrics.auc - baseline.metrics.auc
+            ),
+        }
+        for report in validated
+    }
+    return KnowledgeTracingComparison(
+        data_version=first.data_version,
+        observation_ids=observation_ids,
+        baseline_model=baseline.model_version,
+        ranking=ranking,
+        metric_deltas=deltas,
+    )
+
+
 def _log_loss(pairs: tuple[tuple[float, int], ...]) -> float:
     total = 0.0
     for probability, label in pairs:
@@ -171,3 +233,33 @@ def _roc_auc(pairs: tuple[tuple[float, int], ...]) -> float | None:
     return (
         rank_sum_positive - positives * (positives + 1) / 2
     ) / (positives * negatives)
+
+
+def write_knowledge_tracing_report(
+    report: KnowledgeTracingEvaluationReport,
+    output_path: Path,
+) -> None:
+    validated = KnowledgeTracingEvaluationReport.model_validate(report.model_dump())
+    temporary_path = output_path.with_name(f".{output_path.name}.tmp")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        temporary_path.write_text(
+            json.dumps(
+                validated.model_dump(mode="json"),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        temporary_path.replace(output_path)
+    except OSError:
+        temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def load_knowledge_tracing_report(path: Path) -> KnowledgeTracingEvaluationReport:
+    return KnowledgeTracingEvaluationReport.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )

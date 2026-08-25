@@ -1,4 +1,6 @@
 from datetime import UTC, datetime
+import json
+from pathlib import Path
 from math import log
 
 import pytest
@@ -6,7 +8,10 @@ from pydantic import ValidationError
 
 from skillforge_kb.evaluation.knowledge_tracing import (
     KnowledgeTracingObservation,
+    compare_knowledge_tracing_reports,
     evaluate_knowledge_tracing,
+    load_knowledge_tracing_report,
+    write_knowledge_tracing_report,
 )
 
 
@@ -102,3 +107,46 @@ def test_log_loss_is_finite_at_probability_boundaries() -> None:
     )
 
     assert report.metrics.log_loss < 100
+
+
+def test_report_round_trip_and_tamper_detection(tmp_path: Path) -> None:
+    report = evaluate_knowledge_tracing((_observation("o1", 0.8, True),))
+    output = tmp_path / "kt-report.json"
+
+    write_knowledge_tracing_report(report, output)
+    assert load_knowledge_tracing_report(output) == report
+    assert not (tmp_path / ".kt-report.json.tmp").exists()
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    payload["metrics"]["brier_score"] = 0.9
+    output.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValidationError, match="digest"):
+        load_knowledge_tracing_report(output)
+
+
+def test_comparison_requires_same_observation_set() -> None:
+    bkt = evaluate_knowledge_tracing(
+        (
+            _observation("o1", 0.9, True, "bkt.v1"),
+            _observation("o2", 0.2, False, "bkt.v1"),
+        )
+    )
+    rule = evaluate_knowledge_tracing(
+        (
+            _observation("o1", 0.7, True, "rule.v1"),
+            _observation("o2", 0.4, False, "rule.v1"),
+        )
+    )
+
+    comparison = compare_knowledge_tracing_reports((bkt, rule))
+
+    assert comparison.ranking[0] in {"bkt.v1", "rule.v1"}
+    with pytest.raises(ValueError, match="observation IDs"):
+        compare_knowledge_tracing_reports(
+            (
+                bkt,
+                evaluate_knowledge_tracing(
+                    (_observation("different", 0.5, True, "rule.v1"),)
+                ),
+            )
+        )
