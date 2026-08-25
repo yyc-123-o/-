@@ -165,6 +165,20 @@ async def upload_learner(payload: dict = Body(...)):
                 status_code=422,
                 detail=f"self_assessment.{field_name} 必须是数组",
             )
+        if any(not isinstance(item, dict) for item in value):
+            raise HTTPException(
+                status_code=422,
+                detail=f"self_assessment.{field_name} 条目必须是对象",
+            )
+    for assessment in sa_data.get("domain_assessments", []):
+        courses_value = assessment.get("courses", [])
+        if not isinstance(courses_value, list) or any(
+            not isinstance(course, dict) for course in courses_value
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="self_assessment.domain_assessments.courses 必须是对象数组",
+            )
     domain_assessments = [
         DomainAssessment(
             domain=item.get("domain", ""),

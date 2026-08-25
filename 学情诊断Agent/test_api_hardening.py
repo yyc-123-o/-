@@ -33,6 +33,25 @@ def test_upload_rejects_non_array_self_assessment_collections(client: TestClient
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("courses", [1]), ("projects", [1]), ("domain_assessments", [1])],
+)
+def test_upload_rejects_non_object_self_assessment_items(
+    client: TestClient,
+    field: str,
+    value: list[object],
+) -> None:
+    payload = {
+        "education": {"level": "\u672c\u79d1"},
+        "self_assessment": {field: value},
+    }
+
+    response = client.post("/api/learner/upload", json=payload)
+
+    assert response.status_code == 422
+
+
 def test_profile_rejects_unknown_chapter_like_diagnose(client: TestClient) -> None:
     response = client.get(
         "/api/learner/learner_001/profile?chapter_id=does-not-exist"
