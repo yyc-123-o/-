@@ -10,6 +10,7 @@ from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalRequest,
     DomainRetrievalResult,
 )
+from skillforge_kb.evaluation.knowledge_tracing import KnowledgeTracingObservation
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
 from skillforge_kb.resources.evidence_bundle import EvidenceBundle
 from skillforge_kb.resources.handoff import ResourceHandoffContract
@@ -82,6 +83,24 @@ class PlatformRunRepository(Protocol):
         submission_digest: str,
         result: PlatformRunResult,
     ) -> None: ...
+
+    def get_prediction_observation(
+        self,
+        run_id: str,
+        assessment_id: str,
+    ) -> KnowledgeTracingObservation | None: ...
+
+    def save_prediction_observation(
+        self,
+        run_id: str,
+        assessment_id: str,
+        observation: KnowledgeTracingObservation,
+    ) -> None: ...
+
+    def list_prediction_observations(
+        self,
+        run_id: str,
+    ) -> tuple[KnowledgeTracingObservation, ...]: ...
 
 
 class Clock(Protocol):

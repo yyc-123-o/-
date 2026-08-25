@@ -1,5 +1,7 @@
 from threading import RLock
 
+from skillforge_kb.evaluation.knowledge_tracing import KnowledgeTracingObservation
+
 from .models import (
     PlatformRunRequest,
     PlatformRunResult,
@@ -19,6 +21,7 @@ class InMemoryPlatformRunRepository:
         self._results: dict[str, PlatformRunResult] = {}
         self._requests: dict[str, PlatformRunRequest] = {}
         self._assessments: dict[tuple[str, str], tuple[str, PlatformRunResult]] = {}
+        self._observations: dict[tuple[str, str], KnowledgeTracingObservation] = {}
 
     def reserve(self, request: PlatformRunRequest) -> PlatformRunResult | None:
         request = PlatformRunRequest.model_validate(request.model_dump())
@@ -114,3 +117,45 @@ class InMemoryPlatformRunRepository:
             if existing is not None and existing[0] != submission_digest:
                 raise ValueError("assessment ID was already used with a different payload")
             self._assessments[key] = (submission_digest, result)
+
+    def get_prediction_observation(
+        self,
+        run_id: str,
+        assessment_id: str,
+    ) -> KnowledgeTracingObservation | None:
+        with self._lock:
+            return self._observations.get((run_id, assessment_id))
+
+    def save_prediction_observation(
+        self,
+        run_id: str,
+        assessment_id: str,
+        observation: KnowledgeTracingObservation,
+    ) -> None:
+        validated = KnowledgeTracingObservation.model_validate(observation.model_dump())
+        with self._lock:
+            request = self._requests.get(run_id)
+            if request is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            if validated.observation_id != assessment_id:
+                raise ValueError("observation ID must match assessment ID")
+            if validated.profile_id != request.profile.profile_id:
+                raise ValueError("observation profile does not match platform run")
+            key = (run_id, assessment_id)
+            existing = self._observations.get(key)
+            if existing is not None and existing != validated:
+                raise ValueError("assessment has a different observation")
+            self._observations[key] = validated
+
+    def list_prediction_observations(
+        self,
+        run_id: str,
+    ) -> tuple[KnowledgeTracingObservation, ...]:
+        with self._lock:
+            if run_id not in self._requests:
+                raise KeyError(f"platform run not found: {run_id}")
+            return tuple(
+                observation
+                for (stored_run_id, _), observation in self._observations.items()
+                if stored_run_id == run_id
+            )
