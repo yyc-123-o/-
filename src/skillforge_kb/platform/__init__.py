@@ -12,7 +12,7 @@ from .models import (
     build_request_digest,
     build_run_id,
 )
-from .repository import IdempotencyConflict, InMemoryPlatformRunRepository
+from .repository import IdempotencyConflict, InMemoryPlatformRunRepository, SqlitePlatformRunRepository
 from .runtime import (
     DefaultPlatformPaths,
     ResourceHandoffFactory,
@@ -26,6 +26,7 @@ __all__ = [
     "DefaultPlatformPaths",
     "IdempotencyConflict",
     "InMemoryPlatformRunRepository",
+    "SqlitePlatformRunRepository",
     "PlatformFailure",
     "PlatformGraphDependencies",
     "PlatformRunRequest",

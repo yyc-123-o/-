@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Protocol
 
@@ -58,7 +59,18 @@ def create_app(
     service: PlatformApplicationService,
     profile_adapter: ProfileAdaptationService | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="SkillForge Platform API", version="1.0.0")
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        yield
+        close = getattr(service, "close", None)
+        if callable(close):
+            close()
+
+    app = FastAPI(
+        title="SkillForge Platform API",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
     app.state.platform_service = service
     app.state.profile_adapter = profile_adapter
     static_root = Path(__file__).with_name("static")

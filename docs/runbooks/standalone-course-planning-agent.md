@@ -76,3 +76,8 @@ Agents.
 
 Input/configuration errors exit with code 2. A valid Agent result whose status is
 `failed` is still printed as JSON and exits with code 3.
+
+The integrated platform service persists runs, assessment idempotency records, and
+knowledge-tracing observations to `SKILLFORGE_PLATFORM_STATE_DB` (default:
+`.skillforge/platform.sqlite3`). Keep this SQLite file outside source control; it is
+runtime state, not a fixture or an evidence source.

@@ -113,6 +113,11 @@ class PlatformService:
         self._repository = repository
         self._lock = RLock()
 
+    def close(self) -> None:
+        close = getattr(self._repository, "close", None)
+        if callable(close):
+            close()
+
     def run(self, request: PlatformRunRequest) -> PlatformRunResult:
         request = PlatformRunRequest.model_validate(request.model_dump())
         with self._lock:

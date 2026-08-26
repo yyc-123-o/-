@@ -10,6 +10,14 @@ from skillforge_kb.platform.runtime import (
 )
 
 
+def _platform_app(root: Path, monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("SKILLFORGE_PLATFORM_STATE_DB", str(tmp_path / "platform.sqlite3"))
+    return create_app(
+        build_default_platform_service(root),
+        profile_adapter=build_default_profile_agent_adapter(root),
+    )
+
+
 def _raw_profile() -> dict[str, object]:
     return {
         "profile_id": "PROFILE-LEARNER_TEST_001",
@@ -39,12 +47,9 @@ def _raw_profile() -> dict[str, object]:
     }
 
 
-def test_default_platform_adapts_cnn_profile_agent_output() -> None:
+def test_default_platform_adapts_cnn_profile_agent_output(monkeypatch, tmp_path: Path) -> None:
     root = Path(__file__).parents[2]
-    app = create_app(
-        build_default_platform_service(root),
-        profile_adapter=build_default_profile_agent_adapter(root),
-    )
+    app = _platform_app(root, monkeypatch, tmp_path)
 
     with TestClient(app) as client:
         response = client.post("/api/v1/profiles/adapt", json=_raw_profile())
@@ -61,12 +66,9 @@ def test_default_platform_adapts_cnn_profile_agent_output() -> None:
     )
 
 
-def test_default_platform_rejects_profile_graph_mismatch() -> None:
+def test_default_platform_rejects_profile_graph_mismatch(monkeypatch, tmp_path: Path) -> None:
     root = Path(__file__).parents[2]
-    app = create_app(
-        build_default_platform_service(root),
-        profile_adapter=build_default_profile_agent_adapter(root),
-    )
+    app = _platform_app(root, monkeypatch, tmp_path)
     raw = _raw_profile()
     raw["graph_version"] = "ai-course-v2"
 
@@ -77,12 +79,9 @@ def test_default_platform_rejects_profile_graph_mismatch() -> None:
     assert response.json()["detail"]["code"] == "invalid_profile_agent_output"
 
 
-def test_adapted_profile_enters_platform_and_respects_evidence_gate() -> None:
+def test_adapted_profile_enters_platform_and_respects_evidence_gate(monkeypatch, tmp_path: Path) -> None:
     root = Path(__file__).parents[2]
-    app = create_app(
-        build_default_platform_service(root),
-        profile_adapter=build_default_profile_agent_adapter(root),
-    )
+    app = _platform_app(root, monkeypatch, tmp_path)
 
     with TestClient(app) as client:
         adaptation = client.post("/api/v1/profiles/adapt", json=_raw_profile())
@@ -112,7 +111,7 @@ def test_adapted_profile_enters_platform_and_respects_evidence_gate() -> None:
     ]
 
 
-def test_target_concept_is_forwarded_to_planner() -> None:
+def test_target_concept_is_forwarded_to_planner(monkeypatch, tmp_path: Path) -> None:
     root = Path(__file__).parents[2]
     profile = json.loads(
         (root / "tests" / "fixtures" / "profile-2026-0001-demo.json").read_text(
@@ -120,6 +119,7 @@ def test_target_concept_is_forwarded_to_planner() -> None:
         )
     )
     profile["profile_id"] = "PROFILE-TARGET-TEST"
+    monkeypatch.setenv("SKILLFORGE_PLATFORM_STATE_DB", str(tmp_path / "platform.sqlite3"))
     app = create_app(build_default_platform_service(root))
 
     with TestClient(app) as client:

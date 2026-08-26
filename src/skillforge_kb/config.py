@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     notebook_timeout_seconds: int = Field(default=30, ge=1, le=120)
+    platform_state_db: str = ".skillforge/platform.sqlite3"
     llm_enabled: bool = False
 
     @property

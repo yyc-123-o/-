@@ -31,6 +31,20 @@ def test_health_lists_enabled_execution_modes(client: TestClient) -> None:
     }
 
 
+def test_app_closes_service_when_test_client_exits() -> None:
+    class ClosingService:
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    service = ClosingService()
+    with TestClient(create_app(service)):  # type: ignore[arg-type]
+        pass
+
+    assert service.closed is True
+
+
 def test_create_run_returns_201_and_structured_result(
     client: TestClient,
     profile_payload: dict[str, object],

@@ -28,7 +28,7 @@ from skillforge_kb.retrieval.corpus import KnowledgeCorpus
 from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
 from .graph import PlatformGraphDependencies, PlatformService
-from .repository import InMemoryPlatformRunRepository
+from .repository import SqlitePlatformRunRepository
 
 
 @dataclass(frozen=True)
@@ -141,7 +141,10 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         catalog=catalog,
         practice_llm=llm_adapter,
     )
-    return PlatformService(dependencies, InMemoryPlatformRunRepository())
+    state_db = Path(settings.platform_state_db).expanduser()
+    if not state_db.is_absolute():
+        state_db = root / state_db
+    return PlatformService(dependencies, SqlitePlatformRunRepository(state_db))
 
 
 def build_default_profile_agent_adapter(
