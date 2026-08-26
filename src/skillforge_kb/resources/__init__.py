@@ -1,3 +1,11 @@
+from .allocation import (
+    QuotaVector,
+    ResourceAllocation,
+    ResourceAllocationPolicy,
+    allocate_resources,
+    build_resource_allocation_digest,
+    build_resource_allocation_policy_digest,
+)
 from .briefs import ResourceBriefBuilder
 from .controlled_evaluation import (
     EvaluationProfile,
@@ -5,11 +13,18 @@ from .controlled_evaluation import (
     evaluate_profiles,
 )
 from .controlled_generation import (
+    AllowedEvidence,
+    AuditStatus,
     CandidateLearningPackage,
+    ClaimSupportStatus,
     ControlledResourceGenerationService,
+    EvidenceApprovalStatus,
+    FakeLLMAdapter,
     GenerationPolicy,
+    PublicationStatus,
     ResourceAuditReport,
     ResourceGenerationBrief,
+    StructuredResourceDraft,
 )
 from .controlled_input import build_brief_from_handoffs
 from .demo_evidence import EvidenceBundleManifest, FrozenEvidence, freeze_cnn_demo_bundle
@@ -24,6 +39,7 @@ from .generator_contracts import (
     ProjectResource,
     ValidatedResourcePackage,
 )
+from .handoff import ResourceHandoffContract
 from .models import (
     AcceptanceChecks,
     CitationRequirements,
@@ -36,10 +52,13 @@ from .notebook_runner import NotebookExecutionReport, run_fixed_cnn_notebook
 
 __all__ = [
     "AcceptanceChecks",
+    "AllowedEvidence",
     "AssessmentResource",
+    "AuditStatus",
     "CitationRecord",
     "CitationRequirements",
     "CandidateLearningPackage",
+    "ClaimSupportStatus",
     "ControlledResourceGenerationService",
     "EvaluationProfile",
     "EvidenceBoundItem",
@@ -47,6 +66,8 @@ __all__ = [
     "EvidenceBundleManifest",
     "ErrorPatternHint",
     "EvidenceFilters",
+    "EvidenceApprovalStatus",
+    "FakeLLMAdapter",
     "LectureResource",
     "PracticalGuideResource",
     "PresentationPreferences",
@@ -54,11 +75,17 @@ __all__ = [
     "FrozenEvidence",
     "NotebookExecutionReport",
     "ProjectResource",
+    "PublicationStatus",
+    "QuotaVector",
+    "ResourceAllocation",
+    "ResourceAllocationPolicy",
     "ResourceBrief",
     "ResourceAuditReport",
     "ResourceBriefBuilder",
     "ResourceGenerationBrief",
     "ResourceEvaluationReport",
+    "ResourceHandoffContract",
+    "StructuredResourceDraft",
     "ValidatedResourcePackage",
     "build_evidence_bundle",
     "build_brief_from_handoffs",
@@ -66,4 +93,7 @@ __all__ = [
     "export_candidate_demo",
     "freeze_cnn_demo_bundle",
     "run_fixed_cnn_notebook",
+    "allocate_resources",
+    "build_resource_allocation_digest",
+    "build_resource_allocation_policy_digest",
 ]

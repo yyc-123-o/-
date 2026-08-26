@@ -1,4 +1,9 @@
 import urllib.request, json
+import sys
+
+if "pytest" in sys.modules:
+    import pytest
+    pytest.skip("需要显式启动学情诊断 Agent 服务后运行", allow_module_level=True)
 
 req = urllib.request.Request('http://localhost:8000/api/learner/learner_002/diagnose', data=b'', method='POST')
 r = urllib.request.urlopen(req)

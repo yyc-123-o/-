@@ -35,6 +35,14 @@ class CourseSelfAssessment(BaseModel):
     note: str = Field("", description="自由描述/自我评价")
 
 
+class DomainAssessment(BaseModel):
+    """兼容 0822 更新的按领域问卷结构。"""
+
+    domain: str = ""
+    courses: List[CourseSelfAssessment] = Field(default_factory=list)
+    note: str = ""
+
+
 class ProjectExperience(BaseModel):
     """项目经历"""
     name: str = Field("", description="项目名")
@@ -56,6 +64,10 @@ class SelfAssessment(BaseModel):
     strengths: str = Field("", description="优势/已掌握内容详细描述")
     weaknesses: str = Field("", description="薄弱/待提升内容详细描述")
     courses: List[CourseSelfAssessment] = Field(default_factory=list, description="分课程自评")
+    domain_assessments: List[DomainAssessment] = Field(
+        default_factory=list,
+        description="兼容按领域组织的课程自评",
+    )
     projects: List[ProjectExperience] = Field(default_factory=list, description="项目经历")
 
 
@@ -63,11 +75,11 @@ class TestRecord(BaseModel):
     """测试记录"""
     knowledge_point_id: str
     question_id: str = ""
-    difficulty: float = Field(..., description="题目难度 b, IRT参数")
-    discrimination: float = Field(1.0, description="题目区分度 a, IRT参数")
+    difficulty: float = Field(..., allow_inf_nan=False, description="题目难度 b, IRT参数")
+    discrimination: float = Field(1.0, gt=0, allow_inf_nan=False, description="题目区分度 a, IRT参数")
     is_correct: bool
     timestamp: datetime = Field(default_factory=datetime.now)
-    time_spent: int = Field(60, description="答题用时(秒)")
+    time_spent: int = Field(60, ge=0, description="答题用时(秒)")
     hint_used: bool = False
     error_pattern: Optional[str] = Field(None, description="概念混淆/计算错误/逻辑跳跃/忽略条件")
 
@@ -127,7 +139,7 @@ class KpMasteryPoint(BaseModel):
     """单个知识点掌握度"""
     name: str
     domain: str
-    mastery: float = 0.0
+    mastery: Optional[float] = None
     status: str = "unexplored"
     theta_kp: float = 0.0
     test_count: int = 0
@@ -358,6 +370,7 @@ class LearnerProfile(BaseModel):
     """
     profile_id: str = ""
     profile_version: str = "2.1"
+    graph_version: str = "ai-course-v1"
     generated_by: str = "学情诊断Agent v2.1"
     generated_at: str = ""
     learner_id: str = ""

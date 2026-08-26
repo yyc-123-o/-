@@ -19,10 +19,14 @@ from skillforge_kb.ontology.models import (
     KnowledgeMastery,
     LearnerProfileSnapshot,
 )
-from skillforge_kb.ontology.resource_blueprints import load_resource_blueprints
+from skillforge_kb.ontology.resource_blueprints import (
+    load_resource_blueprints,
+    resource_blueprint,
+)
 from skillforge_kb.planning.adaptation import NodeWeightEngine
 from skillforge_kb.planning.models import PathStatus
 from skillforge_kb.planning.planner import CoursePlanner
+from skillforge_kb.resources.allocation import build_resource_allocation_digest
 from skillforge_kb.resources.briefs import ResourceBriefBuilder
 from skillforge_kb.resources.models import ResourceBrief, build_brief_id
 
@@ -161,6 +165,20 @@ def test_build_is_deterministic_and_preserves_path_facts(catalog) -> None:
     assert first.section_id == node.section_id
     assert first.citation_requirements.min_evidence_records >= 1
     assert first.node_adaptation.resource_mode is first.node_adaptation.support_intensity
+    assert first.request_version == "resource-brief.v2"
+    allocation = first.resource_allocation
+    blueprint = resource_blueprint(
+        builder.blueprints,
+        node.concept_id,
+        node.delivery_depth,
+    )
+    assert allocation.concept_id == first.concept_id
+    assert allocation.delivery_depth is first.delivery_depth
+    assert allocation.support_intensity is first.node_adaptation.support_intensity
+    assert allocation.resource_types == first.required_resource_types
+    assert allocation.blueprint_estimated_minutes == blueprint.estimated_minutes
+    assert allocation.effort_multiplier == first.node_adaptation.effort_multiplier
+    assert allocation.estimated_minutes >= blueprint.estimated_minutes
 
 
 def test_brief_is_frozen_and_rejects_path_field_override(catalog) -> None:
@@ -183,6 +201,28 @@ def test_brief_rejects_internally_inconsistent_filters(catalog) -> None:
     )
 
     with pytest.raises(ValidationError, match="evidence filters"):
+        ResourceBrief.model_validate(payload)
+
+
+def test_brief_rejects_allocation_from_another_concept(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    brief = builder.build(decision, profile, node.concept_id)
+    payload = brief.model_dump(mode="json")
+    allocation = payload["resource_allocation"]
+    allocation["concept_id"] = "math.linear-algebra.vector"
+    allocation["allocation_digest"] = build_resource_allocation_digest(
+        {
+            key: value
+            for key, value in allocation.items()
+            if key != "allocation_digest"
+        }
+    )
+    payload["brief_id"] = build_brief_id(
+        {key: value for key, value in payload.items() if key != "brief_id"}
+    )
+
+    with pytest.raises(ValidationError, match="allocation concept"):
         ResourceBrief.model_validate(payload)
 
 
@@ -231,6 +271,35 @@ def test_missing_published_evidence_is_structured_failure(catalog) -> None:
 
     with pytest.raises(ValueError, match="published evidence"):
         builder.build(decision, profile, node.concept_id)
+
+
+def test_build_handoff_preserves_scope_when_evidence_is_missing(catalog) -> None:
+    profile = _profile(catalog)
+    builder, decision, node = _builder(catalog, profile)
+    builder = builder.model_copy(
+        update={
+            "evidence_index": EvidenceIndex(
+                version="evidence-manifest-v1",
+                graph_version=catalog.course_document.version,
+                records=(),
+            )
+        }
+    )
+
+    handoff = builder.build_handoff(decision, profile, node.concept_id)
+
+    assert handoff.profile_id == decision.profile_id
+    assert handoff.path_id == decision.path_id
+    assert handoff.graph_version == decision.graph_version
+    assert handoff.concept_id == node.concept_id
+    assert handoff.chapter_id == node.chapter_id
+    assert handoff.section_id == node.section_id
+    assert handoff.sequence == node.sequence
+    assert handoff.generation_gate.allowed is False
+    assert handoff.generation_gate.status == "blocked_missing_published_evidence"
+    assert handoff.generation_gate.blocking_codes == (
+        "blocked_missing_published_evidence",
+    )
 
 
 def test_mismatched_profile_or_adaptation_is_rejected(catalog) -> None:

@@ -103,7 +103,7 @@ def _generate_test_records_for_kp(
         # IRT概率
         from core.irt import probability
         p_correct = probability(theta, discrimination, difficulty)
-        is_correct = _bernoulli(p_correct, rng)
+        is_correct = bool(_bernoulli(p_correct, rng))
 
         # 答题时间: 答对通常快一些, 高难度题耗时更长
         base_time = 30 + difficulty * 15
@@ -114,12 +114,12 @@ def _generate_test_records_for_kp(
 
         # 提示使用: 能力低或难度高时更可能用提示
         hint_prob = max(0.05, 0.3 - theta * 0.15 + max(0, difficulty - theta) * 0.2)
-        hint_used = _bernoulli(hint_prob, rng)
+        hint_used = bool(_bernoulli(hint_prob, rng))
 
         # 错题标注错误模式
         error_pattern = None
         if not is_correct and rng.random() < 0.6:
-            error_pattern = rng.choice(_ERROR_PATTERNS)
+            error_pattern = str(rng.choice(_ERROR_PATTERNS))
 
         records.append(TestRecord(
             knowledge_point_id=kp.id,

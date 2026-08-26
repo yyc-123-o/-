@@ -4,6 +4,7 @@ from pydantic import TypeAdapter
 
 from skillforge_kb.ontology.models import DepthLevel
 from skillforge_kb.ontology.resource_blueprints import ResourceType
+from skillforge_kb.planning.models import PathStatus
 from skillforge_kb.resources.briefs import RESOURCE_EVIDENCE_KINDS
 from skillforge_kb.resources.evidence_bundle import EvidenceBundle
 from skillforge_kb.resources.generator_contracts import (
@@ -109,6 +110,10 @@ class ResourceGenerationTool:
         generator: ResourceGenerator,
     ) -> ValidatedResourcePackage:
         validated_brief, validated_bundle = self._validate_inputs(brief, bundle)
+        if not validated_brief.generation_gate.allowed:
+            raise ValueError("generation gate does not allow formal resource generation")
+        if validated_brief.status is PathStatus.BLOCKED:
+            raise ValueError("blocked resource briefs cannot enter formal generation")
         return self.validate(
             validated_brief,
             validated_bundle,
@@ -122,6 +127,10 @@ class ResourceGenerationTool:
         artifacts: tuple[GeneratedArtifact, ...],
     ) -> ValidatedResourcePackage:
         brief, bundle = self._validate_inputs(brief, bundle)
+        if not brief.generation_gate.allowed:
+            raise ValueError("generation gate does not allow formal resource generation")
+        if brief.status is PathStatus.BLOCKED:
+            raise ValueError("blocked resource briefs cannot enter formal generation")
         artifacts = _ARTIFACTS_ADAPTER.validate_python(artifacts)
         if bundle.brief_id != brief.brief_id:
             raise ValueError("evidence bundle does not match resource brief")

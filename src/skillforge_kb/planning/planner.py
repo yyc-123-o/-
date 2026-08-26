@@ -51,6 +51,7 @@ class CoursePlanner:
         completed_concept_ids: set[str] | None = None,
         *,
         allow_skips: bool = True,
+        target_concept_id: str | None = None,
     ) -> PathDecision:
         completed = completed_concept_ids or set()
         unknown_completed = completed - self._known_ids
@@ -58,6 +59,7 @@ class CoursePlanner:
             raise PlanningError(f"unknown completed concept: {sorted(unknown_completed)[0]}")
         mastery = self._mastery_index(profile)
         ability_score, ability_reasons = self._ability_score(profile)
+        ordered_ids = self._ordered_ids_for_target(target_concept_id)
         initial_nodes = [
             self._build_node(
                 concept_id,
@@ -68,7 +70,7 @@ class CoursePlanner:
                 completed,
                 allow_skips,
             )
-            for sequence, concept_id in enumerate(self._ordered_ids, start=1)
+            for sequence, concept_id in enumerate(ordered_ids, start=1)
         ]
         nodes = assign_execution_statuses(initial_nodes)
         return PathDecision(
@@ -76,16 +78,31 @@ class CoursePlanner:
                 profile.profile_id,
                 profile.graph_version,
                 self._policy.version,
-                self._ordered_ids,
+                ordered_ids,
                 self._policy_digest,
+                target_concept_id,
             ),
             profile_id=profile.profile_id,
             graph_version=profile.graph_version,
             policy_version=self._policy.version,
             policy_digest=self._policy_digest,
+            target_concept_id=target_concept_id,
             generated_at=profile.generated_at,
             nodes=nodes,
         )
+
+    def _ordered_ids_for_target(self, target_concept_id: str | None) -> list[str]:
+        if target_concept_id is None:
+            return list(self._ordered_ids)
+        if target_concept_id not in self._known_ids:
+            raise PlanningError(f"unknown target concept: {target_concept_id}")
+        if target_concept_id not in self._ordered_ids:
+            raise PlanningError(f"target concept is not required: {target_concept_id}")
+        # A target selects the learner's focus; it must not truncate the course
+        # path. Keeping the complete ordered path preserves chapter context and
+        # lets the UI expose every node while the planner still chooses the
+        # earliest available prerequisite-safe node as the handoff.
+        return list(self._ordered_ids)
 
     def _mastery_index(
         self,

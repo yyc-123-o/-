@@ -161,6 +161,6 @@ def compute_all_mastery(
         theta_map[kp.id] = round(theta, 4)
         test_count_map[kp.id] = tc
         confidence_map[kp.id] = conf
-        status_map[kp.id] = _mastery_status(mastery)
+        status_map[kp.id] = "unexplored" if tc == 0 else _mastery_status(mastery)
 
     return mastery_map, theta_map, test_count_map, confidence_map, status_map

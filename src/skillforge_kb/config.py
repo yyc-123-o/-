@@ -18,3 +18,14 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     notebook_timeout_seconds: int = Field(default=30, ge=1, le=120)
+    llm_enabled: bool = False
+
+    @property
+    def llm_configured(self) -> bool:
+        return bool(
+            self.llm_enabled
+            and self.llm_base_url
+            and self.llm_model
+            and self.llm_api_key is not None
+            and self.llm_api_key.get_secret_value().strip()
+        )

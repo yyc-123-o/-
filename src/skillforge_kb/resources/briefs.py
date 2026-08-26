@@ -21,11 +21,15 @@ from skillforge_kb.planning.adaptation import NodeAdaptationDecision
 from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus
 from skillforge_kb.planning.serialization import build_path_id
 
+from .allocation import allocate_resources
+from .handoff import ResourceHandoffContract
 from .models import (
     AcceptanceChecks,
     CitationRequirements,
     ErrorPatternHint,
     EvidenceFilters,
+    GenerationGate,
+    GenerationGateStatus,
     PresentationPreferences,
     ResourceBrief,
     ResourceBriefPayload,
@@ -83,6 +87,37 @@ class ResourceBriefBuilder(BaseModel):
         profile: LearnerProfileSnapshot,
         concept_id: str,
     ) -> ResourceBrief:
+        brief = self._build(decision, profile, concept_id)
+        if "blocked_missing_published_evidence" in brief.generation_gate.blocking_codes:
+            missing = self._missing_evidence_kinds(
+                concept_id,
+                brief.delivery_depth,
+                brief.evidence_filters.content_kinds,
+            )
+            raise ValueError(
+                "published evidence is required for "
+                f"{concept_id}:{brief.delivery_depth.value}:"
+                + ",".join(item.value for item in missing)
+            )
+        return brief
+
+    def build_handoff(
+        self,
+        decision: PathDecision,
+        profile: LearnerProfileSnapshot,
+        concept_id: str,
+    ) -> ResourceHandoffContract:
+        """Build a complete handoff even when formal generation is blocked."""
+        return ResourceHandoffContract.from_brief(
+            self._build(decision, profile, concept_id)
+        )
+
+    def _build(
+        self,
+        decision: PathDecision,
+        profile: LearnerProfileSnapshot,
+        concept_id: str,
+    ) -> ResourceBrief:
         self._validate_runtime_dependencies()
         decision = PathDecision.model_validate(decision.model_dump())
         profile = LearnerProfileSnapshot.model_validate(profile.model_dump())
@@ -115,8 +150,14 @@ class ResourceBriefBuilder(BaseModel):
             raise ValueError("adaptation profile does not match learner profile")
 
         blueprint = resource_blueprint(self.blueprints, concept_id, node.delivery_depth)
+        allocation = allocate_resources(blueprint, adaptation)
         content_kinds = _content_kinds(blueprint.resource_types)
-        self._require_published_evidence(concept_id, node.delivery_depth, content_kinds)
+        generation_gate = self._generation_gate(
+            node,
+            concept_id,
+            node.delivery_depth,
+            content_kinds,
+        )
         payload = ResourceBriefPayload(
             path_id=decision.path_id,
             graph_version=decision.graph_version,
@@ -139,6 +180,8 @@ class ResourceBriefBuilder(BaseModel):
             related_confusion_ids=self._related_confusion_ids(concept_id),
             required_resource_types=blueprint.resource_types,
             node_adaptation=adaptation,
+            resource_allocation=allocation,
+            generation_gate=generation_gate,
             error_pattern_hints=_error_pattern_hints(profile, concept_id),
             presentation_preferences=_presentation_preferences(profile),
             evidence_filters=EvidenceFilters(
@@ -187,6 +230,7 @@ class ResourceBriefBuilder(BaseModel):
             decision.policy_version,
             [node.concept_id for node in decision.nodes],
             decision.policy_digest,
+            decision.target_concept_id,
         )
         if decision.path_id != expected_path_id:
             raise ValueError("path ID does not match structural path content")
@@ -204,22 +248,62 @@ class ResourceBriefBuilder(BaseModel):
         if not set(node.blocking_prerequisite_ids).issubset(expected_hard):
             raise ValueError("path node blockers are not hard prerequisites")
 
-    def _require_published_evidence(
+    def _generation_gate(
+        self,
+        node: PathNode,
+        concept_id: str,
+        depth: DepthLevel,
+        content_kinds: tuple[ContentKind, ...],
+    ) -> GenerationGate:
+        blocking_codes: list[str] = []
+        if node.status is PathStatus.BLOCKED:
+            blocking_codes.append("blocked_hard_prerequisite")
+        missing_kinds = self._missing_evidence_kinds(
+            concept_id,
+            depth,
+            content_kinds,
+        )
+        if missing_kinds:
+            blocking_codes.append("blocked_missing_published_evidence")
+        if not blocking_codes:
+            return GenerationGate()
+        if len(blocking_codes) == 1 and blocking_codes[0] == "blocked_hard_prerequisite":
+            status: GenerationGateStatus = "blocked_hard_prerequisite"
+        elif (
+            len(blocking_codes) == 1
+            and blocking_codes[0] == "blocked_missing_published_evidence"
+        ):
+            status = "blocked_missing_published_evidence"
+        else:
+            status = "blocked_prerequisite_and_evidence"
+        if status == "blocked_hard_prerequisite":
+            next_action = "complete hard prerequisites and replan"
+        elif status == "blocked_missing_published_evidence":
+            next_action = "publish required evidence before generation"
+        else:
+            next_action = "complete prerequisites and publish required evidence"
+        return GenerationGate(
+            allowed=False,
+            status=status,
+            blocking_codes=tuple(blocking_codes),
+            next_action=next_action,
+        )
+
+    def _missing_evidence_kinds(
         self,
         concept_id: str,
         depth: DepthLevel,
         content_kinds: tuple[ContentKind, ...],
-    ) -> None:
-        for content_kind in content_kinds:
+    ) -> tuple[ContentKind, ...]:
+        return tuple(
+            content_kind
+            for content_kind in content_kinds
             if not self.evidence_index.query(
                 concept_id,
                 depth,
                 content_kind=content_kind,
-            ):
-                raise ValueError(
-                    "published evidence is required for "
-                    f"{concept_id}:{depth.value}:{content_kind.value}"
-                )
+            )
+        )
 
     def _incoming_ids(
         self,

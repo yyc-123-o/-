@@ -131,6 +131,7 @@ class PathDecision(BaseModel):
     graph_version: str = Field(min_length=1)
     policy_version: str = Field(min_length=1)
     policy_digest: str = Field(pattern=r"^policy_[0-9a-f]{64}$")
+    target_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
     generated_at: datetime | None = None
     nodes: tuple[PathNode, ...] = Field(min_length=1)
 
@@ -141,4 +142,6 @@ class PathDecision(BaseModel):
         concept_ids = [node.concept_id for node in self.nodes]
         if len(concept_ids) != len(set(concept_ids)):
             raise ValueError("path concept IDs must be unique")
+        if self.target_concept_id is not None and self.target_concept_id not in concept_ids:
+            raise ValueError("target concept must be present in path")
         return self

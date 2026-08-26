@@ -1,10 +1,42 @@
 import json
+import os
+import sqlite3
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
 
 import typer
+import uvicorn
+import yaml
+from langgraph.checkpoint.sqlite import SqliteSaver
+from neo4j import GraphDatabase
+from pydantic import ValidationError
 
+from skillforge_kb.agents.runtime import (
+    StandaloneAgentPaths,
+    load_planning_event,
+    run_standalone_event,
+    validate_standalone_agent_paths,
+)
+from skillforge_kb.api.app import create_app
 from skillforge_kb.config import Settings
+from skillforge_kb.evaluation import (
+    DEFAULT_SYNTHETIC_CASE_COUNT,
+    DEFAULT_SYNTHETIC_SEED,
+    evaluate_course_paths,
+    generate_synthetic_dataset,
+    load_synthetic_dataset,
+    search_planner_policies,
+    write_path_evaluation_report,
+    write_planner_policy_calibration_report,
+    write_synthetic_dataset,
+)
+from skillforge_kb.ontology.catalog import OntologyCatalog
+from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
+from skillforge_kb.platform.runtime import (
+    build_default_platform_service,
+    build_default_profile_agent_adapter,
+)
 from skillforge_kb.resources.controlled_evaluation import (
     EvaluationProfile,
     evaluate_profiles,
@@ -32,11 +64,31 @@ app = typer.Typer(no_args_is_help=True)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_COURSE_FILE = PROJECT_ROOT / "resources" / "ontology" / "ai_course_v1.yaml"
 DEFAULT_RELATIONS_FILE = PROJECT_ROOT / "resources" / "ontology" / "ai_relations_v1.yaml"
+DEFAULT_ATTRIBUTES_FILE = PROJECT_ROOT / "resources" / "ontology" / "concept_attributes_v1.yaml"
+DEFAULT_KNOWLEDGE_FILE = PROJECT_ROOT / "data" / "index_chunks.jsonl"
 
 
 @app.callback()
 def main() -> None:
     """Operate the SkillForge knowledge base."""
+
+
+@app.command("platform-serve")
+def platform_serve(
+    project_root: Annotated[
+        Path | None,
+        typer.Option(exists=True, file_okay=False),
+    ] = None,
+    host: Annotated[str, typer.Option()] = "127.0.0.1",
+    port: Annotated[int, typer.Option(min=1, max=65535)] = 8000,
+) -> None:
+    try:
+        root = project_root or Path.cwd()
+        service = build_default_platform_service(root)
+        profile_adapter = build_default_profile_agent_adapter(root)
+    except (OSError, ValueError, ValidationError, yaml.YAMLError) as exc:
+        raise typer.BadParameter(f"platform configuration failed: {exc}") from exc
+    uvicorn.run(create_app(service, profile_adapter=profile_adapter), host=host, port=port)
 
 
 @app.command("fusion-dry-run")
@@ -81,6 +133,102 @@ def _output_path_outside_inputs(output_path: Path, *input_paths: Path) -> Path:
     if any(resolved_output == input_path.resolve() for input_path in input_paths):
         raise typer.BadParameter("output must not overwrite a graph input")
     return resolved_output
+
+
+def _write_json_atomically(path: Path, payload: str) -> None:
+    resolved = path.resolve()
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=resolved.parent,
+            prefix=f".{resolved.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary = Path(handle.name)
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, resolved)
+    except OSError:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise
+
+
+@app.command("agent-run")
+def agent_run(
+    event_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    thread_id: Annotated[str, typer.Option()],
+    state_db: Annotated[Path | None, typer.Option()] = None,
+    output_file: Annotated[Path | None, typer.Option()] = None,
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+    attributes_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_ATTRIBUTES_FILE,
+    knowledge_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_KNOWLEDGE_FILE,
+) -> None:
+    paths = StandaloneAgentPaths(
+        course_file=course_file,
+        relations_file=relations_file,
+        attributes_file=attributes_file,
+        knowledge_file=knowledge_file,
+    )
+    input_paths = (
+        event_file,
+        paths.course_file,
+        paths.relations_file,
+        paths.attributes_file,
+        paths.knowledge_file,
+    )
+    try:
+        event = load_planning_event(event_file)
+        validate_standalone_agent_paths(paths)
+        if state_db is not None:
+            state_db = _output_path_outside_inputs(state_db, *input_paths)
+        if output_file is not None:
+            output_file = _output_path_outside_inputs(output_file, *input_paths)
+            if state_db is not None and output_file == state_db:
+                raise typer.BadParameter("output_file must not overwrite state_db")
+        if state_db is None:
+            result = run_standalone_event(paths, event, thread_id)
+        else:
+            state_db.parent.mkdir(parents=True, exist_ok=True)
+            with SqliteSaver.from_conn_string(str(state_db)) as checkpointer:
+                result = run_standalone_event(
+                    paths,
+                    event,
+                    thread_id,
+                    checkpointer=checkpointer,
+                )
+    except typer.BadParameter:
+        raise
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        raise typer.BadParameter(f"agent-run configuration failed: {exc}") from exc
+
+    payload = json.dumps(
+        result.model_dump(mode="json"),
+        ensure_ascii=False,
+        sort_keys=True,
+    ) + "\n"
+    typer.echo(payload, nl=False)
+    if output_file is not None:
+        try:
+            _write_json_atomically(output_file, payload)
+        except OSError as exc:
+            raise typer.BadParameter(f"could not write output file: {exc}") from exc
+    if result.status.value == "failed":
+        raise typer.Exit(code=3)
 
 
 @app.command("graph-validate")
@@ -155,11 +303,7 @@ def graph_publish(
         Path, typer.Option(exists=True, dir_okay=False)
     ] = DEFAULT_RELATIONS_FILE,
 ) -> None:
-    from neo4j import GraphDatabase
     from neo4j.exceptions import DriverError, Neo4jError
-    from pydantic import ValidationError
-
-    from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 
     catalog = _load_validated_catalog(course_file, relations_file)
     try:
@@ -177,6 +321,95 @@ def graph_publish(
     typer.echo(f"Published graph version {catalog.course_document.version}")
 
 
+@app.command("planning-generate-synthetic")
+def planning_generate_synthetic(
+    output_file: Annotated[Path, typer.Option()],
+    case_count: Annotated[int, typer.Option(min=8)] = DEFAULT_SYNTHETIC_CASE_COUNT,
+    seed: Annotated[int, typer.Option()] = DEFAULT_SYNTHETIC_SEED,
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+) -> None:
+    catalog = _load_validated_catalog(course_file, relations_file)
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+    )
+    try:
+        dataset = generate_synthetic_dataset(
+            catalog,
+            case_count=case_count,
+            seed=seed,
+        )
+        write_synthetic_dataset(dataset, output_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        raise typer.BadParameter(f"could not generate synthetic dataset: {exc}") from exc
+    typer.echo(
+        f"Wrote {len(dataset.cases)} synthetic planning cases to {output_path}"
+    )
+
+
+@app.command("planning-evaluate")
+def planning_evaluate(
+    dataset_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output_file: Annotated[Path, typer.Option()],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+) -> None:
+    catalog = _load_validated_catalog(course_file, relations_file)
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+        dataset_file,
+    )
+    try:
+        dataset = load_synthetic_dataset(dataset_file)
+        report = evaluate_course_paths(catalog, dataset)
+        write_path_evaluation_report(report, output_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        raise typer.BadParameter(f"invalid synthetic dataset: {exc}") from exc
+    typer.echo(
+        f"Evaluated {len(report.case_results)} synthetic planning cases into {output_path}"
+    )
+
+
+@app.command("planning-calibrate-policy")
+def planning_calibrate_policy(
+    dataset_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output_file: Annotated[Path, typer.Option()],
+    course_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_COURSE_FILE,
+    relations_file: Annotated[
+        Path, typer.Option(exists=True, dir_okay=False)
+    ] = DEFAULT_RELATIONS_FILE,
+) -> None:
+    catalog = _load_validated_catalog(course_file, relations_file)
+    output_path = _output_path_outside_inputs(
+        output_file,
+        course_file,
+        relations_file,
+        dataset_file,
+    )
+    try:
+        dataset = load_synthetic_dataset(dataset_file)
+        report = search_planner_policies(catalog, dataset)
+        write_planner_policy_calibration_report(report, output_path)
+    except (OSError, ValueError, ValidationError) as exc:
+        raise typer.BadParameter(f"planner policy calibration failed: {exc}") from exc
+    typer.echo(
+        f"Evaluated {len(report.ranked_candidates)} planner policy candidates "
+        f"over {report.baseline.metrics.case_count} synthetic cases into {output_path}"
+    )
 @app.command("resource-generate")
 def resource_generate(
     brief_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],

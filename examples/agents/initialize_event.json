@@ -1,0 +1,17 @@
+{
+  "schema_version": "planning-agent-event.v1",
+  "event_id": "event_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "kind": "initialize",
+  "profile": {
+    "schema_version": "learner-profile.v1",
+    "profile_id": "standalone-demo",
+    "learner_ref": "0000000000000000000000000000000000000000000000000000000000000000",
+    "graph_version": "ai-course-v1",
+    "assessment_runs": [],
+    "knowledge_mastery": [],
+    "abilities": {},
+    "error_patterns": [],
+    "preferences": {}
+  },
+  "completed_concept_ids": []
+}

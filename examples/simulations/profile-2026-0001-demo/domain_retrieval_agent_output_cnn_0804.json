@@ -1,0 +1,155 @@
+{
+  "schema_version": "domain-retrieval-agent-output.v2",
+  "generated_at": "2026-08-04T10:30:00+08:00",
+  "request": {
+    "query": "卷积运算 CNN Conv2d 图像张量 padding stride 输出尺寸",
+    "rewritten_query": "学生 PROFILE-2026-0001-DEMO 的 intro 卷积运算：卷积、互相关、CNN、Conv2d、图像张量、padding、stride、输出尺寸",
+    "profile_id": "PROFILE-2026-0001-DEMO",
+    "concept_id": "dl.cnn.convolution",
+    "depth": "intro",
+    "top_k": 5
+  },
+  "evidence": [],
+  "candidate_evidence": [
+    {
+      "chunk_id": "dl_ch09_cnn_a3dde521400f",
+      "source_id": "dl_ch09_cnn",
+      "source_title": "DeepLearning Chapter 9 Convolutional Networks",
+      "heading_path": [
+        "1 卷积运算",
+        "二维卷积运算"
+      ],
+      "text": "卷积操作将图像数据窗口与固定权重滤波矩阵逐元素相乘后求和；输入记为 Input，核记为 Kernel 或 Filter，输出为特征图。卷积层通常使用二维互相关（Cross-correlation）：输入数组与卷积核窗口在空间位置上滑动并计算内积。该片段还给出 3×3 输入与 2×2 核的逐位置计算示例，并说明卷积核参数在不同输入位置共享。",
+      "page_no": 1,
+      "score": 0.9821,
+      "retrieval_method": "bm25_with_concept_anchor",
+      "concept_id": "dl.cnn.convolution",
+      "depth": "intro",
+      "content_kind": "definition",
+      "review_status": "candidate",
+      "license_status": "allowed",
+      "evidence_status": "candidate_only",
+      "fit_note": "覆盖卷积、互相关、卷积核、特征图和参数共享；可作为讲义定义候选，需完成人工审核后才能引用。"
+    },
+    {
+      "chunk_id": "dl_ch09_cnn_5e2a9735ace2",
+      "source_id": "dl_ch09_cnn",
+      "source_title": "DeepLearning Chapter 9 Convolutional Networks",
+      "heading_path": [
+        "3 深度学习框架下的卷积",
+        "3.2 输入值与核",
+        "3.3 填充 (Padding)"
+      ],
+      "text": "彩色图像的卷积输入和输出可以看作带通道的张量；输入通道数为 c_in、卷积核空间尺寸为 K×K、输出通道数为 c_out 时，每组卷积核覆盖全部输入通道。无填充时，二维输出尺寸为 (m−f+1, n−f+1)；加入每侧 p 个零填充后，输出尺寸为 (m+2p−f+1, n+2p−f+1)。",
+      "page_no": 3,
+      "score": 0.9647,
+      "retrieval_method": "bm25_with_concept_anchor",
+      "concept_id": "dl.cnn.convolution",
+      "depth": "intro",
+      "content_kind": "definition",
+      "review_status": "candidate",
+      "license_status": "allowed",
+      "evidence_status": "candidate_only",
+      "fit_note": "覆盖图像张量、输入/输出通道、padding 和基础输出尺寸公式；需审核公式排版和术语后使用。"
+    },
+    {
+      "chunk_id": "dl_ch09_cnn_51551ccb3ced",
+      "source_id": "dl_ch09_cnn",
+      "source_title": "DeepLearning Chapter 9 Convolutional Networks",
+      "heading_path": [
+        "二维卷积实现过程",
+        "参数说明与输出说明"
+      ],
+      "text": "二维卷积实现的输入数组 X 形状为 (n_samples, in_rows, in_cols, in_ch)，卷积核 W 形状为 (kernel_rows, kernel_cols, in_ch, out_ch)，stride 表示卷积步幅，pad 表示零填充；输出 Z 形状为 (n_samples, out_rows, out_cols, out_ch)。",
+      "page_no": 8,
+      "code_location": "dl_ch09_cnn:page 8:conv2D",
+      "score": 0.9412,
+      "retrieval_method": "bm25_with_concept_anchor",
+      "concept_id": "dl.cnn.convolution",
+      "depth": "intro",
+      "content_kind": "code",
+      "review_status": "candidate",
+      "license_status": "allowed",
+      "evidence_status": "candidate_only",
+      "fit_note": "提供 Python 卷积实现的输入/输出 shape 和参数语义；原文不是 PyTorch API，资源 Agent 不得未经改写直接声称为 nn.Conv2d 示例。"
+    },
+    {
+      "chunk_id": "derived_dl_ch09_cnn_pytorch_conv2d_0804",
+      "source_id": "derived:dl_ch09_cnn_pytorch_candidate",
+      "source_title": "Derived PyTorch candidate from DeepLearning Chapter 9 Convolutional Networks",
+      "heading_path": [
+        "derived candidate",
+        "PyTorch nn.Conv2d mapping"
+      ],
+      "text": "【待审核改写候选，非原文引文】根据 dl_ch09_cnn 的卷积核、padding、stride 和输出尺寸定义改写为 PyTorch 最小示例：\nimport torch\nfrom torch import nn\nx = torch.randn(2, 3, 32, 32)\nlayer = nn.Conv2d(in_channels=3, out_channels=8, kernel_size=3, stride=2, padding=1)\ny = layer(x)\nassert x.shape == (2, 3, 32, 32)\nassert y.shape == (2, 8, 16, 16)\n参数含义：in_channels 对应输入通道，out_channels 对应卷积核组数，kernel_size 对应窗口，stride 对应步幅，padding 对应每侧填充。该候选必须经过来源绑定、代码运行和许可证审查。",
+      "code_location": "derived_from:dl_ch09_cnn:pages 3-8",
+      "score": 0.9034,
+      "retrieval_method": "knowledge_base_formula_derivation",
+      "concept_id": "dl.cnn.convolution",
+      "depth": "intro",
+      "content_kind": "code",
+      "review_status": "candidate",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only",
+      "fit_note": "满足资源 Agent 对 nn.Conv2d 的接口需求，但这是由已检索公式生成的待审核改写，不是知识库正式原文。"
+    },
+    {
+      "chunk_id": "derived_dl_ch09_cnn_exercise_0804",
+      "source_id": "derived:dl_ch09_cnn_exercise_candidate",
+      "source_title": "Derived exercise candidate from DeepLearning Chapter 9 Convolutional Networks",
+      "heading_path": [
+        "derived candidate",
+        "卷积输出尺寸与参数量练习"
+      ],
+      "text": "【待审核改写候选，非原文引文】题 1：输入空间尺寸 32×32，kernel_size=3，padding=1，stride=2，输出空间尺寸是多少？答案：16×16。解析：floor((32+2×1−3)/2)+1=floor(31/2)+1=16。题 2：Conv2d 的 in_channels=3、out_channels=8、kernel_size=3，忽略 bias 时卷积核参数量是多少？答案：216。解析：3×8×3×3=216；若包含 bias，再加 8。题 3：固定输入和 kernel_size，增大 padding 或 stride 分别会怎样影响输出尺寸？答案：padding 通常增大输出空间尺寸，stride 增大通常减少输出空间尺寸；应分别代入公式验证。以上题目由 dl_ch09_cnn 的 padding、stride、输出公式和通道参数定义派生，必须经过人工审核后才能作为练习资源。",
+      "code_location": "derived_from:dl_ch09_cnn:pages 3-8",
+      "score": 0.8876,
+      "retrieval_method": "knowledge_base_formula_derivation",
+      "concept_id": "dl.cnn.convolution",
+      "depth": "intro",
+      "content_kind": "exercise",
+      "review_status": "candidate",
+      "license_status": "unregistered",
+      "evidence_status": "candidate_only",
+      "fit_note": "覆盖输出尺寸、卷积核参数量、padding/stride 影响，并包含答案和解析；它是派生候选，不可作为正式来源引用。"
+    }
+  ],
+  "concept_evidence": {
+    "dl.cnn.convolution": {
+      "depth": "intro",
+      "published": [],
+      "candidates": [
+        "dl_ch09_cnn_a3dde521400f",
+        "dl_ch09_cnn_5e2a9735ace2",
+        "dl_ch09_cnn_51551ccb3ced",
+        "derived_dl_ch09_cnn_pytorch_conv2d_0804",
+        "derived_dl_ch09_cnn_exercise_0804"
+      ],
+      "evidence_status": "candidate_only"
+    }
+  },
+  "evidence_summary": {
+    "published_count": 0,
+    "candidate_count": 5,
+    "content_kinds_found_in_candidates": [
+      "definition",
+      "code",
+      "exercise"
+    ],
+    "missing_content_kinds": [],
+    "formal_content_kinds_missing": [
+      "definition",
+      "code",
+      "exercise"
+    ],
+    "formal_evidence_is_empty": true,
+    "topic_quality_note": "标准卷积章节能够覆盖定义、通道、padding、stride、输出尺寸和实现思路；PyTorch 示例与带解析练习是由章节内容派生的候选，尚未完成审核。"
+  },
+  "evidence_gap": {
+    "formal_evidence": "dl.cnn.convolution:intro 当前没有同时满足人工审核、许可证确认和可追溯定位的正式证据，因此 evidence 必须为空。",
+    "definition": "已有 MIT 来源的标准卷积定义候选，但 review_status 仍为 candidate；需要审核卷积与互相关表述、公式排版、概念绑定和章节定位后才能发布。",
+    "code": "已有标准卷积的 Python/NumPy 实现候选；PyTorch nn.Conv2d 代码是基于该公式的派生候选，尚无已审核、可授权、可定位的 PyTorch 原始片段。需要运行验证、人工审核和许可证登记。",
+    "exercise": "知识库没有找到原生的卷积输出尺寸、卷积核参数量和 padding/stride 影响练习。当前 exercise 是从已检索公式派生的待审核题目，不能直接作为正式练习证据。",
+    "candidate_policy": "candidate_evidence 仅供领域检索 Agent 和知识库审核流程使用；资源生成 Agent 不得把 candidate_only 片段当作正式引用，也不得在正式证据门禁通过前生成带正式来源声明的资源。"
+  }
+}

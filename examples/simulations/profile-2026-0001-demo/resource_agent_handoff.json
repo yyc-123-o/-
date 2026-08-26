@@ -1,0 +1,257 @@
+{
+  "schema_version": "resource-agent-handoff-simulation.v1",
+  "handoff_id": "handoff_fe9dddf5a01ae53fdaf5da2af0b8f4b18d7557b9a847a78aab2372aa39a45044",
+  "source": {
+    "planning_result_file": "planning_result.json",
+    "planning_result_schema_version": "course-planning-agent-result.v1",
+    "thread_id": "profile-2026-0001-demo",
+    "path_id": "path_6d09613775f5b15f501f0f4433d3e4003e6a04144b41e1e2053c6dc5162d9af9",
+    "profile_id": "PROFILE-2026-0001-DEMO",
+    "graph_version": "ai-course-v1",
+    "last_event_id": "event_a875fb3ccc2b786b52c84e94937229eb07cd4138187318f4c4b3ade2102e0c84"
+  },
+  "current_node": {
+    "concept_id": "dl.vision.image-tensor",
+    "names": {
+      "zh": "图像张量",
+      "en": "Image Tensor"
+    },
+    "chapter_id": "chapter.05.cnn-representation",
+    "section_id": "section.05.convolution-basics",
+    "sequence": 57,
+    "status": "available",
+    "delivery_depth": "intro",
+    "hard_prerequisite_ids": [],
+    "blocking_prerequisite_ids": [],
+    "reason_codes": [
+      "mastery_missing",
+      "ready_for_intro"
+    ]
+  },
+  "node_adaptation": {
+    "adaptation_digest": "adaptation_a9da96572f6272d5348348a6b3624a1bb8eae4c6d4b3e407814cad15c7fb335f",
+    "assessment_emphasis": [],
+    "concept_id": "dl.vision.image-tensor",
+    "delivery_depth": "intro",
+    "effort_multiplier": 2.0,
+    "node_weight_policy_digest": "node_policy_bcb3e692096e95e75914835e958057d2981d5c10728cd5451c5919ce5f7af637",
+    "policy_digest": "policy_c74f35203f2c15d45fca8ea50e9a640bed61547bdac52a725fe7744ceb10080d",
+    "profile_digest": "profile_4f67ce914cb38c358ae3cbca477afe1cb50cf66c367802abf8fcb14d1db81c14",
+    "readiness_contributions": [
+      {
+        "coefficient": 0.6,
+        "contribution": 0.0,
+        "factor": "mastery_readiness",
+        "normalized_value": 0.0
+      },
+      {
+        "coefficient": 0.4,
+        "contribution": 0.2452,
+        "factor": "ability_readiness",
+        "normalized_value": 0.613
+      }
+    ],
+    "readiness_score": 0.2452,
+    "reason_codes": [
+      "support_need_high",
+      "evidence_uncertain"
+    ],
+    "support_contributions": [
+      {
+        "coefficient": 0.55,
+        "contribution": 0.55,
+        "factor": "mastery_gap",
+        "normalized_value": 1.0
+      },
+      {
+        "coefficient": 0.25,
+        "contribution": 0.0,
+        "factor": "error_risk",
+        "normalized_value": 0.0
+      },
+      {
+        "coefficient": 0.2,
+        "contribution": 0.0,
+        "factor": "ability_gap",
+        "normalized_value": 0.0
+      },
+      {
+        "coefficient": 1.0,
+        "contribution": 0.44999999999999996,
+        "factor": "conservative_evidence_floor",
+        "normalized_value": 0.44999999999999996
+      }
+    ],
+    "support_intensity": "scaffolded",
+    "support_need_score": 1.0
+  },
+  "resource_blueprint": {
+    "graph_version": "ai-course-v1",
+    "concept_id": "dl.vision.image-tensor",
+    "depth": "intro",
+    "learning_outcomes": [
+      "解释图像张量的核心含义并识别其基本场景。"
+    ],
+    "assessment_kinds": [
+      "concept"
+    ],
+    "resource_types": [
+      "lecture",
+      "practical_guide",
+      "assessment"
+    ],
+    "estimated_minutes": 45
+  },
+  "resource_allocation": {
+    "policy_version": "resource-allocation-policy.v1",
+    "policy_digest": "allocation_policy_155b0c0a732044328ac5a1f72348073f100b2447481997511e32bd70b7cbd6e0",
+    "concept_id": "dl.vision.image-tensor",
+    "delivery_depth": "intro",
+    "support_intensity": "scaffolded",
+    "resource_types": [
+      "lecture",
+      "practical_guide",
+      "assessment"
+    ],
+    "blueprint_estimated_minutes": 45,
+    "effort_multiplier": 2.0,
+    "minute_rounding": 5,
+    "estimated_minutes": 90,
+    "worked_example_count": 3,
+    "guided_exercise_count": 6,
+    "assessment_item_count": 6,
+    "project_checkpoint_count": 0,
+    "reason_codes": [
+      "depth_intro",
+      "support_scaffolded",
+      "blueprint_minutes_scaled",
+      "resource_types_applied"
+    ],
+    "allocation_digest": "resource_allocation_848913b161230896dee4e4dd84a75aee66bc7a81232bc4718f2d138b75b3bbbb"
+  },
+  "learner_preferences": {
+    "content_order": [
+      "概念直觉理解 → 数学推导 → 代码实战 → 面试考点"
+    ],
+    "code_language": "Python",
+    "framework": "PyTorch",
+    "presentation": [
+      "jupyter_notebook",
+      "visual",
+      "diagrams",
+      "math_formulas",
+      "step_by_step",
+      "comparison_tables"
+    ],
+    "pace_hours_per_week": 10,
+    "project_orientation": "project_driven"
+  },
+  "error_pattern_priorities": [
+    {
+      "code": "concept_confusion",
+      "count": 8,
+      "ratio": 0.42
+    },
+    {
+      "code": "calculation_error",
+      "count": 5,
+      "ratio": 0.26
+    },
+    {
+      "code": "logic_jump",
+      "count": 4,
+      "ratio": 0.21
+    },
+    {
+      "code": "ignored_condition",
+      "count": 2,
+      "ratio": 0.11
+    }
+  ],
+  "candidate_knowledge_context": {
+    "status": "no_results",
+    "concept_id": "dl.vision.image-tensor",
+    "corpus_digest": "8ce524bc0416e4ae424a5101504a7eee29b7dee971e6b39308423e374531ae5f",
+    "evidence_state": "candidate",
+    "hits": []
+  },
+  "formal_resource_generation": {
+    "status": "blocked_missing_published_evidence",
+    "eligible": false,
+    "evidence_manifest": "resources/evidence/evidence_manifest_v1.yaml",
+    "published_record_count": 0,
+    "required_scope": {
+      "graph_version": "ai-course-v1",
+      "concept_id": "dl.vision.image-tensor",
+      "depth": "intro",
+      "content_kinds": [
+        "definition",
+        "code",
+        "exercise"
+      ]
+    },
+    "next_action": "publish reviewed and licensed evidence before building ResourceBrief and EvidenceBundle"
+  },
+  "cnn_path": [
+    {
+      "sequence": 57,
+      "concept_id": "dl.vision.image-tensor",
+      "status": "available",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 58,
+      "concept_id": "dl.cnn.convolution",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 59,
+      "concept_id": "dl.cnn.cross-correlation",
+      "status": "pending",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 60,
+      "concept_id": "dl.cnn.kernel-filter",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 61,
+      "concept_id": "dl.cnn.padding-stride",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 62,
+      "concept_id": "dl.cnn.pooling",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 63,
+      "concept_id": "dl.cnn.receptive-field",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 64,
+      "concept_id": "dl.cnn.architecture",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 65,
+      "concept_id": "dl.cnn.flatten-fully-connected",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    },
+    {
+      "sequence": 66,
+      "concept_id": "dl.cnn.backpropagation",
+      "status": "blocked",
+      "delivery_depth": "intro"
+    }
+  ]
+}

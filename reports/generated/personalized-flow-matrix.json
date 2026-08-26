@@ -15,12 +15,12 @@
     "advanced": 130
   },
   "validated_resource_packages": {
-    "zero_foundation": 140,
+    "zero_foundation": 9,
     "intermediate": 140,
     "advanced": 130
   },
   "generated_artifacts": {
-    "zero_foundation": 420,
+    "zero_foundation": 27,
     "intermediate": 560,
     "advanced": 520
   },

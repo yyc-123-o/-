@@ -48,7 +48,7 @@ def _gap_confidence(mastery: float, test_count: int, gap_type: str) -> float:
         elif test_count >= 1:
             return 0.70 + (1 - mastery) * 0.05
         else:
-            return 0.85  # 远期待学但确实未接触
+            return 0.25  # 无直接证据只能建议测评，不能高置信下结论
     elif gap_type == "blocked":
         return 0.86 + min(0.04, test_count * 0.01)
     elif gap_type == "weak":
@@ -108,6 +108,10 @@ def analyze_gaps(
         interaction_count = _interaction_count_for_kp(kp.id, interactions)
         pass_rate = _test_pass_rate(kp.id, test_records)
         tc = test_count_map.get(kp.id, 0)
+
+        # 没有测试或交互证据时，不把学历先验误报成已确认盲区。
+        if tc == 0 and interaction_count == 0:
+            continue
 
         gap_type = None
         priority = "low"
@@ -234,9 +238,11 @@ def classify_error_patterns(
         "忽略条件": {"count": 0, "kp_ids": set(), "examples": []},
     }
 
+    labeled_wrong = 0
     for t in wrong_records:
         cat = t.error_pattern if t.error_pattern else None
         if cat and cat in categories:
+            labeled_wrong += 1
             categories[cat]["count"] += 1
             categories[cat]["kp_ids"].add(t.knowledge_point_id)
         else:
@@ -249,19 +255,20 @@ def classify_error_patterns(
         for kp_id in list(cat_data["kp_ids"])[:3]:
             if cat_name in _ERROR_EXAMPLES and kp_id in _ERROR_EXAMPLES[cat_name]:
                 cat_data["examples"].extend(_ERROR_EXAMPLES[cat_name][kp_id])
-        # 如果该类别没有匹配的模板错例，使用通用描述
-        if not cat_data["examples"]:
+        # 只有确有该类错误时才生成示例，避免空白画像出现伪造历史。
+        if cat_data["count"] > 0 and not cat_data["examples"]:
             cat_data["examples"] = [f"涉及知识点 {', '.join(list(cat_data['kp_ids'])[:3])} 的典型{cat_name}问题"]
 
     items: List[ErrorPatternItem] = []
     total_wrong = len(wrong_records) if wrong_records else 1
-    primary = ("概念混淆", 0)
-    secondary = ("概念混淆", 0)
+    primary = ("", 0)
+    secondary = ("", 0)
 
     for cat_name in ["概念混淆", "计算错误", "逻辑跳跃", "忽略条件"]:
         cat_data = categories[cat_name]
         ratio = round(cat_data["count"] / total_wrong, 2)
-        conf = round(0.78 + min(0.12, cat_data["count"] * 0.02), 2) if cat_data["count"] > 0 else 0.0
+        coverage = labeled_wrong / len(wrong_records) if wrong_records else 0.0
+        conf = round(coverage * (0.78 + min(0.12, cat_data["count"] * 0.02)), 2) if cat_data["count"] > 0 else 0.0
 
         items.append(ErrorPatternItem(
             category=cat_name,
@@ -279,8 +286,13 @@ def classify_error_patterns(
         elif cat_data["count"] > secondary[1]:
             secondary = (cat_name, cat_data["count"])
 
-    classification_conf = 0.85  # 可后续从标注一致率动态计算
+    classification_conf = round(labeled_wrong / len(wrong_records), 2) if wrong_records else 0.0
 
+    confidence_note = (
+        f"{len(wrong_records)}道错题由自动分类完成，建议后续引入人工标注交叉验证"
+        if wrong_records
+        else "暂无错题记录，暂不推断错误模式"
+    )
     return ErrorPatterns(
         total_questions=total,
         total_correct=correct,
@@ -289,6 +301,6 @@ def classify_error_patterns(
         primary_weakness=primary[0],
         primary_weakness_ratio=round(primary[1] / total_wrong, 2) if total_wrong > 0 else 0.0,
         classification_confidence=classification_conf,
-        confidence_note=f"{len(wrong_records)}道错题由自动分类完成，建议后续引入人工标注交叉验证",
+        confidence_note=confidence_note,
         items=items,
     )
