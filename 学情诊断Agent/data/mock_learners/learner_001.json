@@ -13,55 +13,132 @@
     ]
   },
   "self_assessment": {
-    "ml_level": "刚接触，跟着B站教程跑过demo",
-    "dl_level": "完全不了解",
-    "math_level": "高数学过但忘了很多",
-    "programming_level": "入门，能写简单Python脚本",
     "learning_goal": "入门AI，能看懂简单的ML代码",
     "weekly_hours": 5,
-    "position": "无（在校学生）",
-    "strengths": "对Python有基本了解，能看懂简单的代码逻辑",
-    "weaknesses": "数学基础薄弱，概率论与线代几乎遗忘，深度学习零基础",
-    "courses": [
+    "domain_assessments": [
       {
-        "name": "高等数学",
-        "level": "入门",
-        "note": "学过但忘了很多"
+        "domain": "数学基础",
+        "courses": [
+          {
+            "name": "高等数学",
+            "level": "入门",
+            "note": "学过但忘了很多",
+            "kp_id": null
+          },
+          {
+            "name": "线性代数",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "概率论与数理统计",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "最优化方法",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "数学基础薄弱，概率论与线代几乎遗忘",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "线性代数",
-        "level": "未学过",
-        "note": ""
+        "domain": "机器学习基础",
+        "courses": [
+          {
+            "name": "机器学习",
+            "level": "入门",
+            "note": "跑过demo",
+            "kp_id": null
+          },
+          {
+            "name": "数据结构与算法",
+            "level": "入门",
+            "note": "了解数组/链表",
+            "kp_id": null
+          }
+        ],
+        "note": "跑过demo，了解基本概念",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "概率论与数理统计",
-        "level": "未学过",
-        "note": ""
+        "domain": "深度学习",
+        "courses": [
+          {
+            "name": "深度学习",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "计算机视觉",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "自然语言处理",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "零基础",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "Python编程",
-        "level": "基础",
-        "note": "能写简单脚本"
+        "domain": "优化算法",
+        "courses": [
+          {
+            "name": "最优化方法",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "凸优化",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "未接触",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "数据结构与算法",
-        "level": "入门",
-        "note": "了解数组/链表"
-      },
-      {
-        "name": "机器学习",
-        "level": "入门",
-        "note": "跑过demo"
-      },
-      {
-        "name": "深度学习",
-        "level": "未学过",
-        "note": ""
-      },
-      {
-        "name": "最优化方法",
-        "level": "未学过",
-        "note": ""
+        "domain": "实践应用",
+        "courses": [
+          {
+            "name": "Python编程",
+            "level": "基础",
+            "note": "能写简单脚本",
+            "kp_id": null
+          },
+          {
+            "name": "数据处理与特征工程",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "模型调参与部署",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "能写简单Python脚本",
+        "mode": null,
+        "guided_answers": null
       }
     ],
     "projects": []

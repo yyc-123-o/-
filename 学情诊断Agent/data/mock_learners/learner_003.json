@@ -17,55 +17,132 @@
     ]
   },
   "self_assessment": {
-    "ml_level": "熟练掌握，有过Kaggle竞赛经验",
-    "dl_level": "熟悉CNN/RNN/Transformer，独立完成过项目",
-    "math_level": "数学基础扎实，能看懂论文公式推导",
-    "programming_level": "精通，有竞赛与项目经验",
     "learning_goal": "深入LLM前沿，准备发表一篇NLP方向论文",
     "weekly_hours": 20,
-    "position": "实验室研究助理 / 竞赛队长",
-    "strengths": "数学基础扎实能推公式，深度学习熟悉CNN/RNN/Transformer，有完整项目与竞赛经验",
-    "weaknesses": "模型部署与工程化（量化/推理优化）经验相对较少",
-    "courses": [
+    "domain_assessments": [
       {
-        "name": "高等数学",
-        "level": "熟练",
-        "note": "能看懂论文公式推导"
+        "domain": "数学基础",
+        "courses": [
+          {
+            "name": "高等数学",
+            "level": "熟练",
+            "note": "能看懂论文公式推导",
+            "kp_id": null
+          },
+          {
+            "name": "线性代数",
+            "level": "熟练",
+            "note": "矩阵分解/特征分解熟练",
+            "kp_id": null
+          },
+          {
+            "name": "概率论与数理统计",
+            "level": "熟练",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "最优化方法",
+            "level": "基础",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "数学基础扎实，能推公式",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "线性代数",
-        "level": "熟练",
-        "note": "矩阵分解/特征分解熟练"
+        "domain": "机器学习基础",
+        "courses": [
+          {
+            "name": "机器学习",
+            "level": "熟练",
+            "note": "有Kaggle经验",
+            "kp_id": null
+          },
+          {
+            "name": "数据结构与算法",
+            "level": "熟练",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "有Kaggle竞赛经验",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "概率论与数理统计",
-        "level": "熟练",
-        "note": ""
+        "domain": "深度学习",
+        "courses": [
+          {
+            "name": "深度学习",
+            "level": "熟练",
+            "note": "独立完成过CV/NLP项目",
+            "kp_id": null
+          },
+          {
+            "name": "计算机视觉",
+            "level": "熟练",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "自然语言处理",
+            "level": "熟练",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "熟悉CNN/RNN/Transformer",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "Python编程",
-        "level": "精通",
-        "note": ""
+        "domain": "优化算法",
+        "courses": [
+          {
+            "name": "最优化方法",
+            "level": "基础",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "凸优化",
+            "level": "基础",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "最优化方法基础扎实",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "数据结构与算法",
-        "level": "熟练",
-        "note": ""
-      },
-      {
-        "name": "机器学习",
-        "level": "熟练",
-        "note": "有Kaggle经验"
-      },
-      {
-        "name": "深度学习",
-        "level": "熟练",
-        "note": "独立完成过CV/NLP项目"
-      },
-      {
-        "name": "最优化方法",
-        "level": "基础",
-        "note": ""
+        "domain": "实践应用",
+        "courses": [
+          {
+            "name": "Python编程",
+            "level": "精通",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "数据处理与特征工程",
+            "level": "熟练",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "模型调参与部署",
+            "level": "熟练",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "有竞赛与项目经验，部署经验较少",
+        "mode": null,
+        "guided_answers": null
       }
     ],
     "projects": [

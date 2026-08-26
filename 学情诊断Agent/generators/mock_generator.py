@@ -21,7 +21,7 @@ if _PROJECT_ROOT not in sys.path:
 
 from models.schemas import (
     Learner, Education, SelfAssessment, TestRecord, InteractionRecord,
-    CourseSelfAssessment, ProjectExperience,
+    CourseSelfAssessment, DomainAssessment, ProjectExperience,
 )
 from models.knowledge_graph import KG, KnowledgePoint
 
@@ -37,11 +37,18 @@ _TIER_LABEL = {"easy": "易", "medium": "中", "hard": "难"}
 # ============================================================
 
 def _load_real_questions() -> List[dict]:
-    """从 JSON 文件加载真实题目"""
-    qfile = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "real_questions.json")
-    if os.path.exists(qfile):
-        with open(qfile, "r", encoding="utf-8") as f:
-            return json.load(f)
+    """从 JSON 文件加载真实题目
+
+    优先读取完整知识库 question_bank.json (含 difficulty_level 低/中/高 分类);
+    若不存在则回退到 real_questions.json。
+    """
+    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    primary = os.path.join(data_dir, "question_bank.json")
+    fallback = os.path.join(data_dir, "real_questions.json")
+    for qfile in (primary, fallback):
+        if os.path.exists(qfile):
+            with open(qfile, "r", encoding="utf-8") as f:
+                return json.load(f)
     return []
 
 
@@ -248,24 +255,33 @@ def generate_all_mock_data() -> Tuple[List[Learner], List[dict]]:
         interaction_density=0.4,
     )
     learner1.self_assessment = SelfAssessment(
-        ml_level="刚接触，跟着B站教程跑过demo",
-        dl_level="完全不了解",
-        math_level="高数学过但忘了很多",
-        programming_level="入门，能写简单Python脚本",
         learning_goal="入门AI，能看懂简单的ML代码",
         weekly_hours=5,
-        position="无（在校学生）",
-        strengths="对Python有基本了解，能看懂简单的代码逻辑",
-        weaknesses="数学基础薄弱，概率论与线代几乎遗忘，深度学习零基础",
-        courses=[
-            CourseSelfAssessment(name="高等数学", level="入门", note="学过但忘了很多"),
-            CourseSelfAssessment(name="线性代数", level="未学过", note=""),
-            CourseSelfAssessment(name="概率论与数理统计", level="未学过", note=""),
-            CourseSelfAssessment(name="Python编程", level="基础", note="能写简单脚本"),
-            CourseSelfAssessment(name="数据结构与算法", level="入门", note="了解数组/链表"),
-            CourseSelfAssessment(name="机器学习", level="入门", note="跑过demo"),
-            CourseSelfAssessment(name="深度学习", level="未学过", note=""),
-            CourseSelfAssessment(name="最优化方法", level="未学过", note=""),
+        domain_assessments=[
+            DomainAssessment(domain="数学基础", note="数学基础薄弱，概率论与线代几乎遗忘", courses=[
+                CourseSelfAssessment(name="高等数学", level="入门", note="学过但忘了很多"),
+                CourseSelfAssessment(name="线性代数", level="未学过", note=""),
+                CourseSelfAssessment(name="概率论与数理统计", level="未学过", note=""),
+                CourseSelfAssessment(name="最优化方法", level="未学过", note=""),
+            ]),
+            DomainAssessment(domain="机器学习基础", note="跑过demo，了解基本概念", courses=[
+                CourseSelfAssessment(name="机器学习", level="入门", note="跑过demo"),
+                CourseSelfAssessment(name="数据结构与算法", level="入门", note="了解数组/链表"),
+            ]),
+            DomainAssessment(domain="深度学习", note="零基础", courses=[
+                CourseSelfAssessment(name="深度学习", level="未学过", note=""),
+                CourseSelfAssessment(name="计算机视觉", level="未学过", note=""),
+                CourseSelfAssessment(name="自然语言处理", level="未学过", note=""),
+            ]),
+            DomainAssessment(domain="优化算法", note="未接触", courses=[
+                CourseSelfAssessment(name="最优化方法", level="未学过", note=""),
+                CourseSelfAssessment(name="凸优化", level="未学过", note=""),
+            ]),
+            DomainAssessment(domain="实践应用", note="能写简单Python脚本", courses=[
+                CourseSelfAssessment(name="Python编程", level="基础", note="能写简单脚本"),
+                CourseSelfAssessment(name="数据处理与特征工程", level="未学过", note=""),
+                CourseSelfAssessment(name="模型调参与部署", level="未学过", note=""),
+            ]),
         ],
         projects=[],
     )
@@ -290,24 +306,33 @@ def generate_all_mock_data() -> Tuple[List[Learner], List[dict]]:
         interaction_density=0.6,
     )
     learner2.self_assessment = SelfAssessment(
-        ml_level="了解基础，做过sklearn项目",
-        dl_level="知道CNN/RNN名字，没实际写过",
-        math_level="微积分和线代还行，概率论偏弱",
-        programming_level="熟悉，能独立完成sklearn项目",
         learning_goal="系统掌握深度学习，能独立完成CV方向项目",
         weekly_hours=10,
-        position="班级学习委员",
-        strengths="机器学习基础较好，会特征工程与调参；微积分和线代尚可",
-        weaknesses="概率论偏弱，深度学习只懂概念、缺乏代码实操经验",
-        courses=[
-            CourseSelfAssessment(name="高等数学", level="基础", note="微积分基本掌握"),
-            CourseSelfAssessment(name="线性代数", level="基础", note="矩阵运算熟练"),
-            CourseSelfAssessment(name="概率论与数理统计", level="入门", note="偏弱"),
-            CourseSelfAssessment(name="Python编程", level="熟练", note="做过sklearn项目"),
-            CourseSelfAssessment(name="数据结构与算法", level="基础", note=""),
-            CourseSelfAssessment(name="机器学习", level="基础", note="会线性回归/分类/聚类"),
-            CourseSelfAssessment(name="深度学习", level="入门", note="只懂CNN/RNN概念"),
-            CourseSelfAssessment(name="最优化方法", level="入门", note=""),
+        domain_assessments=[
+            DomainAssessment(domain="数学基础", note="微积分和线代尚可，概率论偏弱", courses=[
+                CourseSelfAssessment(name="高等数学", level="基础", note="微积分基本掌握"),
+                CourseSelfAssessment(name="线性代数", level="基础", note="矩阵运算熟练"),
+                CourseSelfAssessment(name="概率论与数理统计", level="入门", note="偏弱"),
+                CourseSelfAssessment(name="最优化方法", level="入门", note=""),
+            ]),
+            DomainAssessment(domain="机器学习基础", note="会特征工程与调参", courses=[
+                CourseSelfAssessment(name="机器学习", level="基础", note="会线性回归/分类/聚类"),
+                CourseSelfAssessment(name="数据结构与算法", level="基础", note=""),
+            ]),
+            DomainAssessment(domain="深度学习", note="只懂概念、缺乏代码实操", courses=[
+                CourseSelfAssessment(name="深度学习", level="入门", note="只懂CNN/RNN概念"),
+                CourseSelfAssessment(name="计算机视觉", level="未学过", note=""),
+                CourseSelfAssessment(name="自然语言处理", level="未学过", note=""),
+            ]),
+            DomainAssessment(domain="优化算法", note="基础优化方法入门", courses=[
+                CourseSelfAssessment(name="最优化方法", level="入门", note=""),
+                CourseSelfAssessment(name="凸优化", level="未学过", note=""),
+            ]),
+            DomainAssessment(domain="实践应用", note="能独立完成sklearn项目", courses=[
+                CourseSelfAssessment(name="Python编程", level="熟练", note="做过sklearn项目"),
+                CourseSelfAssessment(name="数据处理与特征工程", level="基础", note=""),
+                CourseSelfAssessment(name="模型调参与部署", level="入门", note=""),
+            ]),
         ],
         projects=[
             ProjectExperience(name="房价预测回归分析", role="独立完成",
@@ -339,24 +364,33 @@ def generate_all_mock_data() -> Tuple[List[Learner], List[dict]]:
         interaction_density=0.8,
     )
     learner3.self_assessment = SelfAssessment(
-        ml_level="熟练掌握，有过Kaggle竞赛经验",
-        dl_level="熟悉CNN/RNN/Transformer，独立完成过项目",
-        math_level="数学基础扎实，能看懂论文公式推导",
-        programming_level="精通，有竞赛与项目经验",
         learning_goal="深入LLM前沿，准备发表一篇NLP方向论文",
         weekly_hours=20,
-        position="实验室研究助理 / 竞赛队长",
-        strengths="数学基础扎实能推公式，深度学习熟悉CNN/RNN/Transformer，有完整项目与竞赛经验",
-        weaknesses="模型部署与工程化（量化/推理优化）经验相对较少",
-        courses=[
-            CourseSelfAssessment(name="高等数学", level="熟练", note="能看懂论文公式推导"),
-            CourseSelfAssessment(name="线性代数", level="熟练", note="矩阵分解/特征分解熟练"),
-            CourseSelfAssessment(name="概率论与数理统计", level="熟练", note=""),
-            CourseSelfAssessment(name="Python编程", level="精通", note=""),
-            CourseSelfAssessment(name="数据结构与算法", level="熟练", note=""),
-            CourseSelfAssessment(name="机器学习", level="熟练", note="有Kaggle经验"),
-            CourseSelfAssessment(name="深度学习", level="熟练", note="独立完成过CV/NLP项目"),
-            CourseSelfAssessment(name="最优化方法", level="基础", note=""),
+        domain_assessments=[
+            DomainAssessment(domain="数学基础", note="数学基础扎实，能推公式", courses=[
+                CourseSelfAssessment(name="高等数学", level="熟练", note="能看懂论文公式推导"),
+                CourseSelfAssessment(name="线性代数", level="熟练", note="矩阵分解/特征分解熟练"),
+                CourseSelfAssessment(name="概率论与数理统计", level="熟练", note=""),
+                CourseSelfAssessment(name="最优化方法", level="基础", note=""),
+            ]),
+            DomainAssessment(domain="机器学习基础", note="有Kaggle竞赛经验", courses=[
+                CourseSelfAssessment(name="机器学习", level="熟练", note="有Kaggle经验"),
+                CourseSelfAssessment(name="数据结构与算法", level="熟练", note=""),
+            ]),
+            DomainAssessment(domain="深度学习", note="熟悉CNN/RNN/Transformer", courses=[
+                CourseSelfAssessment(name="深度学习", level="熟练", note="独立完成过CV/NLP项目"),
+                CourseSelfAssessment(name="计算机视觉", level="熟练", note=""),
+                CourseSelfAssessment(name="自然语言处理", level="熟练", note=""),
+            ]),
+            DomainAssessment(domain="优化算法", note="最优化方法基础扎实", courses=[
+                CourseSelfAssessment(name="最优化方法", level="基础", note=""),
+                CourseSelfAssessment(name="凸优化", level="基础", note=""),
+            ]),
+            DomainAssessment(domain="实践应用", note="有竞赛与项目经验，部署经验较少", courses=[
+                CourseSelfAssessment(name="Python编程", level="精通", note=""),
+                CourseSelfAssessment(name="数据处理与特征工程", level="熟练", note=""),
+                CourseSelfAssessment(name="模型调参与部署", level="熟练", note=""),
+            ]),
         ],
         projects=[
             ProjectExperience(name="Kaggle图像分割竞赛", role="队长",

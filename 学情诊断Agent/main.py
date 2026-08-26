@@ -20,6 +20,7 @@ from typing import Dict, Optional
 from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 if str(PROJECT_ROOT) not in sys.path:
@@ -28,11 +29,11 @@ if str(PROJECT_ROOT) not in sys.path:
 from models.schemas import (
     Learner, LearnerProfile, DiagnosisResult,
     Education, SelfAssessment, TestRecord, InteractionRecord,
-    CourseSelfAssessment, ProjectExperience,
+    CourseSelfAssessment, DomainAssessment, ProjectExperience,
 )
 from models.knowledge_graph import KG
 from core.profile_builder import build_profile
-from core import adaptive_test
+from core import adaptive_test, learning_verifier
 from generators.mock_generator import generate_all_mock_data, save_mock_data
 
 app = FastAPI(
@@ -45,6 +46,7 @@ app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="
 
 _learners: Dict[str, Learner] = {}
 _profiles: Dict[str, LearnerProfile] = {}
+_baselines: Dict[str, LearnerProfile] = {}   # 第二流程: 保存 baseline 画像 (key: learner_id)
 _test_bank: list = []
 
 
@@ -120,65 +122,83 @@ async def upload_learner(payload: dict = Body(...)):
     import uuid as _uuid
     lid = payload.get("id", f"uploaded_{_uuid.uuid4().hex[:8]}")
 
-    # 解析 education
-    edu_data = payload.get("education", {})
-    education = Education(
-        level=edu_data.get("level", "本科"),
-        major=edu_data.get("major", ""),
-        institution=edu_data.get("institution", ""),
-        graduation_year=edu_data.get("graduation_year", 2025),
-        gpa=edu_data.get("gpa"),
-        relevant_courses=edu_data.get("relevant_courses", []),
-    )
+    # 获取所有有效的知识点ID集合 — 用于校验 test_records / interaction_records
+    valid_kp_ids = set(KG.all_ids())
 
-    # 解析 self_assessment
-    sa_data = payload.get("self_assessment", {})
-    self_assessment = SelfAssessment(
-        ml_level=sa_data.get("ml_level", ""),
-        dl_level=sa_data.get("dl_level", ""),
-        math_level=sa_data.get("math_level", ""),
-        programming_level=sa_data.get("programming_level", ""),
-        learning_goal=sa_data.get("learning_goal", ""),
-        weekly_hours=sa_data.get("weekly_hours", 5),
-        position=sa_data.get("position", ""),
-        strengths=sa_data.get("strengths", ""),
-        weaknesses=sa_data.get("weaknesses", ""),
-        courses=[CourseSelfAssessment(**c) for c in sa_data.get("courses", [])],
-        projects=[ProjectExperience(**p) for p in sa_data.get("projects", [])],
-    )
-
-    # 解析 test_records
-    test_records = []
+    # 校验 test_records 中的 knowledge_point_id
     for t in payload.get("test_records", []):
-        test_records.append(TestRecord(
-            knowledge_point_id=t["knowledge_point_id"],
-            question_id=t.get("question_id", ""),
-            difficulty=t.get("difficulty", 0.0),
-            discrimination=t.get("discrimination", 1.0),
-            is_correct=t["is_correct"],
-            time_spent=t.get("time_spent", 60),
-            hint_used=t.get("hint_used", False),
-            error_pattern=t.get("error_pattern"),
-        ))
+        kp_id = t.get("knowledge_point_id")
+        if kp_id not in valid_kp_ids:
+            raise HTTPException(status_code=422, detail=f"未知知识点ID: {kp_id}, 有效ID: {list(valid_kp_ids)[:5]}...")
 
-    # 解析 interaction_records
-    interaction_records = []
+    # 校验 interaction_records 中的 knowledge_point_id
     for i in payload.get("interaction_records", []):
-        interaction_records.append(InteractionRecord(
-            knowledge_point_id=i["knowledge_point_id"],
-            type=i.get("type", "view"),
-            duration=i.get("duration", 60),
-            detail=i.get("detail", ""),
-        ))
+        kp_id = i.get("knowledge_point_id")
+        if kp_id not in valid_kp_ids:
+            raise HTTPException(status_code=422, detail=f"未知知识点ID: {kp_id}, 有效ID: {list(valid_kp_ids)[:5]}...")
 
-    learner = Learner(
-        id=lid,
-        name=payload.get("name", "未命名"),
-        education=education,
-        self_assessment=self_assessment,
-        test_records=test_records,
-        interaction_records=interaction_records,
-    )
+    try:
+        # 解析 education
+        edu_data = payload.get("education", {})
+        education = Education(
+            level=edu_data.get("level", "本科"),
+            major=edu_data.get("major", ""),
+            institution=edu_data.get("institution", ""),
+            graduation_year=edu_data.get("graduation_year", 2025),
+            gpa=edu_data.get("gpa"),
+            relevant_courses=edu_data.get("relevant_courses", []),
+        )
+
+        # 解析 self_assessment
+        sa_data = payload.get("self_assessment", {})
+        domain_assessments = []
+        for d in sa_data.get("domain_assessments", []):
+            domain_assessments.append(DomainAssessment(
+                domain=d.get("domain", ""),
+                courses=[CourseSelfAssessment(**c) for c in d.get("courses", [])],
+                note=d.get("note", ""),
+            ))
+        self_assessment = SelfAssessment(
+            learning_goal=sa_data.get("learning_goal", ""),
+            weekly_hours=sa_data.get("weekly_hours", 5),
+            domain_assessments=domain_assessments,
+            projects=[ProjectExperience(**p) for p in sa_data.get("projects", [])],
+        )
+
+        # 解析 test_records
+        test_records = []
+        for t in payload.get("test_records", []):
+            test_records.append(TestRecord(
+                knowledge_point_id=t["knowledge_point_id"],
+                question_id=t.get("question_id", ""),
+                difficulty=t.get("difficulty", 0.0),
+                discrimination=t.get("discrimination", 1.0),
+                is_correct=t["is_correct"],
+                time_spent=t.get("time_spent", 60),
+                hint_used=t.get("hint_used", False),
+                error_pattern=t.get("error_pattern"),
+            ))
+
+        # 解析 interaction_records
+        interaction_records = []
+        for i in payload.get("interaction_records", []):
+            interaction_records.append(InteractionRecord(
+                knowledge_point_id=i["knowledge_point_id"],
+                type=i.get("type", "view"),
+                duration=i.get("duration", 60),
+                detail=i.get("detail", ""),
+            ))
+
+        learner = Learner(
+            id=lid,
+            name=payload.get("name", "未命名"),
+            education=education,
+            self_assessment=self_assessment,
+            test_records=test_records,
+            interaction_records=interaction_records,
+        )
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     _learners[lid] = learner
     return {
@@ -203,7 +223,7 @@ async def diagnose_learner(
     if not learner:
         raise HTTPException(status_code=404, detail="学习者不存在")
 
-    ch_id = chapter_id or "ch03_cnn"
+    ch_id = chapter_id or "ch01_foundation"
     if not KG.get_chapter(ch_id):
         raise HTTPException(status_code=400, detail=f"章节 {ch_id} 不存在, 可用: {[c.chapter_id for c in KG.chapters]}")
 
@@ -217,6 +237,76 @@ async def diagnose_learner(
     )
 
 
+# ============================================================
+# ★ 学习成果检验 (第二流程)
+# ============================================================
+
+@app.post("/api/learner/{learner_id}/save-baseline")
+async def save_baseline(learner_id: str):
+    """保存当前画像为 baseline（第一流程完成时调用）"""
+    profile = _profiles.get(learner_id)
+    if not profile:
+        learner = _learners.get(learner_id)
+        if not learner:
+            raise HTTPException(status_code=404, detail="学习者不存在")
+        profile = build_profile(learner, KG)
+        _profiles[learner_id] = profile
+    _baselines[learner_id] = profile
+    return {
+        "message": "baseline 画像已保存",
+        "learner_id": learner_id,
+        "profile_id": profile.profile_id,
+    }
+
+
+@app.post("/api/learner/{learner_id}/re-diagnose")
+async def re_diagnose(
+    learner_id: str,
+    chapter_id: Optional[str] = Query(None, description="复诊章节ID"),
+):
+    """学习后复诊 — 基于学习后的答题记录重新生成画像"""
+    learner = _learners.get(learner_id)
+    if not learner:
+        raise HTTPException(status_code=404, detail="学习者不存在")
+
+    ch_id = chapter_id or "ch01_foundation"
+    if not KG.get_chapter(ch_id):
+        raise HTTPException(status_code=400, detail=f"章节 {ch_id} 不存在")
+
+    profile = build_profile(learner, KG, current_chapter_id=ch_id)
+    _profiles[learner_id] = profile
+
+    return DiagnosisResult(
+        success=True,
+        profile=profile,
+        message=f"复诊完成 (章节: {ch_id}): {profile.meta.get('total_test_count', 0)}条测试记录",
+    )
+
+
+@app.post("/api/learner/{learner_id}/verify-outcome")
+async def verify_outcome(
+    learner_id: str,
+    chapter_id: Optional[str] = Query(None, description="检验章节ID"),
+):
+    """对比 baseline 与学习后画像，生成学习成果检验报告"""
+    baseline = _baselines.get(learner_id)
+    if not baseline:
+        raise HTTPException(status_code=400, detail="未找到 baseline 画像，请先调用 save-baseline")
+
+    post = _profiles.get(learner_id)
+    if not post:
+        learner = _learners.get(learner_id)
+        if not learner:
+            raise HTTPException(status_code=404, detail="学习者不存在")
+        ch_id = chapter_id or "ch01_foundation"
+        post = build_profile(learner, KG, current_chapter_id=ch_id)
+        _profiles[learner_id] = post
+
+    ch_id = chapter_id or post.learning_scope.chapter_id
+    report = learning_verifier.compare_profiles(baseline, post, learner_id, ch_id)
+    return report.model_dump(mode="json")
+
+
 @app.get("/api/learner/{learner_id}/profile")
 async def get_profile(learner_id: str, chapter_id: Optional[str] = Query(None)):
     profile = _profiles.get(learner_id)
@@ -224,7 +314,7 @@ async def get_profile(learner_id: str, chapter_id: Optional[str] = Query(None)):
         learner = _learners.get(learner_id)
         if not learner:
             raise HTTPException(status_code=404, detail="学习者不存在")
-        profile = build_profile(learner, KG, current_chapter_id=chapter_id or "ch03_cnn")
+        profile = build_profile(learner, KG, current_chapter_id=chapter_id or "ch01_foundation")
         _profiles[learner_id] = profile
     return profile.model_dump(mode="json")
 

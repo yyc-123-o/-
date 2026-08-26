@@ -1,20 +1,28 @@
-"""自适应测试引擎 — IRT-based 能力定位 + 难度梯度递进 + 可配置停止规则
+"""自适应测试引擎 — 「广覆盖知识点优先」 + IRT 能力估计 + 按kp掌握度诊断
 
-策略 (v2.2 混合):
-  1. 题库按「领域/知识点」分类过滤 (可选)
-  2. 从当前难度档 (易→中→难) 中选难度最接近当前 θ 的题 (IRT 定位)
-  3. 当前档正确率达到阈值 → 晋升下一档 (难度递增体验)
-  4. 错多了就停 / θ 收敛 / 达最大题数 / 通过全部难度档
+出题逻辑 (v4.0 — 覆盖优先):
+  设计目标:
+    1) 题目覆盖面要广: 尽量覆盖所有 knowledge_point_id (共 30 个 kp), 每个至少 1 题
+    2) 每知识点题具代表性: 每 kp 先出 1 道匹配当前 θ 估计的代表性难度题,
+       覆盖完再循环补代表性 kp 的第 2 题
+    3) 结束时可评价「每个知识点的掌握程度」: 输出 kp 维度正确率 + IRT θ(题数够时)
+    4) 总题数可控: 典型 25~40 题
 
-Session 生命周期:
-  start → answer → answer → ... → finish (返回最终 θ + 停止原因)
+  两阶段选题:
+    Phase 1 — 全覆盖阶段 (covered_kp_count < TARGET_KP_COVERAGE 且 answered < MAX_QUESTIONS):
+        候选池 = ∪{未覆盖的 kp_id} 对应全部未答题
+        在候选池中挑 |difficulty - current_θ| 最小的一题 (匹配当前能力代表性题)
+    Phase 2 — 补足代表性阶段:
+        优先给「仅被覆盖 1 次的 kp」继续出第 2 道代表性题,
+        其次在全部 kp 范围内按 Fisher 信息量选题 (IRT 标准做法)
 
-配置 (AdaptiveConfig):
-  - domains / knowledge_point_ids    分类测试过滤
-  - difficulty_stages                难度梯度 (label/low/high/promote_accuracy/min_questions)
-  - max_questions / min_questions    题数上下界
-  - consecutive_wrong_stop           连续答错停止
-  - convergence_threshold            θ 收敛阈值
+  停止条件 (三者任一即触发结束):
+    (a) 已覆盖 kp 数 ≥ MIN_KP_COVERAGE(25)  AND  已答题数 ≥ MIN_QUESTIONS(25)
+    (b) 已答题数 ≥ MAX_QUESTIONS(40)           [硬上限, 防疲劳]
+    (c) 题库耗尽 / 当前候选池已空
+
+  注: 仍保留「5 大领域 / 难度档」等元信息以便前端展示,
+      但不再按领域逐个递进, 而是跨领域自由跳以最大 kp 覆盖。
 """
 
 from __future__ import annotations
@@ -27,82 +35,29 @@ from core import irt
 
 
 # ============================================================
-# 配置数据模型
+# 常量: 领域 / 难度档 / 覆盖 & 题数阈值
 # ============================================================
 
-@dataclass
-class DifficultyStage:
-    """单个难度档"""
-    label: str                     # 中文标签: 易/中/难
-    low: float                     # 该档难度下限 (IRT b)
-    high: float                    # 该档难度上限 (IRT b)
-    promote_accuracy: float = 0.70 # 晋升到下一档所需正确率
-    min_questions: int = 2         # 晋升前本档最少答题数
+# 5 大领域 (仅用于展示/分组, 不再控制顺序)
+DOMAINS = ["数学基础", "机器学习基础", "深度学习", "优化算法", "实践应用"]
 
+# 难度档 (仅用于展示, 不再控制逐档递进)
+DIFFICULTY_TIERS = [
+    {"label": "低难度",   "low": -3.0, "high": -0.2},
+    {"label": "中等难度", "low": -0.2, "high": 0.8},
+    {"label": "高难度",   "low": 0.8,  "high": 3.0},
+]
 
-def _default_stages() -> List[DifficultyStage]:
-    return [
-        DifficultyStage(label="易", low=-3.0, high=-0.2, promote_accuracy=0.70, min_questions=2),
-        DifficultyStage(label="中", low=-0.2, high=0.8, promote_accuracy=0.65, min_questions=2),
-        DifficultyStage(label="难", low=0.8, high=3.0, promote_accuracy=0.60, min_questions=1),
-    ]
+# —— v4.0 新覆盖策略阈值 ——
+TARGET_KP_COVERAGE = 30          # 理想情况下希望覆盖的 kp 数 (共 30 个)
+MIN_KP_COVERAGE    = 25          # 停止条件 (a): 至少覆盖 25 个 kp
+MIN_QUESTIONS      = 25          # 停止条件 (a): 至少答 25 题
+MAX_QUESTIONS      = 40          # 停止条件 (b): 绝对上限 40 题
+KP_MIN_ANSWERS     = 1           # Phase1: 每 kp 至少答 1 题才算 "covered"
+KP_REPRESENTATIVE_MAX = 2        # Phase2: 每 kp 最多出 2 道代表性题 (覆盖更广)
 
-
-@dataclass
-class AdaptiveConfig:
-    """自适应测试配置 — 全部可配置, 默认行为与旧版等价"""
-    domains: Optional[List[str]] = None
-    knowledge_point_ids: Optional[List[str]] = None
-    difficulty_stages: List[DifficultyStage] = field(default_factory=_default_stages)
-    max_questions: int = 30
-    min_questions: int = 8
-    consecutive_wrong_stop: int = 3
-    convergence_threshold: float = 0.15
-
-
-def build_config(data: Optional[dict] = None) -> AdaptiveConfig:
-    """从 dict 构建配置 — 供 API 层使用, 容忍部分字段缺失"""
-    data = data or {}
-    stages = None
-    raw_stages = data.get("difficulty_stages")
-    if raw_stages:
-        stages = [
-            DifficultyStage(
-                label=s.get("label", f"档{i + 1}"),
-                low=float(s.get("low", -3.0)),
-                high=float(s.get("high", 3.0)),
-                promote_accuracy=float(s.get("promote_accuracy", 0.70)),
-                min_questions=int(s.get("min_questions", 2)),
-            )
-            for i, s in enumerate(raw_stages)
-        ]
-    cfg = AdaptiveConfig(
-        domains=data.get("domains") or None,
-        knowledge_point_ids=data.get("knowledge_point_ids") or None,
-        max_questions=int(data.get("max_questions", 30)),
-        min_questions=int(data.get("min_questions", 8)),
-        consecutive_wrong_stop=int(data.get("consecutive_wrong_stop", 3)),
-        convergence_threshold=float(data.get("convergence_threshold", 0.15)),
-    )
-    if stages:
-        cfg.difficulty_stages = stages
-    return cfg
-
-
-def default_config_payload() -> dict:
-    """返回默认配置的可序列化表示 (供前端渲染)"""
-    cfg = AdaptiveConfig()
-    return {
-        "difficulty_stages": [
-            {"label": s.label, "low": s.low, "high": s.high,
-             "promote_accuracy": s.promote_accuracy, "min_questions": s.min_questions}
-            for s in cfg.difficulty_stages
-        ],
-        "max_questions": cfg.max_questions,
-        "min_questions": cfg.min_questions,
-        "consecutive_wrong_stop": cfg.consecutive_wrong_stop,
-        "convergence_threshold": cfg.convergence_threshold,
-    }
+# IRT 能力估计: 用于选题时的当前 θ
+IRT_PRIOR_STD = 1.0
 
 
 # ============================================================
@@ -113,18 +68,31 @@ def default_config_payload() -> dict:
 class AdaptiveSession:
     session_id: str
     learner_id: str
-    started_at: str
-    prior_theta: float = 0.0
-    current_theta: float = 0.0
+    domains: List[str] = field(default_factory=lambda: list(DOMAINS))
+    question_count: int = 0
+    # 题库分桶
+    bank_grouped: Dict[str, List[dict]] = field(default_factory=dict)  # by domain (保留)
+    bank_by_kp: Dict[str, List[dict]] = field(default_factory=dict)     # by kp_id (新增核心)
+    # 答题
     answers: List[dict] = field(default_factory=list)
+    answered_qids: set = field(default_factory=set)
+    # kp 覆盖统计
+    kp_answer_count: Dict[str, int] = field(default_factory=dict)       # kp_id -> 回答次数
+    covered_kp_ids: set = field(default_factory=set)                    # kp_answer_count ≥ KP_MIN_ANSWERS
+    all_kp_ids: List[str] = field(default_factory=list)                 # 范围内所有 kp_id (已排序)
+    # 当前 IRT θ (每答 1 题更新 1 次, 用于选题匹配代表性难度)
+    current_theta: float = 0.0
+    # 会话终态
     finished: bool = False
     stop_reason: str = ""
-    final_theta: Optional[float] = None
-    # v2.2 新增
-    config: AdaptiveConfig = field(default_factory=AdaptiveConfig)
-    bank: List[dict] = field(default_factory=list)
-    current_stage: int = 0
-    stage_answers: List[bool] = field(default_factory=list)
+    # P1-2: IRT 先验 θ (用于最终能力估计的正则化)
+    prior_theta: float = 0.0
+    # 兼容字段 (前端可能仍依赖展示)
+    current_domain: Optional[str] = None
+    current_tier_label: Optional[str] = None
+    domain_results: List[dict] = field(default_factory=list)
+    # 会话配置 (保留兼容)
+    knowledge_point_ids: Optional[List[str]] = None
 
 
 # 内存存储
@@ -132,183 +100,441 @@ _sessions: Dict[str, AdaptiveSession] = {}
 
 
 # ============================================================
-# 题库过滤
+# 工具: 难度档标签 / IRT 辅助
 # ============================================================
 
-def _filter_bank(test_bank: List[dict], config: AdaptiveConfig) -> List[dict]:
-    """按领域/知识点过滤题库 (分类测试)"""
-    bank = list(test_bank)
-    if config.domains:
-        ds = set(config.domains)
-        bank = [q for q in bank if q.get("domain") in ds]
-    if config.knowledge_point_ids:
-        kps = set(config.knowledge_point_ids)
-        bank = [q for q in bank if q.get("knowledge_point_id") in kps]
-    return bank
+def _tier_label_for_question(q: dict) -> str:
+    if q.get("difficulty_level") in ("低难度", "中等难度", "高难度"):
+        return q["difficulty_level"]
+    b = q.get("difficulty", 0.0)
+    if b < -0.2:
+        return "低难度"
+    elif b <= 0.8:
+        return "中等难度"
+    return "高难度"
+
+
+def _group_bank_by_kp(
+    test_bank: List[dict],
+    domains: List[str],
+    knowledge_point_ids: Optional[List[str]] = None,
+) -> Tuple[Dict[str, List[dict]], List[str]]:
+    """按 kp_id 分组题库, 同时返回范围内 kp_id 列表 (按领域+kp名稳定排序)"""
+    domain_set = set(domains)
+    kp_set = set(knowledge_point_ids) if knowledge_point_ids else None
+
+    grouped: Dict[str, List[dict]] = {}
+    meta = {}  # kp_id -> (domain_order, kp_name) 用于排序
+    for q in test_bank:
+        if q.get("domain") not in domain_set:
+            continue
+        kp = q.get("knowledge_point_id")
+        if not kp:
+            continue
+        if kp_set is not None and kp not in kp_set:
+            continue
+        grouped.setdefault(kp, []).append(q)
+        if kp not in meta:
+            try:
+                dorder = DOMAINS.index(q["domain"])
+            except ValueError:
+                dorder = 99
+            meta[kp] = (dorder, q.get("knowledge_point_name", ""), kp)
+
+    # 稳定排序: 领域顺序 -> kp_name -> kp_id
+    sorted_kps = sorted(meta.keys(), key=lambda k: meta[k])
+    return grouped, sorted_kps
+
+
+def _group_bank_by_domain(
+    test_bank: List[dict],
+    domains: List[str],
+    knowledge_point_ids: Optional[List[str]] = None,
+) -> Dict[str, List[dict]]:
+    """按领域分组 (保留, 供兼容展示)"""
+    grouped: Dict[str, List[dict]] = {d: [] for d in domains}
+    kp_set = set(knowledge_point_ids) if knowledge_point_ids else None
+    for q in test_bank:
+        if q.get("domain") not in grouped:
+            continue
+        if kp_set is not None and q.get("knowledge_point_id") not in kp_set:
+            continue
+        grouped[q["domain"]].append(q)
+    return grouped
+
+
+def _update_irt_theta(session: AdaptiveSession):
+    """基于当前已答题, MLE + 先验正则 更新 session.current_theta"""
+    if not session.answers:
+        session.current_theta = float(session.prior_theta)
+        return
+    responses = [
+        (
+            a.get("discrimination", 1.0),
+            a.get("difficulty", 0.0),
+            bool(a.get("is_correct", False)),
+        )
+        for a in session.answers
+    ]
+    try:
+        theta = irt.estimate_theta(responses, prior_theta=session.prior_theta)
+    except Exception:
+        theta = session.prior_theta
+    session.current_theta = float(theta)
 
 
 # ============================================================
-# 选题策略 (IRT 定位 + 难度梯度约束)
+# 核心: 两阶段选题
 # ============================================================
 
-def _select_next_question(session: AdaptiveSession, bank: List[dict]) -> Optional[dict]:
-    """在当前难度档的 b 范围内, 选难度最接近当前 θ 的未答题
+def _candidate_questions_by_kp(session: AdaptiveSession, kp_ids: List[str]) -> List[dict]:
+    """从指定 kp_id 集合中, 返回所有未答过的题"""
+    cands = []
+    for kp in kp_ids:
+        for q in session.bank_by_kp.get(kp, []):
+            if q["question_id"] not in session.answered_qids:
+                cands.append(q)
+    return cands
 
-    - 当前档题目耗尽时, 自动推进到下一个仍有剩余题目的档
-    - 优先在本档内选, 本档彻底无题则回退到全库最近 θ
-    """
-    answered_ids = {a["question_id"] for a in session.answers}
-    remaining = [q for q in bank if q["question_id"] not in answered_ids]
-    if not remaining:
+
+def _pick_nearest_difficulty(cands: List[dict], theta: float) -> Optional[dict]:
+    """在候选集中挑 |difficulty - theta| 最小的题; 并列时按区分度从高到低"""
+    if not cands:
         return None
 
-    stages = session.config.difficulty_stages
-    # 当前档无剩余题时, 推进到下一个有题的档
-    while session.current_stage < len(stages) - 1:
-        stage = stages[session.current_stage]
-        if any(stage.low <= q["difficulty"] <= stage.high for q in remaining):
-            break
-        session.current_stage += 1
-        session.stage_answers = []
+    def key(q):
+        return (abs(q.get("difficulty", 0.0) - theta),
+                -q.get("discrimination", 1.0))
 
-    stage = stages[session.current_stage]
-    in_stage = [q for q in remaining if stage.low <= q["difficulty"] <= stage.high]
-    pool = in_stage if in_stage else remaining
-
-    pool.sort(key=lambda q: abs(q["difficulty"] - session.current_theta))
-    top = pool[:min(3, len(pool))]
-    rng = np.random.default_rng()
-    return top[rng.integers(0, len(top))]
+    cands_sorted = sorted(cands, key=key)
+    return cands_sorted[0]
 
 
-# ============================================================
-# 难度梯度推进
-# ============================================================
+def _pick_max_fisher(cands: List[dict], theta: float) -> Optional[dict]:
+    """Phase2 标准 IRT: 挑在当前 θ 处 Fisher 信息量最大的题
+    Fisher I = a^2 * P(1-P), P = 1/(1+exp(-a(θ-b)))
+    """
+    if not cands:
+        return None
 
-def _advance_stage(session: AdaptiveSession) -> bool:
-    """当前档达到晋升条件则进入下一档, 返回是否晋升"""
-    stages = session.config.difficulty_stages
-    idx = session.current_stage
-    stage = stages[idx]
-    if len(session.stage_answers) >= stage.min_questions:
-        acc = sum(session.stage_answers) / len(session.stage_answers)
-        if acc >= stage.promote_accuracy and idx < len(stages) - 1:
-            session.current_stage += 1
-            session.stage_answers = []
-            return True
-    return False
+    def info(q):
+        a = float(q.get("discrimination", 1.0))
+        b = float(q.get("difficulty", 0.0))
+        z = a * (theta - b)
+        # 数值稳定的 P / 1-P
+        if z >= 0:
+            ez = np.exp(-z)
+            P = 1.0 / (1.0 + ez)
+        else:
+            ez = np.exp(z)
+            P = ez / (1.0 + ez)
+        return a * a * P * (1.0 - P)
 
-
-def _last_stage_completed(session: AdaptiveSession) -> bool:
-    """最后一档是否也已达到通过条件 (作为完成信号)"""
-    stages = session.config.difficulty_stages
-    idx = session.current_stage
-    if idx != len(stages) - 1:
-        return False
-    stage = stages[idx]
-    if len(session.stage_answers) >= stage.min_questions:
-        acc = sum(session.stage_answers) / len(session.stage_answers)
-        return acc >= stage.promote_accuracy
-    return False
+    cands_sorted = sorted(cands, key=lambda q: -info(q))
+    return cands_sorted[0]
 
 
-# ============================================================
-# 停止规则
-# ============================================================
+def _select_question(session: AdaptiveSession) -> Optional[dict]:
+    """两阶段选题 (覆盖优先 → 代表性补充)
 
-def _should_stop(session: AdaptiveSession) -> Tuple[bool, str]:
-    """检查停止条件 (使用配置值)"""
-    cfg = session.config
-    answers = session.answers
-    n = len(answers)
+    返回下一题 dict, 无法选题 (耗尽/已停) 返回 None
+    """
+    if session.finished:
+        return None
 
-    if n >= cfg.max_questions:
-        return True, f"已达最大题数 {cfg.max_questions}"
+    # Phase1: 仍存在未覆盖的 kp → 优先从未覆盖 kp 选题
+    uncovered_kps = [kp for kp in session.all_kp_ids
+                     if session.kp_answer_count.get(kp, 0) < KP_MIN_ANSWERS]
+    if uncovered_kps:
+        cands = _candidate_questions_by_kp(session, uncovered_kps)
+        q = _pick_nearest_difficulty(cands, session.current_theta)
+        if q is not None:
+            return q
+        # 若这些未覆盖 kp 都已无题可出 (理论上只要每 kp≥2 不会触发), 则降级到 Phase2
 
-    # 连续错
-    if cfg.consecutive_wrong_stop and n >= cfg.consecutive_wrong_stop:
-        last_n = answers[-cfg.consecutive_wrong_stop:]
-        if all(not a["is_correct"] for a in last_n):
-            return True, f"连续错 {cfg.consecutive_wrong_stop} 题"
+    # Phase2: 先给 "只答过 1 次" 的 kp 再补 1 道, 保证代表性; 再统一 Fisher
+    under_kps = [kp for kp in session.all_kp_ids
+                 if 0 < session.kp_answer_count.get(kp, 0) < KP_REPRESENTATIVE_MAX]
+    cands = _candidate_questions_by_kp(session, under_kps)
+    if cands:
+        q = _pick_nearest_difficulty(cands, session.current_theta)
+        if q is not None:
+            return q
 
-    # θ 收敛
-    if n >= cfg.min_questions:
-        recent_thetas = [a["theta_after"] for a in answers[-4:]]
-        theta_range = max(recent_thetas) - min(recent_thetas)
-        if theta_range < cfg.convergence_threshold:
-            return True, f"θ 已收敛 (波动 {theta_range:.3f} < {cfg.convergence_threshold})"
-
-    # 通过全部难度档
-    if n >= cfg.min_questions and _last_stage_completed(session):
-        return True, "已通过全部难度档"
-
-    return False, ""
+    # 最后: 全题库未答范围 Fisher 信息量最大 (纯 IRT 精修)
+    remaining = []
+    for kp in session.all_kp_ids:
+        for q in session.bank_by_kp.get(kp, []):
+            if q["question_id"] not in session.answered_qids:
+                remaining.append(q)
+    return _pick_max_fisher(remaining, session.current_theta)
 
 
 # ============================================================
-# 会话状态序列化
+# 停止条件判定
 # ============================================================
 
-def _stage_meta(session: AdaptiveSession) -> dict:
-    """当前难度档的展示元信息"""
-    stages = session.config.difficulty_stages
-    idx = min(session.current_stage, len(stages) - 1)
-    stage = stages[idx]
-    return {
-        "current_stage": idx,
-        "current_stage_label": stage.label,
-        "difficulty_range": [stage.low, stage.high],
-        "stages": [{"label": s.label, "low": s.low, "high": s.high} for s in stages],
-        "stage_progress": {
-            "answered": len(session.stage_answers),
-            "min_questions": stage.min_questions,
-            "accuracy": round(sum(session.stage_answers) / len(session.stage_answers), 3)
-            if session.stage_answers else None,
-            "promote_accuracy": stage.promote_accuracy,
-        },
+def _check_stop_condition(session: AdaptiveSession) -> Optional[str]:
+    """若满足停止条件, 返回停止原因字符串; 否则返回 None"""
+    n = session.question_count
+    covered = len(session.covered_kp_ids)
+
+    # 条件 (b) 硬上限
+    if n >= MAX_QUESTIONS:
+        return f"达到总题数上限 {MAX_QUESTIONS} 题 (已覆盖 {covered}/{len(session.all_kp_ids)} kp)"
+
+    # 条件 (a) 覆盖 + 题数达标
+    if covered >= MIN_KP_COVERAGE and n >= MIN_QUESTIONS:
+        return f"已覆盖 {covered} 个知识点 ≥ {MIN_KP_COVERAGE}, 且答题 {n} 题 ≥ {MIN_QUESTIONS}"
+
+    # 题库完全耗尽 (已无任何未答题)
+    if _select_question(session) is None:
+        return f"题库未答题耗尽 (已覆盖 {covered}/{len(session.all_kp_ids)} kp, 共 {n} 题)"
+
+    return None
+
+
+# ============================================================
+# 结果: 全局 θ + 按 kp 掌握度
+# ============================================================
+
+def _estimate_final_theta(
+    answers: List[dict],
+    prior_theta: float = 0.0,
+) -> tuple:
+    responses = [
+        (
+            a.get("discrimination", 1.0),
+            a.get("difficulty", 0.0),
+            bool(a.get("is_correct", False)),
+        )
+        for a in answers
+    ]
+    n = len(responses)
+    try:
+        theta = irt.estimate_theta(responses, prior_theta=prior_theta)
+    except Exception:
+        theta = prior_theta
+
+    if n >= 10:
+        prior_weight = "none"
+    elif n >= 5:
+        prior_weight = "low"
+    else:
+        prior_weight = "high"
+
+    info = {
+        "n_responses": n,
+        "prior_weight": prior_weight,
+        "method": "IRT-MLE",
     }
+    return round(float(theta), 4), info
+
+
+def _estimate_kp_mastery(session: AdaptiveSession) -> List[dict]:
+    """为每个在范围内的 kp 产出掌握度报告: 正确率 + 若题数≥2 则附加 IRT θ
+
+    输出列表每项: {
+        "kp_id": str,
+        "kp_name": str,
+        "domain": str,
+        "test_count": int,
+        "correct": int,
+        "correct_rate": float (0-1),
+        "mastery": float (0-1, 映射: 正确率 → 掌握度),
+        "theta": float|None (IRT θ, test_count ≥ 2 时),
+        "status_label": str (未覆盖/薄弱/部分掌握/熟练 之一)
+    }
+    """
+    result = []
+    # kp_id → (kp_name, domain, [answers])
+    per_kp: Dict[str, dict] = {}
+    for a in session.answers:
+        kp = a.get("kp_id")
+        if not kp:
+            continue
+        if kp not in per_kp:
+            per_kp[kp] = {"kp_name": a.get("knowledge_point_name", ""),
+                          "domain": a.get("domain", ""),
+                          "records": []}
+        per_kp[kp]["records"].append(a)
+
+    # 题目元信息 (用于 kp_name / domain 兜底)
+    for kp_id in session.all_kp_ids:
+        entry = per_kp.get(kp_id, {"kp_name": "", "domain": "", "records": []})
+        bank_qs = session.bank_by_kp.get(kp_id, [])
+        if not entry["kp_name"] and bank_qs:
+            entry["kp_name"] = bank_qs[0].get("knowledge_point_name", "")
+        if not entry["domain"] and bank_qs:
+            entry["domain"] = bank_qs[0].get("domain", "")
+
+        records = entry["records"]
+        test_count = len(records)
+        correct = sum(1 for r in records if r.get("is_correct"))
+        correct_rate = (correct / test_count) if test_count > 0 else 0.0
+
+        # θ: 仅当该 kp ≥2 题时才单独估计 (否则不稳定)
+        theta_kp = None
+        if test_count >= 2:
+            responses = [
+                (r.get("discrimination", 1.0),
+                 r.get("difficulty", 0.0),
+                 bool(r.get("is_correct", False)))
+                for r in records
+            ]
+            try:
+                theta_kp = round(float(irt.estimate_theta(
+                    responses, prior_theta=session.prior_theta)), 4)
+            except Exception:
+                theta_kp = None
+
+        # mastery 映射: 正确率 0~1 映射到 0~1 的掌握度 (平滑)
+        if test_count == 0:
+            mastery = 0.0
+        else:
+            # 用 Laplace 平滑一点避免小样本极端
+            mastery = (correct + 0.5) / (test_count + 1.0)
+
+        # 文字标签
+        if test_count == 0:
+            status_label = "未覆盖"
+        elif mastery < 0.35:
+            status_label = "薄弱"
+        elif mastery < 0.65:
+            status_label = "部分掌握"
+        else:
+            status_label = "熟练"
+
+        result.append({
+            "kp_id": kp_id,
+            "kp_name": entry["kp_name"],
+            "domain": entry["domain"],
+            "test_count": test_count,
+            "correct": correct,
+            "correct_rate": round(correct_rate, 4),
+            "mastery": round(mastery, 4),
+            "theta": theta_kp,
+            "status_label": status_label,
+        })
+    return result
+
+
+def _domain_results_from_answers(session: AdaptiveSession) -> List[dict]:
+    """用正确率为每个 domain 打一个 level 标签 (保留给前端展示)"""
+    per_domain: Dict[str, dict] = {}
+    for a in session.answers:
+        dom = a.get("domain")
+        if not dom:
+            continue
+        d = per_domain.setdefault(dom, {"correct": 0, "wrong": 0})
+        if a.get("is_correct"):
+            d["correct"] += 1
+        else:
+            d["wrong"] += 1
+
+    out = []
+    for dom in session.domains:
+        d = per_domain.get(dom, {"correct": 0, "wrong": 0})
+        total = d["correct"] + d["wrong"]
+        rate = (d["correct"] / total) if total > 0 else 0.0
+        if total == 0:
+            level, reason = "", "该领域未出题"
+        elif rate >= 0.7:
+            level, reason = "高难度", f"正确率 {rate*100:.0f}%"
+        elif rate >= 0.4:
+            level, reason = "中等难度", f"正确率 {rate*100:.0f}%"
+        else:
+            level, reason = "低难度", f"正确率 {rate*100:.0f}%"
+        out.append({
+            "domain": dom,
+            "level": level,
+            "reason": reason,
+            "correct": d["correct"],
+            "wrong": d["wrong"],
+        })
+    return out
 
 
 # ============================================================
-# API: 启动 / 答题 / 状态
+# API: 启动 / 答题 / 状态 / 结果
 # ============================================================
 
 def start_session(
     learner_id: str,
     prior_theta: float,
     test_bank: List[dict],
-    config: Optional[AdaptiveConfig] = None,
+    config: Optional[dict] = None,
 ) -> dict:
-    """启动一次自适应测试会话, 返回第一道题"""
+    """启动一次自适应测试会话 (v4.0 广覆盖优先)"""
     import uuid
-    cfg = config if config is not None else AdaptiveConfig()
-    bank = _filter_bank(test_bank, cfg)
+
+    config = config or build_config()
+    domains = config.get("domains")
+    if domains is None:
+        domains = list(DOMAINS)
+    knowledge_point_ids = config.get("knowledge_point_ids")
 
     sid = f"sess_{uuid.uuid4().hex[:8]}"
+    bank_by_kp, all_kp_ids = _group_bank_by_kp(test_bank, domains, knowledge_point_ids)
+
     session = AdaptiveSession(
         session_id=sid,
         learner_id=learner_id,
-        started_at=datetime.now().isoformat(),
-        prior_theta=prior_theta,
-        current_theta=prior_theta,
-        config=cfg,
-        bank=bank,
+        domains=list(domains),
+        prior_theta=float(prior_theta),
+        current_theta=float(prior_theta),
+        knowledge_point_ids=knowledge_point_ids,
+        bank_grouped=_group_bank_by_domain(test_bank, domains, knowledge_point_ids),
+        bank_by_kp=bank_by_kp,
+        all_kp_ids=all_kp_ids,
     )
     _sessions[sid] = session
 
-    # 选第一道题
-    q = _select_next_question(session, bank)
-    result = {
+    bank_size = sum(len(v) for v in session.bank_by_kp.values())
+    if not domains or bank_size == 0 or not session.all_kp_ids:
+        session.finished = True
+        session.stop_reason = "无可用题目 (领域/知识点过滤后题库为空)"
+        return {
+            "session_id": sid,
+            "finished": True,
+            "stop_reason": session.stop_reason,
+            "question_count": 0,
+            "current_domain": None,
+            "domain_index": 0,
+            "domain_total": len(domains),
+            "current_tier": None,
+            "consecutive_correct": 0,
+            "consecutive_wrong": 0,
+            "next_question": None,
+            "bank_size": 0,
+            "total_kp": 0,
+            "covered_kp": 0,
+            "kp_coverage_report": [],
+            "error": "题库为空: 请检查 domains / knowledge_point_ids 配置",
+        }
+
+    # 初始化: 选第一道题 (匹配先验 θ 的未覆盖 kp 代表题)
+    q = _select_question(session)
+    session.current_domain = q.get("domain") if q else (session.domains[0] if session.domains else None)
+    session.current_tier_label = _tier_label_for_question(q) if q else None
+
+    return {
         "session_id": sid,
-        "current_theta": prior_theta,
-        "question_count": 0,
-        "next_question": q,
         "finished": False,
-        "bank_size": len(bank),
-        "category": {"domains": cfg.domains, "knowledge_point_ids": cfg.knowledge_point_ids},
+        "question_count": 0,
+        "current_domain": session.current_domain,
+        "domain_index": 0,
+        "domain_total": len(session.domains),
+        "current_tier": session.current_tier_label,
+        "consecutive_correct": 0,
+        "consecutive_wrong": 0,
+        "next_question": q,
+        "bank_size": bank_size,
+        "total_kp": len(session.all_kp_ids),
+        "covered_kp": 0,
+        "current_theta": round(session.current_theta, 4),
+        "coverage_target": f"Phase1 覆盖 {MIN_KP_COVERAGE}/{len(session.all_kp_ids)} kp, 上限 {MAX_QUESTIONS} 题",
     }
-    result.update(_stage_meta(session))
-    return result
 
 
 def submit_answer(
@@ -318,107 +544,223 @@ def submit_answer(
     time_spent: int,
     test_bank: List[dict],
 ) -> dict:
-    """提交答案, 更新 θ 与难度档, 返回下一题或停止"""
+    """提交答案 (v4.0): 更新 kp 覆盖计数 + IRT θ + 判定停止"""
     session = _sessions.get(session_id)
     if not session:
         return {"error": "会话不存在"}
     if session.finished:
         return {"error": "会话已结束", "finished": True, "stop_reason": session.stop_reason}
 
-    bank = session.bank if session.bank else test_bank
-
-    # 找到这道题
-    q = next((x for x in bank if x["question_id"] == question_id), None)
+    # 查题目 (优先 session.bank_by_kp, 再全局 test_bank)
+    q = None
+    for kp_qs in session.bank_by_kp.values():
+        hit = next((x for x in kp_qs if x["question_id"] == question_id), None)
+        if hit:
+            q = hit
+            break
     if q is None:
         q = next((x for x in test_bank if x["question_id"] == question_id), None)
     if not q:
         return {"error": "题目不存在"}
 
-    # 更新 θ
-    responses = [(q["discrimination"], q["difficulty"], is_correct)]
-    new_theta = irt.estimate_theta(responses, prior_theta=session.current_theta)
+    kp_id = q.get("knowledge_point_id", "")
+    domain = q.get("domain", "")
+    tier = _tier_label_for_question(q)
 
-    # 记录答题
+    session.question_count += 1
+    session.answered_qids.add(question_id)
     session.answers.append({
         "question_id": question_id,
-        "kp_id": q["knowledge_point_id"],
-        "difficulty": q["difficulty"],
-        "discrimination": q["discrimination"],
+        "kp_id": kp_id,
+        "knowledge_point_name": q.get("knowledge_point_name", ""),
+        "difficulty": q.get("difficulty", 0.0),
+        "discrimination": q.get("discrimination", 1.0),
         "is_correct": is_correct,
         "time_spent": time_spent,
-        "theta_before": session.current_theta,
-        "theta_after": new_theta,
-        "stage": session.current_stage,
+        "domain": domain,
+        "tier": tier,
     })
-    session.current_theta = new_theta
-    session.stage_answers.append(bool(is_correct))
 
-    # 难度梯度推进
-    _advance_stage(session)
+    # 更新 kp 覆盖计数
+    session.kp_answer_count[kp_id] = session.kp_answer_count.get(kp_id, 0) + 1
+    if session.kp_answer_count[kp_id] >= KP_MIN_ANSWERS:
+        session.covered_kp_ids.add(kp_id)
 
-    # 检查停止
-    should_stop, reason = _should_stop(session)
+    # 更新 IRT θ
+    _update_irt_theta(session)
 
-    if should_stop:
+    # 当前题目所属领域 → 展示
+    session.current_domain = domain
+    session.current_tier_label = tier
+
+    # 检查停止条件
+    stop_reason = _check_stop_condition(session)
+    if stop_reason is not None:
         session.finished = True
-        session.stop_reason = reason
-        session.final_theta = new_theta
-        result = {
+        session.stop_reason = stop_reason
+        session.domain_results = _domain_results_from_answers(session)
+        final_theta, theta_info = _estimate_final_theta(
+            session.answers, prior_theta=session.prior_theta
+        )
+        kp_mastery = _estimate_kp_mastery(session)
+        return {
             "session_id": session_id,
-            "current_theta": round(new_theta, 4),
-            "question_count": len(session.answers),
             "finished": True,
-            "stop_reason": reason,
-            "final_theta": round(new_theta, 4),
+            "stop_reason": session.stop_reason,
+            "question_count": session.question_count,
+            "domain_results": session.domain_results,
+            "final_theta": final_theta,
+            "theta_info": theta_info,
             "answers": session.answers,
+            "total_kp": len(session.all_kp_ids),
+            "covered_kp": len(session.covered_kp_ids),
+            "kp_mastery": kp_mastery,
+            "kp_coverage_report": _estimate_kp_mastery(session),
         }
-        result.update(_stage_meta(session))
-        return result
 
-    # 选下一题
-    next_q = _select_next_question(session, bank)
-    if not next_q:
+    # 未停止 → 下一题
+    next_q = _select_question(session)
+    if next_q is None:
+        # 题库耗尽
         session.finished = True
-        session.stop_reason = "题库耗尽"
-        session.final_theta = new_theta
-        result = {
+        session.stop_reason = (f"题库未答题耗尽 (已覆盖 {len(session.covered_kp_ids)}/"
+                               f"{len(session.all_kp_ids)} kp, 共 {session.question_count} 题)")
+        session.domain_results = _domain_results_from_answers(session)
+        final_theta, theta_info = _estimate_final_theta(
+            session.answers, prior_theta=session.prior_theta
+        )
+        kp_mastery = _estimate_kp_mastery(session)
+        return {
             "session_id": session_id,
-            "current_theta": round(new_theta, 4),
-            "question_count": len(session.answers),
             "finished": True,
-            "stop_reason": "题库耗尽",
-            "final_theta": round(new_theta, 4),
+            "stop_reason": session.stop_reason,
+            "question_count": session.question_count,
+            "domain_results": session.domain_results,
+            "final_theta": final_theta,
+            "theta_info": theta_info,
             "answers": session.answers,
+            "total_kp": len(session.all_kp_ids),
+            "covered_kp": len(session.covered_kp_ids),
+            "kp_mastery": kp_mastery,
+            "kp_coverage_report": kp_mastery,
         }
-        result.update(_stage_meta(session))
-        return result
 
-    result = {
+    session.current_domain = next_q.get("domain")
+    session.current_tier_label = _tier_label_for_question(next_q)
+
+    # 兼容前端: 模拟连续对错 (用近 3 题内统计, 仅用于展示)
+    recent = session.answers[-3:]
+    consec_correct = 0
+    for r in reversed(recent):
+        if r.get("is_correct"):
+            consec_correct += 1
+        else:
+            break
+    consec_wrong = 0
+    for r in reversed(recent):
+        if not r.get("is_correct"):
+            consec_wrong += 1
+        else:
+            break
+
+    return {
         "session_id": session_id,
-        "current_theta": round(new_theta, 4),
-        "question_count": len(session.answers),
-        "next_question": next_q,
         "finished": False,
+        "question_count": session.question_count,
+        "current_domain": session.current_domain,
+        "domain_index": min(
+            DOMAINS.index(session.current_domain) if session.current_domain in DOMAINS else 0,
+            len(session.domains) - 1,
+        ),
+        "domain_total": len(session.domains),
+        "current_tier": session.current_tier_label,
+        "consecutive_correct": consec_correct,
+        "consecutive_wrong": consec_wrong,
+        "next_question": next_q,
+        "last_correct": is_correct,
+        "total_kp": len(session.all_kp_ids),
+        "covered_kp": len(session.covered_kp_ids),
+        "current_theta": round(session.current_theta, 4),
     }
-    result.update(_stage_meta(session))
-    return result
 
 
 def get_session(session_id: str) -> Optional[dict]:
-    """获取会话状态"""
     s = _sessions.get(session_id)
     if not s:
         return None
-    result = {
+    if s.finished:
+        final_theta, theta_info = _estimate_final_theta(
+            s.answers, prior_theta=s.prior_theta
+        )
+        kp_mastery = _estimate_kp_mastery(s)
+    else:
+        final_theta, theta_info = None, None
+        kp_mastery = []
+    return {
         "session_id": s.session_id,
         "learner_id": s.learner_id,
-        "started_at": s.started_at,
-        "current_theta": round(s.current_theta, 4),
-        "question_count": len(s.answers),
         "finished": s.finished,
         "stop_reason": s.stop_reason,
-        "final_theta": round(s.final_theta, 4) if s.final_theta else None,
+        "question_count": s.question_count,
+        "current_domain": s.current_domain,
+        "domain_index": min(
+            DOMAINS.index(s.current_domain) if s.current_domain in DOMAINS else 0,
+            len(s.domains) - 1,
+        ),
+        "domain_total": len(s.domains),
+        "current_tier": s.current_tier_label,
+        "domain_results": s.domain_results or _domain_results_from_answers(s),
+        "final_theta": final_theta,
+        "theta_info": theta_info,
         "answers": s.answers,
+        "total_kp": len(s.all_kp_ids),
+        "covered_kp": len(s.covered_kp_ids),
+        "kp_mastery": kp_mastery,
+        "kp_coverage_report": kp_mastery,
+        "current_theta": round(s.current_theta, 4),
     }
-    result.update(_stage_meta(s))
-    return result
+
+
+# ============================================================
+# 兼容接口 (main.py 依赖)
+# ============================================================
+
+def build_config(data: Optional[dict] = None) -> dict:
+    data = data or {}
+    raw_domains = data.get("domains")
+    if raw_domains:
+        domains = [d for d in raw_domains if d in DOMAINS]
+    else:
+        domains = list(DOMAINS)
+
+    kp_ids = data.get("knowledge_point_ids")
+    knowledge_point_ids = list(kp_ids) if kp_ids else None
+
+    return {
+        "domains": domains,
+        "knowledge_point_ids": knowledge_point_ids,
+        "max_questions_per_domain": 20,        # 保留旧键, v4 未使用
+        "stop_consecutive_wrong": 3,           # 保留旧键
+        "promote_consecutive_correct": 2,      # 保留旧键
+        "difficulty_tiers": [t["label"] for t in DIFFICULTY_TIERS],
+        # v4 新参数 (作为参考, 无需前端传入)
+        "min_kp_coverage": MIN_KP_COVERAGE,
+        "target_kp_coverage": TARGET_KP_COVERAGE,
+        "min_questions": MIN_QUESTIONS,
+        "max_questions": MAX_QUESTIONS,
+    }
+
+
+def default_config_payload() -> dict:
+    return {
+        "domains": list(DOMAINS),
+        "difficulty_tiers": [t["label"] for t in DIFFICULTY_TIERS],
+        "promote_consecutive_correct": 2,
+        "stop_consecutive_wrong": 3,
+        "max_questions_per_domain": 20,
+        # v4 策略阈值
+        "min_kp_coverage": MIN_KP_COVERAGE,
+        "target_kp_coverage": TARGET_KP_COVERAGE,
+        "min_questions": MIN_QUESTIONS,
+        "max_questions": MAX_QUESTIONS,
+    }

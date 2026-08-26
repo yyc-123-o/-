@@ -41,14 +41,31 @@ def _test_pass_rate(
 
 
 def _gap_confidence(mastery: float, test_count: int, gap_type: str) -> float:
-    """盲区置信度估计"""
+    """盲区置信度估计
+
+    test_count == 0 时仅为先验推断（学历先验等），不足以支持高置信度盲区结论，
+    因此各类盲区置信度显著降低；test_count >= 1 起才有实测支撑；
+    test_count >= 3 时置信度较高（保持原有逻辑）。
+    """
+    # 无测试记录：先验推断而非实测，置信度显著降低
+    if test_count == 0:
+        if gap_type == "blindspot":
+            return 0.30  # 先验推断，不支持高置信度盲区结论
+        elif gap_type == "blocked":
+            return 0.40
+        elif gap_type == "weak":
+            return 0.35
+        elif gap_type == "difficult":
+            # 无交互记录时不应出现 difficult，万一出现则给低置信度
+            return 0.30
+        return 0.30
+
+    # 有测试记录：保持原有逻辑（test_count >= 3 时给较高置信度）
     if gap_type == "blindspot":
         if test_count >= 3:
             return 0.85 + min(0.03, (1 - mastery) * 0.02)
-        elif test_count >= 1:
+        else:  # test_count >= 1
             return 0.70 + (1 - mastery) * 0.05
-        else:
-            return 0.85  # 远期待学但确实未接触
     elif gap_type == "blocked":
         return 0.86 + min(0.04, test_count * 0.01)
     elif gap_type == "weak":
@@ -62,12 +79,15 @@ def _generate_suggested_action(
     gap_type: str,
     kp_name: str,
     mastery: float,
+    test_count: int,
     blocked_by: List[str],
     blocks: List[str],
     kg: KnowledgeGraph,
 ) -> str:
     """生成建议操作"""
     if gap_type == "blindspot":
+        if test_count == 0:
+            return "建议测评：当前无测试记录，先安排诊断测试确认掌握水平"
         if mastery < 0.10:
             return f"远期待学章节，暂不处理"
         return f"当前章节学习目标（首次学习），深度=进阶。若本章正确率<60%则下一章降级"
@@ -152,7 +172,7 @@ def analyze_gaps(
 
             confidence = _gap_confidence(mastery, tc, gap_type)
             suggested_action = _generate_suggested_action(
-                gap_type, kp.name, mastery, blocked_by, blocks, kg
+                gap_type, kp.name, mastery, tc, blocked_by, blocks, kg
             )
 
             gaps.append(KnowledgeGap(
