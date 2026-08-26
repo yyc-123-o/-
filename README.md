@@ -68,18 +68,21 @@ are published into the canonical snapshot and unmapped composite points are
 returned as warnings. Strict mode is the default and returns a structured
 blocked result while the published evidence manifest is empty. Candidate
 preview can generate a deterministic, explicitly non-publishable draft only
-from correctly typed candidate material. Run history is in memory and is
-cleared when the process restarts. Real model calls, authentication, and
-production persistence remain outside this release.
+from correctly typed candidate material. Platform run records, assessment
+idempotency records, knowledge-tracing observations, and LangGraph planning
+checkpoints are persisted in the SQLite file configured by
+`SKILLFORGE_PLATFORM_STATE_DB` (default: `.skillforge/platform.sqlite3`), so a
+service restart can resume an existing learning path. Real model calls and
+authentication remain outside this release.
 
 The console also accepts an optional target concept ID, for example
 `dl.cnn.convolution`. The target is recorded as the learner's focus while the
 full required course path remains available for chapter navigation; the
 planner still selects the earliest prerequisite-safe current node. Candidate
 preview is selected by default in the console so the complete resource flow
-can be inspected before formal evidence is published. CNN candidate retrieval
-uses a small curated definition/code/exercise supplement and explicitly
-filters GAN, DCGAN, TextCNN, and transposed-convolution material.
+can be inspected before formal evidence is published. Retrieval and resource
+generation use the same concept, depth, and evidence-kind contract for every
+knowledge point; a target concept does not introduce a special platform path.
 
 The fusion CLI is read-only with respect to source directories:
 
