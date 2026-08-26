@@ -37,6 +37,17 @@ from skillforge_kb.retrieval.models import KnowledgeChunk
 from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
 
+@pytest.fixture(autouse=True)
+def isolate_platform_state_db(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv(
+        "SKILLFORGE_PLATFORM_STATE_DB",
+        str(tmp_path / "platform.sqlite3"),
+    )
+
+
 def _cnn_ready_profile(project_root: Path) -> LearnerProfileSnapshot:
     payload = json.loads(
         (project_root / "tests" / "fixtures" / "profile-2026-0001-demo.json")
