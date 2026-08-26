@@ -1,8 +1,10 @@
+import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
+from langgraph.checkpoint.sqlite import SqliteSaver
 from pydantic import SecretStr
 
 from skillforge_kb.agents.planning_agent import CoursePlanningAgent
@@ -113,7 +115,6 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
     blueprints = load_resource_blueprints(catalog, paths.blueprints_file)
     evidence_index = load_evidence_index(catalog, paths.evidence_file)
     corpus = KnowledgeCorpus.load_many((paths.knowledge_file,))
-    planning_agent = CoursePlanningAgent.create(catalog, attributes)
     retrieval_agent = DomainRetrievalAgent(
         corpus,
         KnowledgeRetrievalTool(Bm25KnowledgeRetriever(corpus)),
@@ -131,20 +132,35 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         if settings.llm_configured
         else None
     )
-    dependencies = PlatformGraphDependencies(
-        planning_agent=planning_agent,
-        retrieval_agent=retrieval_agent,
-        resource_agent=ResourceGenerationAgent(llm_adapter=llm_adapter),
-        handoff_factory=ResourceHandoffFactory(catalog, blueprints, evidence_index),
-        evidence_index=evidence_index,
-        clock=SystemClock(),
-        catalog=catalog,
-        practice_llm=llm_adapter,
-    )
     state_db = Path(settings.platform_state_db).expanduser()
     if not state_db.is_absolute():
         state_db = root / state_db
-    return PlatformService(dependencies, SqlitePlatformRunRepository(state_db))
+    state_db.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_connection = sqlite3.connect(state_db, check_same_thread=False)
+    try:
+        planning_agent = CoursePlanningAgent.create(
+            catalog,
+            attributes,
+            checkpointer=SqliteSaver(checkpoint_connection),
+        )
+        dependencies = PlatformGraphDependencies(
+            planning_agent=planning_agent,
+            retrieval_agent=retrieval_agent,
+            resource_agent=ResourceGenerationAgent(llm_adapter=llm_adapter),
+            handoff_factory=ResourceHandoffFactory(catalog, blueprints, evidence_index),
+            evidence_index=evidence_index,
+            clock=SystemClock(),
+            catalog=catalog,
+            practice_llm=llm_adapter,
+        )
+        return PlatformService(
+            dependencies,
+            SqlitePlatformRunRepository(state_db),
+            close_callbacks=(checkpoint_connection.close,),
+        )
+    except BaseException:
+        checkpoint_connection.close()
+        raise
 
 
 def build_default_profile_agent_adapter(

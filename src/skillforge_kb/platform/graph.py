@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -107,16 +108,26 @@ class PlatformService:
         self,
         dependencies: PlatformGraphDependencies,
         repository: PlatformRunRepository,
+        *,
+        close_callbacks: tuple[Callable[[], None], ...] = (),
     ) -> None:
         self._dependencies = dependencies
         self._graph = build_platform_graph(dependencies)
         self._repository = repository
+        self._close_callbacks = close_callbacks
         self._lock = RLock()
+        self._closed = False
 
     def close(self) -> None:
+        with self._lock:
+            if self._closed:
+                return
+            self._closed = True
         close = getattr(self._repository, "close", None)
         if callable(close):
             close()
+        for callback in self._close_callbacks:
+            callback()
 
     def run(self, request: PlatformRunRequest) -> PlatformRunResult:
         request = PlatformRunRequest.model_validate(request.model_dump())
