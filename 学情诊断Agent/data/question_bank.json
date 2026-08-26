@@ -15,9 +15,7 @@
       "生成新样本"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「梯度下降」相关知识，正确答案为「最小化损失函数」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「梯度下降」相关知识，正确答案为「最小化损失函数」。"
   },
   {
     "question_id": "q_kp_016_1",
@@ -35,9 +33,7 @@
       "随机打乱网络结构"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「梯度下降」相关知识，正确答案为「每次随机选一个样本」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「梯度下降」相关知识，正确答案为「每次随机选一个样本」。"
   },
   {
     "question_id": "q_kp_016_2",
@@ -55,9 +51,7 @@
       "不需要学习率"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「梯度下降」相关知识，正确答案为「更快收敛且可跳出局部最优」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「梯度下降」相关知识，正确答案为「更快收敛且可跳出局部最优」。"
   },
   {
     "question_id": "q_kp_016_3",
@@ -75,9 +69,7 @@
       "参数保持不变"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「梯度下降」相关知识，正确答案为「损失震荡甚至发散」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「梯度下降」相关知识，正确答案为「损失震荡甚至发散」。"
   },
   {
     "question_id": "q_kp_017_4",
@@ -95,9 +87,7 @@
       "预处理数据"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「反向传播」相关知识，正确答案为「计算梯度并更新权重」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「反向传播」相关知识，正确答案为「计算梯度并更新权重」。"
   },
   {
     "question_id": "q_kp_017_3",
@@ -115,9 +105,7 @@
       "初始化网络参数"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「反向传播」相关知识，正确答案为「计算损失函数对参数的梯度」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「反向传播」相关知识，正确答案为「计算损失函数对参数的梯度」。"
   },
   {
     "question_id": "q_kp_017_1",
@@ -135,9 +123,7 @@
       "傅里叶变换"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「反向传播」相关知识，正确答案为「链式法则」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「反向传播」相关知识，正确答案为「链式法则」。"
   },
   {
     "question_id": "q_kp_017_2",
@@ -155,9 +141,7 @@
       "减少内存占用"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「反向传播」相关知识，正确答案为「记录运算顺序以便求梯度」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「反向传播」相关知识，正确答案为「记录运算顺序以便求梯度」。"
   },
   {
     "question_id": "q_kp_018_4",
@@ -175,9 +159,7 @@
       "生成算法"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「Adam优化器」相关知识，正确答案为「优化算法」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「Adam优化器」相关知识，正确答案为「优化算法」。"
   },
   {
     "question_id": "q_kp_018_1",
@@ -195,9 +177,7 @@
       "Nesterov和Adam"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「Adam优化器」相关知识，正确答案为「Momentum和RMSProp」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「Adam优化器」相关知识，正确答案为「Momentum和RMSProp」。"
   },
   {
     "question_id": "q_kp_018_2",
@@ -215,9 +195,7 @@
       "自适应调整batch size"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「Adam优化器」相关知识，正确答案为「自适应调整学习率」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「Adam优化器」相关知识，正确答案为「自适应调整学习率」。"
   },
   {
     "question_id": "q_kp_019_sup_low",
@@ -235,9 +213,7 @@
       "减少训练数据"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「防止过拟合」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「防止过拟合」。"
   },
   {
     "question_id": "q_kp_019_1",
@@ -255,9 +231,7 @@
       "Dropout"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「权重衰减」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「权重衰减」。"
   },
   {
     "question_id": "q_kp_019_2",
@@ -275,9 +249,7 @@
       "损失函数"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「神经元」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「神经元」。"
   },
   {
     "question_id": "q_kp_019_3",
@@ -295,9 +267,7 @@
       "与L2完全等价"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「能产生稀疏解（部分权重为0）」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「正则化L1/L2/Dropout」相关知识，正确答案为「能产生稀疏解（部分权重为0）」。"
   },
   {
     "question_id": "q_kp_020_4",
@@ -315,9 +285,7 @@
       "损失函数类型"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「学习率调度」相关知识，正确答案为「参数更新的步长」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「学习率调度」相关知识，正确答案为「参数更新的步长」。"
   },
   {
     "question_id": "q_kp_020_2",
@@ -335,9 +303,7 @@
       "增加训练数据量"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「学习率调度」相关知识，正确答案为「训练中动态调整学习率以改善收敛」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「学习率调度」相关知识，正确答案为「训练中动态调整学习率以改善收敛」。"
   },
   {
     "question_id": "q_kp_020_3",
@@ -355,9 +321,7 @@
       "梯度为0时"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「学习率调度」相关知识，正确答案为「监控指标停止改善时降低学习率」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「学习率调度」相关知识，正确答案为「监控指标停止改善时降低学习率」。"
   },
   {
     "question_id": "q_kp_020_1",
@@ -375,9 +339,7 @@
       "学习率指数衰减"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「学习率调度」相关知识，正确答案为「学习率按余弦曲线周期性变化」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「学习率调度」相关知识，正确答案为「学习率按余弦曲线周期性变化」。"
   },
   {
     "question_id": "q_kp_029_4",
@@ -395,9 +357,7 @@
       "归一化输入"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「损失函数」相关知识，正确答案为「度量预测值与真实值的差距」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「损失函数」相关知识，正确答案为「度量预测值与真实值的差距」。"
   },
   {
     "question_id": "q_kp_029_2",
@@ -415,9 +375,7 @@
       "归一化输入数据"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「损失函数」相关知识，正确答案为「衡量预测概率分布与真实标签的差异」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「损失函数」相关知识，正确答案为「衡量预测概率分布与真实标签的差异」。"
   },
   {
     "question_id": "q_kp_029_1",
@@ -435,9 +393,7 @@
       "Huber Loss"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「损失函数」相关知识，正确答案为「交叉熵」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「损失函数」相关知识，正确答案为「交叉熵」。"
   },
   {
     "question_id": "q_kp_029_3",
@@ -455,9 +411,7 @@
       "学习率设置"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「损失函数」相关知识，正确答案为「类别不平衡中难分类样本的权重」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「损失函数」相关知识，正确答案为「类别不平衡中难分类样本的权重」。"
   },
   {
     "question_id": "q_kp_021_4",
@@ -475,9 +429,7 @@
       "降低模型容量"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据预处理」相关知识，正确答案为「数据清洗与规范化」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「数据预处理」相关知识，正确答案为「数据清洗与规范化」。"
   },
   {
     "question_id": "q_kp_021_1",
@@ -495,9 +447,7 @@
       "取对数"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据预处理」相关知识，正确答案为「减去均值除以标准差」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「数据预处理」相关知识，正确答案为「减去均值除以标准差」。"
   },
   {
     "question_id": "q_kp_021_2",
@@ -515,9 +465,7 @@
       "增加模型层数"
     ],
     "correct_answer": 3,
-    "explanation": "本题考查「数据预处理」相关知识，正确答案为「增加模型层数」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「数据预处理」相关知识，正确答案为「增加模型层数」。"
   },
   {
     "question_id": "q_kp_021_concept_mid",
@@ -535,9 +483,7 @@
       "随便哪一集合都没有区别"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据预处理」防止数据泄露的基本规范：统计量只在训练集上计算，再应用于验证/测试集。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「数据预处理」防止数据泄露的基本规范：统计量只在训练集上计算，再应用于验证/测试集。"
   },
   {
     "question_id": "q_kp_021_sup_high",
@@ -555,9 +501,7 @@
       "模型更简单"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据预处理」相关知识，正确答案为「数据泄露」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「数据预处理」相关知识，正确答案为「数据泄露」。"
   },
   {
     "question_id": "q_kp_022_4",
@@ -575,9 +519,7 @@
       "收集原始数据"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「特征工程」相关知识，正确答案为「构造与选择对模型有用的特征」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「特征工程」相关知识，正确答案为「构造与选择对模型有用的特征」。"
   },
   {
     "question_id": "q_kp_022_2",
@@ -595,9 +537,7 @@
       "改变样本标签"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「特征工程」相关知识，正确答案为「减少冗余/无关特征、降低模型复杂度」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「特征工程」相关知识，正确答案为「减少冗余/无关特征、降低模型复杂度」。"
   },
   {
     "question_id": "q_kp_022_1",
@@ -615,9 +555,7 @@
       "文本特征"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「特征工程」相关知识，正确答案为「类别特征」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「特征工程」相关知识，正确答案为「类别特征」。"
   },
   {
     "question_id": "q_kp_022_3",
@@ -635,9 +573,7 @@
       "只能用于回归任务"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「特征工程」相关知识，正确答案为「可能引入多重共线性，需结合正则或删一列」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「特征工程」相关知识，正确答案为「可能引入多重共线性，需结合正则或删一列」。"
   },
   {
     "question_id": "q_kp_023_4",
@@ -655,9 +591,7 @@
       "模型输出结果"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型调参」相关知识，正确答案为「训练前人为设定的参数」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「模型调参」相关知识，正确答案为「训练前人为设定的参数」。"
   },
   {
     "question_id": "q_kp_023_2",
@@ -675,9 +609,7 @@
       "只能优化一个参数"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型调参」相关知识，正确答案为「利用历史评估结果高效探索超参空间」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「模型调参」相关知识，正确答案为「利用历史评估结果高效探索超参空间」。"
   },
   {
     "question_id": "q_kp_023_1",
@@ -695,9 +627,7 @@
       "需要梯度信息"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「模型调参」相关知识，正确答案为「计算代价随参数数量指数增长」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「模型调参」相关知识，正确答案为「计算代价随参数数量指数增长」。"
   },
   {
     "question_id": "q_kp_023_3",
@@ -715,9 +645,7 @@
       "数据增强"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型调参」相关知识，正确答案为「对验证集过拟合（信息泄露）」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「模型调参」相关知识，正确答案为「对验证集过拟合（信息泄露）」。"
   },
   {
     "question_id": "q_kp_024_4",
@@ -735,9 +663,7 @@
       "评估模型"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型部署」相关知识，正确答案为「将模型上线供实际使用」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「模型部署」相关知识，正确答案为「将模型上线供实际使用」。"
   },
   {
     "question_id": "q_kp_024_1",
@@ -755,9 +681,7 @@
       "增大显存占用"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型部署」相关知识，正确答案为「用低精度表示权重以减小模型体积、加速推理」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「模型部署」相关知识，正确答案为「用低精度表示权重以减小模型体积、加速推理」。"
   },
   {
     "question_id": "q_kp_024_2",
@@ -775,9 +699,7 @@
       "一种激活函数"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型部署」相关知识，正确答案为「跨框架的模型交换格式」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「模型部署」相关知识，正确答案为「跨框架的模型交换格式」。"
   },
   {
     "question_id": "q_kp_024_3",
@@ -795,9 +717,7 @@
       "二值化的标签"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型部署」相关知识，正确答案为「教师网络输出的概率分布」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「模型部署」相关知识，正确答案为「教师网络输出的概率分布」。"
   },
   {
     "question_id": "q_kp_025_4",
@@ -815,9 +735,7 @@
       "部署模型"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「对比不同方案/版本的效果」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「对比不同方案/版本的效果」。"
   },
   {
     "question_id": "q_kp_025_2",
@@ -835,9 +753,7 @@
       "按用户意愿自行选择"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「随机分流且保证两组同质」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「随机分流且保证两组同质」。"
   },
   {
     "question_id": "q_kp_025_1",
@@ -855,9 +771,7 @@
       "两组都用新方案"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「实验组使用新方案」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「实验组使用新方案」。"
   },
   {
     "question_id": "q_kp_025_3",
@@ -875,9 +789,7 @@
       "两组差异过大"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「分组结论与总体结论相反」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「模型评估与AB测试」相关知识，正确答案为「分组结论与总体结论相反」。"
   },
   {
     "question_id": "q_kp_030_4",
@@ -895,9 +807,7 @@
       "缩小模型规模"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据增强」相关知识，正确答案为「从现有数据生成更多训练样本」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「数据增强」相关知识，正确答案为「从现有数据生成更多训练样本」。"
   },
   {
     "question_id": "q_kp_030_2",
@@ -915,9 +825,7 @@
       "降低模型容量"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据增强」相关知识，正确答案为「扩充训练数据、提升泛化能力」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「数据增强」相关知识，正确答案为「扩充训练数据、提升泛化能力」。"
   },
   {
     "question_id": "q_kp_030_1",
@@ -935,9 +843,7 @@
       "增加全连接层"
     ],
     "correct_answer": 3,
-    "explanation": "本题考查「数据增强」相关知识，正确答案为「增加全连接层」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「数据增强」相关知识，正确答案为「增加全连接层」。"
   },
   {
     "question_id": "q_kp_030_3",
@@ -955,9 +861,7 @@
       "只做水平翻转"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「数据增强」相关知识，正确答案为「将两张图像按比例线性混合，标签也按同比例混合」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「数据增强」相关知识，正确答案为「将两张图像按比例线性混合，标签也按同比例混合」。"
   },
   {
     "question_id": "q_kp_001_sup_high",
@@ -975,9 +879,7 @@
       "任意随机方向"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「微积分基础」相关知识，正确答案为「负梯度方向」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「微积分基础」相关知识，正确答案为「负梯度方向」。"
   },
   {
     "question_id": "q_kp_001_concept_low",
@@ -995,9 +897,7 @@
       "损失值的大小"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「微积分基础」相关知识，正确答案为「函数在某点的变化率（用来计算梯度）」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「微积分基础」相关知识，正确答案为「函数在某点的变化率（用来计算梯度）」。"
   },
   {
     "question_id": "q_kp_001_concept_mid",
@@ -1015,9 +915,7 @@
       "训练数据起点"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「微积分基础」相关知识，正确答案为「极值点（极大/极小）的候选位置」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「微积分基础」相关知识，正确答案为「极值点（极大/极小）的候选位置」。"
   },
   {
     "question_id": "q_kp_002_concept_low",
@@ -1035,9 +933,7 @@
       "用来可视化损失曲线"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「线性代数」的基本定位，正确答案为「用向量/矩阵表示数据与参数，并描述它们之间的线性变换关系」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「线性代数」的基本定位，正确答案为「用向量/矩阵表示数据与参数，并描述它们之间的线性变换关系」。"
   },
   {
     "question_id": "q_kp_002_3",
@@ -1055,9 +951,7 @@
       "正交矩阵"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「线性代数」相关知识，正确答案为「行列式为 0 的矩阵」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「线性代数」相关知识，正确答案为「行列式为 0 的矩阵」。"
   },
   {
     "question_id": "q_kp_002_sup_high",
@@ -1075,9 +969,7 @@
       "迹"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「线性代数」相关知识，正确答案为「特征向量」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「线性代数」相关知识，正确答案为「特征向量」。"
   },
   {
     "question_id": "q_kp_003_2",
@@ -1095,9 +987,7 @@
       "P(A|B)=P(A∩B)/P(A)"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「概率论」相关知识，正确答案为「P(A|B)=P(B|A)P(A)/P(B)」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「概率论」相关知识，正确答案为「P(A|B)=P(B|A)P(A)/P(B)」。"
   },
   {
     "question_id": "q_kp_003_concept_low",
@@ -1115,9 +1005,7 @@
       "归一化用的边缘概率 P(B)"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「概率论」先验/后验/似然的基本概念，正确答案为「在观测到任何证据之前，对事件 A 发生概率的初始相信程度」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「概率论」先验/后验/似然的基本概念，正确答案为「在观测到任何证据之前，对事件 A 发生概率的初始相信程度」。"
   },
   {
     "question_id": "q_kp_003_concept_mid",
@@ -1135,9 +1023,7 @@
       "|P(A) − P(B)|"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「概率论」独立事件的基本性质，正确答案为「P(A) × P(B)」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「概率论」独立事件的基本性质，正确答案为「P(A) × P(B)」。"
   },
   {
     "question_id": "q_kp_004_sup_low",
@@ -1155,9 +1041,7 @@
       "|A|"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「Aᵀ」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「Aᵀ」。"
   },
   {
     "question_id": "q_kp_004_4",
@@ -1175,9 +1059,7 @@
       "两边元素个数相等"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「左矩阵列数 = 右矩阵行数」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「左矩阵列数 = 右矩阵行数」。"
   },
   {
     "question_id": "q_kp_004_2",
@@ -1195,9 +1077,7 @@
       "三角矩阵"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「对角矩阵」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「对角矩阵」。"
   },
   {
     "question_id": "q_kp_004_3",
@@ -1215,9 +1095,7 @@
       "迹(A)=0"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「det(A)≠0」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「矩阵运算」相关知识，正确答案为「det(A)≠0」。"
   },
   {
     "question_id": "q_kp_005_2",
@@ -1235,9 +1113,7 @@
       "函数的极值"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「导数与梯度」相关知识，正确答案为「复合函数的导数」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「导数与梯度」相关知识，正确答案为「复合函数的导数」。"
   },
   {
     "question_id": "q_kp_005_sup_high",
@@ -1255,9 +1131,7 @@
       "无关"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「导数与梯度」相关知识，正确答案为「垂直」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「导数与梯度」相关知识，正确答案为「垂直」。"
   },
   {
     "question_id": "q_kp_026_4",
@@ -1275,9 +1149,7 @@
       "梯度的大小"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「信息论基础」相关知识，正确答案为「不确定性/信息量」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「信息论基础」相关知识，正确答案为「不确定性/信息量」。"
   },
   {
     "question_id": "q_kp_026_2",
@@ -1295,9 +1167,7 @@
       "泊松分布"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「信息论基础」相关知识，正确答案为「均匀分布」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「信息论基础」相关知识，正确答案为「均匀分布」。"
   },
   {
     "question_id": "q_kp_026_1",
@@ -1315,9 +1185,7 @@
       "梯度的大小"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「信息论基础」相关知识，正确答案为「两个概率分布的差异」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「信息论基础」相关知识，正确答案为「两个概率分布的差异」。"
   },
   {
     "question_id": "q_kp_026_3",
@@ -1335,9 +1203,7 @@
       "一定大于1"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「信息论基础」相关知识，正确答案为「非负且不对称」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「信息论基础」相关知识，正确答案为「非负且不对称」。"
   },
   {
     "question_id": "q_kp_006_sup_low",
@@ -1355,9 +1221,7 @@
       "只能做降维"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「监督学习」相关知识，正确答案为「需要带标签的训练数据」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「监督学习」相关知识，正确答案为「需要带标签的训练数据」。"
   },
   {
     "question_id": "q_kp_006_1",
@@ -1375,9 +1239,7 @@
       "关联规则挖掘"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「监督学习」相关知识，正确答案为「图像分类」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「监督学习」相关知识，正确答案为「图像分类」。"
   },
   {
     "question_id": "q_kp_006_2",
@@ -1395,9 +1257,7 @@
       "KL散度"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「监督学习」相关知识，正确答案为「均方误差(MSE)」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「监督学习」相关知识，正确答案为「均方误差(MSE)」。"
   },
   {
     "question_id": "q_kp_006_3",
@@ -1415,9 +1275,7 @@
       "降维问题"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「监督学习」相关知识，正确答案为「二分类问题」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「监督学习」相关知识，正确答案为「二分类问题」。"
   },
   {
     "question_id": "q_kp_006_sup_high",
@@ -1435,9 +1293,7 @@
       "两者都增大"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「监督学习」相关知识，正确答案为「偏差减小、方差增大」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「监督学习」相关知识，正确答案为「偏差减小、方差增大」。"
   },
   {
     "question_id": "q_kp_007_sup_low",
@@ -1455,9 +1311,7 @@
       "半监督学习"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「无监督学习」相关知识，正确答案为「无监督学习」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「无监督学习」相关知识，正确答案为「无监督学习」。"
   },
   {
     "question_id": "q_kp_007_4",
@@ -1475,9 +1329,7 @@
       "需要人工打分"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「无监督学习」相关知识，正确答案为「没有标签」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「无监督学习」相关知识，正确答案为「没有标签」。"
   },
   {
     "question_id": "q_kp_007_1",
@@ -1495,9 +1347,7 @@
       "特征数"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「无监督学习」相关知识，正确答案为「聚类中心数」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「无监督学习」相关知识，正确答案为「聚类中心数」。"
   },
   {
     "question_id": "q_kp_007_2",
@@ -1515,9 +1365,7 @@
       "回归"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「无监督学习」相关知识，正确答案为「降维」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「无监督学习」相关知识，正确答案为「降维」。"
   },
   {
     "question_id": "q_kp_007_3",
@@ -1535,9 +1383,7 @@
       "L2正则化"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「无监督学习」相关知识，正确答案为「K-Means++」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「无监督学习」相关知识，正确答案为「K-Means++」。"
   },
   {
     "question_id": "q_kp_008_sup_low",
@@ -1555,9 +1401,7 @@
       "数据泄露"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「过拟合与欠拟合」相关知识，正确答案为「过拟合」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「过拟合与欠拟合」相关知识，正确答案为「过拟合」。"
   },
   {
     "question_id": "q_kp_008_2",
@@ -1575,9 +1419,7 @@
       "减少dropout比率"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「过拟合与欠拟合」相关知识，正确答案为「增加训练数据量」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「过拟合与欠拟合」相关知识，正确答案为「增加训练数据量」。"
   },
   {
     "question_id": "q_kp_008_3",
@@ -1595,9 +1437,7 @@
       "训练误差低但测试误差高"
     ],
     "correct_answer": 3,
-    "explanation": "本题考查「过拟合与欠拟合」相关知识，正确答案为「训练误差低但测试误差高」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「过拟合与欠拟合」相关知识，正确答案为「训练误差低但测试误差高」。"
   },
   {
     "question_id": "q_kp_009_sup_low",
@@ -1615,9 +1455,7 @@
       "减少训练数据量"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「交叉验证」相关知识，正确答案为「更可靠地评估模型性能」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「交叉验证」相关知识，正确答案为「更可靠地评估模型性能」。"
   },
   {
     "question_id": "q_kp_009_2",
@@ -1635,9 +1473,7 @@
       "K=1"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「交叉验证」相关知识，正确答案为「K=n（样本数）」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「交叉验证」相关知识，正确答案为「K=n（样本数）」。"
   },
   {
     "question_id": "q_kp_009_concept_mid",
@@ -1655,9 +1491,7 @@
       "只使用测试集训练模型"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「交叉验证」标准流程概念，正确答案为「数据随机分成 K 等份，轮流取 1 份做验证、其余 K-1 份做训练，最后取 K 次结果的平均值」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「交叉验证」标准流程概念，正确答案为「数据随机分成 K 等份，轮流取 1 份做验证、其余 K-1 份做训练，最后取 K 次结果的平均值」。"
   },
   {
     "question_id": "q_kp_010_4",
@@ -1675,9 +1509,7 @@
       "模型的参数量"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「评估指标」相关知识，正确答案为「预测正确的样本占总样本的比例」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「评估指标」相关知识，正确答案为「预测正确的样本占总样本的比例」。"
   },
   {
     "question_id": "q_kp_010_2",
@@ -1695,9 +1527,7 @@
       "R²"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「评估指标」相关知识，正确答案为「F1分数」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「评估指标」相关知识，正确答案为「F1分数」。"
   },
   {
     "question_id": "q_kp_010_3",
@@ -1715,9 +1545,7 @@
       "所有阈值下正样本排在负样本之前的概率"
     ],
     "correct_answer": 3,
-    "explanation": "本题考查「评估指标」相关知识，正确答案为「所有阈值下正样本排在负样本之前的概率」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「评估指标」相关知识，正确答案为「所有阈值下正样本排在负样本之前的概率」。"
   },
   {
     "question_id": "q_kp_027_4",
@@ -1735,9 +1563,7 @@
       "降低模型复杂度"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「集成学习」相关知识，正确答案为「组合多个模型以提升整体效果」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「集成学习」相关知识，正确答案为「组合多个模型以提升整体效果」。"
   },
   {
     "question_id": "q_kp_027_2",
@@ -1755,9 +1581,7 @@
       "无需随机采样"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「集成学习」相关知识，正确答案为「降低方差、减少过拟合」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「集成学习」相关知识，正确答案为「降低方差、减少过拟合」。"
   },
   {
     "question_id": "q_kp_027_1",
@@ -1775,9 +1599,7 @@
       "Bagging只用于分类"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「集成学习」相关知识，正确答案为「Bagging并行训练、Boosting串行训练」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「集成学习」相关知识，正确答案为「Bagging并行训练、Boosting串行训练」。"
   },
   {
     "question_id": "q_kp_027_3",
@@ -1795,9 +1617,7 @@
       "随机森林串行训练"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「集成学习」相关知识，正确答案为「GBDT串行拟合残差、随机森林并行Bagging」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「集成学习」相关知识，正确答案为「GBDT串行拟合残差、随机森林并行Bagging」。"
   },
   {
     "question_id": "q_kp_011_4",
@@ -1815,9 +1635,7 @@
       "支持向量"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「神经元」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「神经元」。"
   },
   {
     "question_id": "q_kp_011_1",
@@ -1835,9 +1653,7 @@
       "注意力层、前馈层"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「输入层、隐藏层、输出层」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「输入层、隐藏层、输出层」。"
   },
   {
     "question_id": "q_kp_011_2",
@@ -1855,9 +1671,7 @@
       "损失函数求导"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「矩阵乘法和激活函数」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「矩阵乘法和激活函数」。"
   },
   {
     "question_id": "q_kp_011_3",
@@ -1875,9 +1689,7 @@
       "激活函数必须是ReLU"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「单隐层前馈网络足够宽时可逼近任意连续函数」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「神经网络基础」相关知识，正确答案为「单隐层前馈网络足够宽时可逼近任意连续函数」。"
   },
   {
     "question_id": "q_kp_012_4",
@@ -1895,9 +1707,7 @@
       "图神经网络"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「卷积神经网络CNN」相关知识，正确答案为「卷积神经网络」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「卷积神经网络CNN」相关知识，正确答案为「卷积神经网络」。"
   },
   {
     "question_id": "q_kp_012_3",
@@ -1915,9 +1725,7 @@
       "使用softmax输出"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「卷积神经网络CNN」相关知识，正确答案为「参数共享与局部连接」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「卷积神经网络CNN」相关知识，正确答案为「参数共享与局部连接」。"
   },
   {
     "question_id": "q_kp_012_1",
@@ -1935,9 +1743,7 @@
       "池化操作"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「卷积神经网络CNN」相关知识，正确答案为「滑动窗口的加权求和」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「卷积神经网络CNN」相关知识，正确答案为「滑动窗口的加权求和」。"
   },
   {
     "question_id": "q_kp_013_4",
@@ -1955,9 +1761,7 @@
       "图结构"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「序列数据（如文本、语音）」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「序列数据（如文本、语音）」。"
   },
   {
     "question_id": "q_kp_013_2",
@@ -1975,9 +1779,7 @@
       "数据标准化"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「语言建模」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「语言建模」。"
   },
   {
     "question_id": "q_kp_013_3",
@@ -1995,9 +1797,7 @@
       "与时间无关"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「结合当前输入与上一时间步隐藏状态」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「结合当前输入与上一时间步隐藏状态」。"
   },
   {
     "question_id": "q_kp_013_1",
@@ -2015,9 +1815,7 @@
       "决定学习率大小"
     ],
     "correct_answer": 2,
-    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「决定丢弃哪些旧信息」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「循环神经网络RNN/LSTM」相关知识，正确答案为「决定丢弃哪些旧信息」。"
   },
   {
     "question_id": "q_kp_014_sup_low",
@@ -2035,9 +1833,7 @@
       "推荐系统"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「自然语言处理」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「自然语言处理」。"
   },
   {
     "question_id": "q_kp_014_4",
@@ -2055,9 +1851,7 @@
       "决策树"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「自注意力机制」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「自注意力机制」。"
   },
   {
     "question_id": "q_kp_014_3",
@@ -2075,9 +1869,7 @@
       "残差连接"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「位置编码(Positional Encoding)」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「位置编码(Positional Encoding)」。"
   },
   {
     "question_id": "q_kp_014_2",
@@ -2095,9 +1887,7 @@
       "降低显存"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「在不同子空间学习注意力」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「在不同子空间学习注意力」。"
   },
   {
     "question_id": "q_kp_014_1",
@@ -2115,9 +1905,7 @@
       "队列、内核、向量"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「查询、键、值」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「Transformer与Attention」相关知识，正确答案为「查询、键、值」。"
   },
   {
     "question_id": "q_kp_015_sup_low",
@@ -2135,9 +1923,7 @@
       "防止过拟合"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「激活函数」相关知识，正确答案为「引入非线性」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「激活函数」相关知识，正确答案为「引入非线性」。"
   },
   {
     "question_id": "q_kp_015_2",
@@ -2155,9 +1941,7 @@
       "计算更复杂"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「激活函数」相关知识，正确答案为「缓解梯度消失」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「激活函数」相关知识，正确答案为「缓解梯度消失」。"
   },
   {
     "question_id": "q_kp_015_3",
@@ -2175,9 +1959,7 @@
       "处处导数为1"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「激活函数」相关知识，正确答案为「输出范围(0,1)，深层网络易梯度消失」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「激活函数」相关知识，正确答案为「输出范围(0,1)，深层网络易梯度消失」。"
   },
   {
     "question_id": "q_kp_028_4",
@@ -2195,9 +1977,7 @@
       "打乱数据顺序"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「把数据缩放到统一范围」。",
-    "level": "easy",
-    "level_label": "易"
+    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「把数据缩放到统一范围」。"
   },
   {
     "question_id": "q_kp_028_3",
@@ -2215,9 +1995,7 @@
       "LayerNorm只能用于CNN"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「LayerNorm在特征维度归一化、与batch大小无关」。",
-    "level": "medium",
-    "level_label": "中"
+    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「LayerNorm在特征维度归一化、与batch大小无关」。"
   },
   {
     "question_id": "q_kp_028_1",
@@ -2235,9 +2013,7 @@
       "改变batch大小"
     ],
     "correct_answer": 0,
-    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「归一化到均值0方差1」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「归一化到均值0方差1」。"
   },
   {
     "question_id": "q_kp_028_2",
@@ -2255,8 +2031,6 @@
       "推理时不使用BatchNorm"
     ],
     "correct_answer": 1,
-    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「训练用batch统计量，推理用全局统计量」。",
-    "level": "hard",
-    "level_label": "难"
+    "explanation": "本题考查「BatchNorm与归一化」相关知识，正确答案为「训练用batch统计量，推理用全局统计量」。"
   }
 ]

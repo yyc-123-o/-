@@ -49,9 +49,6 @@ def simulation_test():
             institution="某职业技术学院",
         ),
         self_assessment=SelfAssessment(
-            ml_level="刚接触，跟着B站教程跑过demo",
-            dl_level="完全不了解",
-            math_level="高数学过但忘了很多",
             learning_goal="入门AI，能看懂简单的ML代码",
             weekly_hours=5,
         ),
@@ -79,9 +76,6 @@ def simulation_test():
             relevant_courses=["机器学习", "数据结构", "概率论与数理统计", "高等数学"],
         ),
         self_assessment=SelfAssessment(
-            ml_level="了解基础，做过sklearn项目",
-            dl_level="知道CNN/RNN名字，没实际写过",
-            math_level="微积分和线代还行，概率论偏弱",
             learning_goal="系统掌握深度学习，能独立完成CV方向项目",
             weekly_hours=10,
         ),
@@ -109,9 +103,6 @@ def simulation_test():
             relevant_courses=["深度学习", "机器学习", "计算机视觉", "NLP", "最优化方法", "矩阵论"],
         ),
         self_assessment=SelfAssessment(
-            ml_level="熟练掌握，有过Kaggle竞赛经验",
-            dl_level="熟悉CNN/RNN/Transformer，独立完成过项目",
-            math_level="数学基础扎实，能看懂论文公式推导",
             learning_goal="深入LLM前沿，准备发表一篇NLP方向论文",
             weekly_hours=20,
         ),

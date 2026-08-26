@@ -15,55 +15,132 @@
     ]
   },
   "self_assessment": {
-    "ml_level": "了解基础，做过sklearn项目",
-    "dl_level": "知道CNN/RNN名字，没实际写过",
-    "math_level": "微积分和线代还行，概率论偏弱",
-    "programming_level": "熟悉，能独立完成sklearn项目",
     "learning_goal": "系统掌握深度学习，能独立完成CV方向项目",
     "weekly_hours": 10,
-    "position": "班级学习委员",
-    "strengths": "机器学习基础较好，会特征工程与调参；微积分和线代尚可",
-    "weaknesses": "概率论偏弱，深度学习只懂概念、缺乏代码实操经验",
-    "courses": [
+    "domain_assessments": [
       {
-        "name": "高等数学",
-        "level": "基础",
-        "note": "微积分基本掌握"
+        "domain": "数学基础",
+        "courses": [
+          {
+            "name": "高等数学",
+            "level": "基础",
+            "note": "微积分基本掌握",
+            "kp_id": null
+          },
+          {
+            "name": "线性代数",
+            "level": "基础",
+            "note": "矩阵运算熟练",
+            "kp_id": null
+          },
+          {
+            "name": "概率论与数理统计",
+            "level": "入门",
+            "note": "偏弱",
+            "kp_id": null
+          },
+          {
+            "name": "最优化方法",
+            "level": "入门",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "微积分和线代尚可，概率论偏弱",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "线性代数",
-        "level": "基础",
-        "note": "矩阵运算熟练"
+        "domain": "机器学习基础",
+        "courses": [
+          {
+            "name": "机器学习",
+            "level": "基础",
+            "note": "会线性回归/分类/聚类",
+            "kp_id": null
+          },
+          {
+            "name": "数据结构与算法",
+            "level": "基础",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "会特征工程与调参",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "概率论与数理统计",
-        "level": "入门",
-        "note": "偏弱"
+        "domain": "深度学习",
+        "courses": [
+          {
+            "name": "深度学习",
+            "level": "入门",
+            "note": "只懂CNN/RNN概念",
+            "kp_id": null
+          },
+          {
+            "name": "计算机视觉",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "自然语言处理",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "只懂概念、缺乏代码实操",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "Python编程",
-        "level": "熟练",
-        "note": "做过sklearn项目"
+        "domain": "优化算法",
+        "courses": [
+          {
+            "name": "最优化方法",
+            "level": "入门",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "凸优化",
+            "level": "未学过",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "基础优化方法入门",
+        "mode": null,
+        "guided_answers": null
       },
       {
-        "name": "数据结构与算法",
-        "level": "基础",
-        "note": ""
-      },
-      {
-        "name": "机器学习",
-        "level": "基础",
-        "note": "会线性回归/分类/聚类"
-      },
-      {
-        "name": "深度学习",
-        "level": "入门",
-        "note": "只懂CNN/RNN概念"
-      },
-      {
-        "name": "最优化方法",
-        "level": "入门",
-        "note": ""
+        "domain": "实践应用",
+        "courses": [
+          {
+            "name": "Python编程",
+            "level": "熟练",
+            "note": "做过sklearn项目",
+            "kp_id": null
+          },
+          {
+            "name": "数据处理与特征工程",
+            "level": "基础",
+            "note": "",
+            "kp_id": null
+          },
+          {
+            "name": "模型调参与部署",
+            "level": "入门",
+            "note": "",
+            "kp_id": null
+          }
+        ],
+        "note": "能独立完成sklearn项目",
+        "mode": null,
+        "guided_answers": null
       }
     ],
     "projects": [

@@ -71,48 +71,101 @@ def _ability_level_str(theta: float) -> str:
         return "advanced"
 
 
-# 分课程自评 → 领域级结论
-_COURSE_LEVEL_SCORE = {"未学过": 0.0, "入门": 0.35, "基础": 0.60, "熟练": 0.80, "精通": 1.00}
-
-_COURSE_DOMAIN_MAP = {
-    "数学基础": ["高等数学", "线性代数", "概率论与数理统计", "最优化方法"],
-    "机器学习基础": ["机器学习", "数据结构与算法"],
-    "深度学习": ["深度学习"],
-    "编程能力": ["Python编程"],
+# 五维领域自评 → 领域级结论
+# 0825 最终版：统一三档自评（未学过/基本了解/熟练掌握），兼容旧版五档字符串（上传数据/示例仍可解析）
+_COURSE_LEVEL_SCORE = {
+    # 新版三档
+    "未学过": 0.0,
+    "基本了解": 0.45,
+    "熟练掌握": 0.9,
+    # 旧版五档（兼容保留，避免旧JSON/mock数据失败）
+    "入门": 0.35,
+    "基础": 0.60,
+    "熟练": 0.80,
+    "精通": 1.00,
 }
 
 
 def _self_assessed_domain_hints(sa) -> Dict[str, dict]:
-    """把分课程自评映射为领域级自评结论 (数学/机器学习/深度学习/编程)"""
-    if not sa:
+    """把五维领域自评映射为领域级结论
+
+    输入: sa.domain_assessments (数学基础/机器学习基础/深度学习/优化算法/实践应用)
+    输出: {领域名: {mean, level, n_courses}}
+    0825 更新: 兼容两种模式（模式1知识点细化/模式2整体自评合成），过滤_synthetic标记课程仅保留1次权重
+    """
+    if not sa or not sa.domain_assessments:
         return {}
 
-    domain_scores: Dict[str, List[float]] = {}
-    courses = list(sa.courses)
-    for assessment in getattr(sa, "domain_assessments", ()):
-        courses.extend(assessment.courses)
-    for course in courses:
-        score = _COURSE_LEVEL_SCORE.get(course.level, 0.0)
-        for domain, names in _COURSE_DOMAIN_MAP.items():
-            if course.name in names:
-                domain_scores.setdefault(domain, []).append(score)
-
     hints: Dict[str, dict] = {}
-    for domain, scores in domain_scores.items():
-        mean = sum(scores) / len(scores)
-        level = "强" if mean >= 0.70 else "中" if mean >= 0.40 else "弱"
-        hints[domain] = {"mean": round(mean, 2), "level": level, "n_courses": len(scores)}
-    for assessment in getattr(sa, "domain_assessments", ()):
-        if not assessment.courses:
+    for da in sa.domain_assessments:
+        if not da.courses:
             continue
-        scores = [_COURSE_LEVEL_SCORE.get(course.level, 0.0) for course in assessment.courses]
+        # 模式2(guided_questions)下 courses 里只有 1 条 _synthetic 整体自评；
+        # 模式1(knowledge_points)下有多条真实 kp 自评，按数量正常平均即可
+        scores = [_COURSE_LEVEL_SCORE.get(c.level, 0.0) for c in da.courses]
+        if not scores:
+            continue
         mean = sum(scores) / len(scores)
         level = "强" if mean >= 0.70 else "中" if mean >= 0.40 else "弱"
-        hints.setdefault(
-            assessment.domain or "未命名领域",
-            {"mean": round(mean, 2), "level": level, "n_courses": len(scores)},
-        )
+        hints[da.domain] = {"mean": round(mean, 2), "level": level, "n_courses": len(scores)}
     return hints
+
+
+def _self_assessed_kp_priors(sa) -> Dict[str, dict]:
+    """【0825新增】模式1（knowledge_points）下，利用细化到kp_id的自评生成知识点级先验掌握度
+
+    输入: sa.domain_assessments（其中部分 course.kp_id 绑定到了教学点）
+    输出: {kp_id: {"mastery": float, "level": str, "name": str, "confidence": float}}
+    """
+    priors: Dict[str, dict] = {}
+    if not sa or not sa.domain_assessments:
+        return priors
+    # 同 kp_id 可能出现多次（多个知识点名映射到同一个kp_id，例如"矩阵乘法"和"特征值"都属于kp_004）
+    # 聚合方式：按 kp_id 分组取均值，置信度随条目数递增
+    grouped: Dict[str, List[dict]] = {}
+    for da in sa.domain_assessments:
+        for c in da.courses:
+            if not c.kp_id:
+                continue
+            s = _COURSE_LEVEL_SCORE.get(c.level, 0.0)
+            grouped.setdefault(c.kp_id, []).append({"mastery": s, "level": c.level, "name": c.name})
+    for kp_id, items in grouped.items():
+        if not items:
+            continue
+        avg_m = sum(x["mastery"] for x in items) / len(items)
+        # 自评置信度：条目越多越可信，最高0.65；最少1条时0.35（比完全未探索的0.20高一些）
+        conf = min(0.35 + 0.05 * len(items), 0.65)
+        # 选第一条出现的name作为代表名（都隶属于同一kp_id，语义相近）
+        priors[kp_id] = {
+            "mastery": round(avg_m, 4),
+            "level": items[0]["level"],
+            "name": items[0]["name"],
+            "n_items": len(items),
+            "confidence": round(conf, 2),
+        }
+    return priors
+
+
+def _extract_programming_level(sa) -> str:
+    """从五维自评中提取编程能力（实践领域的 Python 编程水平）"""
+    if not sa or not sa.domain_assessments:
+        return "入门"
+    for da in sa.domain_assessments:
+        if da.domain in ("实践应用", "实践"):
+            for c in da.courses:
+                if "Python" in c.name or "编程" in c.name:
+                    return c.level
+            if da.courses:
+                scores = [_COURSE_LEVEL_SCORE.get(c.level, 0.0) for c in da.courses]
+                avg = sum(scores) / len(scores)
+                if avg >= 0.80:
+                    return "熟练"
+                elif avg >= 0.60:
+                    return "基础"
+                elif avg >= 0.35:
+                    return "入门"
+                return "未学过"
+    return "入门"
 
 
 def _compute_status_distribution(status_map: Dict[str, str]) -> Dict[str, StatusDistributionItem]:
@@ -129,11 +182,7 @@ def _compute_status_distribution(status_map: Dict[str, str]) -> Dict[str, Status
 # 各子模块构建函数
 # ============================================================
 
-def _build_learning_scope(
-    kg: KnowledgeGraph,
-    current_chapter_id: str = "ch03_cnn",
-    mastery_map: Dict[str, float] | None = None,
-) -> LearningScope:
+def _build_learning_scope(kg: KnowledgeGraph, current_chapter_id: str = "ch03_cnn", mastery_map: Dict[str, float] = None) -> LearningScope:
     """构建章节级学习范围"""
     ch = kg.get_chapter(current_chapter_id)
     if not ch:
@@ -148,8 +197,15 @@ def _build_learning_scope(
     primary_kp = kg.get(ch.primary_kp_id)
     successors = kg.get_chapter_successors(current_chapter_id)
 
+    # 动态确定目标深度：基于主知识点掌握度
     primary_mastery = (mastery_map or {}).get(ch.primary_kp_id, 0.0)
-    target_depth = "入门" if primary_mastery < 0.40 else "进阶" if primary_mastery < 0.75 else "复习"
+    if primary_mastery >= 0.75:
+        target_depth = "回顾"
+    elif primary_mastery >= 0.40:
+        target_depth = "进阶"
+    else:
+        target_depth = "入门"
+
     return LearningScope(
         scope_type="chapter",
         chapter_id=ch.chapter_id,
@@ -171,7 +227,7 @@ def _build_learning_scope(
             )
             for sc in successors
         ],
-        path_note="学习路径一次性生成，学习过程中路径不变，只更新画像。若ch03正确率<60%，ch04自动降为入门层。",
+        path_note="学习路径一次性生成，学习过程中路径不变，只更新画像。若当前章节正确率<60%，下一章节自动降为入门层。",
     )
 
 
@@ -184,14 +240,28 @@ def _build_knowledge_mastery(
     status_map: Dict[str, str],
     global_theta: float,
     overall_accuracy: float,
+    kp_priors: Optional[Dict[str, dict]] = None,
 ) -> KnowledgeMastery:
-    """构建知识点掌握度矩阵"""
+    """构建知识点掌握度矩阵
+    0825 更新: 新增 kp_priors 参数 — 模式1自评细化到kp_id的先验掌握度，
+    用于未测评节点（test_count=0）时输出自评推断值而不是 None，提升画像信息量。
+    """
+    kp_priors = kp_priors or {}
+
     # 分领域汇总
     domain_summary: Dict[str, DomainSummaryItem] = {}
     domain_scores: Dict[str, List[float]] = {}
     domain_counts: Dict[str, int] = {}
     for kp in kg.points:
-        domain_scores.setdefault(kp.domain, []).append(mastery_map.get(kp.id, 0.0))
+        # 计算每个 kp 的展示用 mastery（IRT结果 or 自评先验 or 0）
+        tc = test_count_map.get(kp.id, 0)
+        if tc > 0:
+            show_m = mastery_map.get(kp.id, 0.0)
+        elif kp.id in kp_priors:
+            show_m = kp_priors[kp.id]["mastery"]
+        else:
+            show_m = mastery_map.get(kp.id, 0.0)
+        domain_scores.setdefault(kp.domain, []).append(show_m)
         domain_counts[kp.domain] = domain_counts.get(kp.domain, 0) + 1
     for domain, scores in domain_scores.items():
         domain_summary[domain] = DomainSummaryItem(
@@ -201,29 +271,70 @@ def _build_knowledge_mastery(
 
     # 各知识点
     points: Dict[str, KpMasteryPoint] = {}
+    # 为了status_distribution正确，也要更新status展示值
+    display_status_map = dict(status_map)
+
     for kp in kg.points:
-        points[kp.id] = KpMasteryPoint(
-            name=kp.name,
-            domain=kp.domain,
-            mastery=(
-                round(mastery_map.get(kp.id, 0.0), 4)
-                if test_count_map.get(kp.id, 0) > 0
-                else None
-            ),
-            status=status_map.get(kp.id, "unexplored"),
-            theta_kp=round(theta_map.get(kp.id, 0.0), 2),
-            test_count=test_count_map.get(kp.id, 0),
-            confidence=confidence_map.get(kp.id, 0.0),
-        )
+        tc = test_count_map.get(kp.id, 0)
+        st = status_map.get(kp.id, "unexplored")
+        prior = kp_priors.get(kp.id)
+        # 未测评但有自评先验：展示自评mastery，并根据mastery给出status，置信度使用自评置信度
+        if tc == 0 and prior is not None:
+            p_m = prior["mastery"]
+            p_conf = prior["confidence"]
+            p_st = (
+                "mastered" if p_m >= 0.75
+                else "familiar" if p_m >= 0.60
+                else "partial" if p_m >= 0.40
+                else "weak" if p_m >= 0.25
+                else "not_learned"
+            )
+            display_status_map[kp.id] = p_st
+            # theta_kp 也根据自评mastery反推一个近似值（IRT sigmoid逆函数大致映射）
+            # 近似: mastery≈0.5→theta≈0; mastery≈0.2→theta≈-0.8; mastery≈0.8→theta≈+0.8
+            approx_theta = round((p_m - 0.5) * 2.0, 2)
+            points[kp.id] = KpMasteryPoint(
+                name=kp.name,
+                domain=kp.domain,
+                mastery=round(p_m, 4),
+                status=p_st,
+                theta_kp=approx_theta,
+                test_count=0,
+                confidence=p_conf,
+            )
+        elif tc == 0:
+            # P0-5: 完全未测评节点（无自评）输出 mastery=None, status="unexplored"
+            points[kp.id] = KpMasteryPoint(
+                name=kp.name,
+                domain=kp.domain,
+                mastery=None,
+                status="unexplored",
+                theta_kp=round(theta_map.get(kp.id, 0.0), 2),
+                test_count=0,
+                confidence=confidence_map.get(kp.id, 0.20),
+            )
+        else:
+            points[kp.id] = KpMasteryPoint(
+                name=kp.name,
+                domain=kp.domain,
+                mastery=round(mastery_map.get(kp.id, 0.0), 4),
+                status=st,
+                theta_kp=round(theta_map.get(kp.id, 0.0), 2),
+                test_count=tc,
+                confidence=confidence_map.get(kp.id, 0.0),
+            )
 
     return KnowledgeMastery(
         global_theta=round(global_theta, 2),
         ability_level=_ability_level_str(global_theta),
         overall_accuracy=round(overall_accuracy, 3),
-        confidence_note=f"全局θ基于{sum(test_count_map.values())}题MLE估计，学历先验已纳入，L2正则λ=0.5",
+        confidence_note=(
+            f"全局θ基于{sum(test_count_map.values())}题MLE估计，学历先验已纳入，L2正则λ=0.5。"
+            + (f"模式1自评先验覆盖{len(kp_priors)}个知识点（test_count=0节点以自评显示，置信度0.35~0.65）。" if kp_priors else "")
+        ),
         domain_summary=domain_summary,
         points=points,
-        status_distribution=_compute_status_distribution(status_map),
+        status_distribution=_compute_status_distribution(display_status_map),
     )
 
 
@@ -306,19 +417,19 @@ def _build_learning_preferences(
     else:
         interaction_level = "low"
 
-    # 自填问卷驱动的偏好 (项目/职位/编程能力)
+    # 自填问卷驱动的偏好 (项目/编程能力)
     sa = self_assessment
     projects = sa.projects if sa and sa.projects else []
-    position = sa.position if sa and sa.position else ""
-    programming_level = sa.programming_level if sa and sa.programming_level else "入门"
-    strengths = sa.strengths if sa and sa.strengths else ""
+    programming_level = _extract_programming_level(sa)
+    domain_hints = _self_assessed_domain_hints(sa)
+    strengths_note = "，".join(f"{d}={h['level']}" for d, h in domain_hints.items()) if domain_hints else ""
+    weekly_hours = int(getattr(sa, "weekly_hours", 10) or 10)
 
     primary_motivation = sa.learning_goal if sa and sa.learning_goal else "提升AI能力"
-    secondary_motivation = f"担任角色：{position}" if position else ""
+    secondary_motivation = ""
     project_driven = len(projects) > 0
     target_project = " → ".join([p.name for p in projects[:3]]) if projects else ""
 
-    weekly_hours = int(getattr(sa, "weekly_hours", 10) or 10)
     return LearningPreferences(
         format=FormatPreference(
             content_order=["概念直觉理解", "数学推导", "代码实战", "面试考点"],
@@ -326,7 +437,7 @@ def _build_learning_preferences(
             framework="PyTorch",
             framework_level=programming_level,
             framework_confidence=0.75,
-            confidence_note=strengths if strengths else "自填问卷未填写优势描述",
+            confidence_note=strengths_note if strengths_note else "自填问卷未填写课程自评",
         ),
         style=StylePreference(
             visual_learner=True,
@@ -356,18 +467,17 @@ def _build_learning_preferences(
     )
 
 
-def _build_depth_labels(
-    kg: KnowledgeGraph,
-    mastery_map: Dict[str, float],
-    test_count_map: Dict[str, int] | None = None,
-) -> List[DepthLabel]:
+def _build_depth_labels(kg: KnowledgeGraph, mastery_map: Dict[str, float], test_count_map: Dict[str, int] = None) -> List[DepthLabel]:
     """根据掌握度自动分配深度标签"""
+    test_count_map = test_count_map or {}
     labels: List[DepthLabel] = []
     for kp in kg.points:
+        tc = test_count_map.get(kp.id, 0)
         m = mastery_map.get(kp.id, 0.0)
-        if (test_count_map or {}).get(kp.id, 0) == 0:
-            depth, rationale = "entry", "未测评，先安排诊断题后再确定学习深度"
-        elif m >= 0.75:
+        if tc == 0:
+            labels.append(DepthLabel(kp_id=kp.id, kp_name=kp.name, depth="entry", rationale="未测评，默认入门讲授"))
+            continue
+        if m >= 0.75:
             depth, rationale = "skip", f"mastery={m:.2f} 已掌握"
         elif m >= 0.60:
             depth, rationale = "review", f"mastery={m:.2f} 需简单回顾"
@@ -389,147 +499,245 @@ def _build_depth_labels(
 def _build_resource_hints(
     kg: KnowledgeGraph,
     learning_scope: LearningScope,
+    depth_labels: List[DepthLabel],
     error_patterns: ErrorPatterns,
     mastery_map: Dict[str, float],
+    knowledge_gaps: List[KnowledgeGap],
 ) -> ResourceGenerationHints:
-    """构建章节级资源生成提示"""
+    """构建章节级资源生成提示 — 动态生成，无硬编码章节特例
+
+    依据 learning_scope.primary_kp_id、当前章节知识点集合、depth_labels、
+    knowledge_gaps、error_patterns 和学习偏好动态生成资源提示。
+    每个章节均生成同一结构的 lecture_notes / practical_guide / test_questions。
+    """
+    ch = kg.get_chapter(learning_scope.chapter_id)
     ch_id = learning_scope.chapter_id
 
-    # 计算实际的 depth_rationale
+    # 收集该章节涉及的所有知识点（主知识点 + 前驱 + 共修）
+    chapter_kp_ids: List[str] = []
+    if ch:
+        chapter_kp_ids = list(set(
+            [ch.primary_kp_id] + ch.predecessor_kp_ids + ch.co_requisite_kp_ids
+        ))
+    chapter_kps = [kg.get(kid) for kid in chapter_kp_ids if kg.get(kid)]
+    chapter_kps = [kp for kp in chapter_kps if kp is not None]
+
+    # 从 depth_labels 获取主知识点的深度
+    primary_depth = "entry"
+    primary_rationale = ""
+    for dl in depth_labels:
+        if dl.kp_id == learning_scope.primary_kp_id:
+            primary_depth = dl.depth
+            primary_rationale = dl.rationale
+            break
+
+    # depth 映射为中文
+    DEPTH_CN = {"skip": "跳过", "review": "回顾", "entry": "入门", "advanced": "进阶"}
+    target_depth_cn = DEPTH_CN.get(primary_depth, "入门")
+
+    # 计算 ML 基础均值用于 depth_rationale
     ml_domains = ["数学基础", "机器学习基础"]
-    ml_mean_val = sum(
-        mastery_map.get(kid, 0.0)
-        for kp in kg.points if kp.domain in ml_domains
-        for kid in [kp.id]
-    ) / max(1, sum(1 for kp in kg.points if kp.domain in ml_domains))
+    ml_kps = [kp for kp in kg.points if kp.domain in ml_domains]
+    ml_mean_val = sum(mastery_map.get(kp.id, 0.0) for kp in ml_kps) / max(1, len(ml_kps))
 
     depth_rationale = (
-        f"基础相关知识均值={ml_mean_val:.2f}；"
-        f"按当前主节点掌握度和测试证据生成{learning_scope.target_depth}内容"
+        f"主知识点「{learning_scope.primary_kp_name}」深度={target_depth_cn}（{primary_rationale}）。"
+        f"学习者ML基础均值{ml_mean_val:.2f}，"
+        f"{'有能力接受原理级讲解' if ml_mean_val > 0.45 else '建议从基础讲起'}。"
     )
 
-    # 章节提示统一由当前主节点和画像动态生成。
-    kp = kg.get(learning_scope.primary_kp_id)
-    topic = kp.name if kp else learning_scope.primary_kp_name or "当前知识点"
-    description = kp.description if kp else ""
-    error_names = [item.category for item in error_patterns.items if item.count > 0]
-    attention = (
-        "；".join(error_names) + "相关错误需要逐步解释和反例练习"
-        if error_names
-        else "当前没有足够错误记录，先用形成性测验确认理解"
-    )
-    requirements = [
-        f"解释{topic}的定义、输入、核心过程和输出",
-        f"结合课程图谱描述：{description}",
-    ]
-    if learning_scope.predecessor_kp_ids:
-        requirements.append(f"回顾前置知识：{', '.join(learning_scope.predecessor_kp_ids)}")
+    # 该章节的盲区
+    chapter_gaps = [g for g in knowledge_gaps if g.kp_id in chapter_kp_ids]
+    gap_kp_names = [g.kp_name for g in chapter_gaps[:5]]
+
+    # 错误模式相关
+    primary_err = error_patterns.primary_weakness if error_patterns.primary_weakness else ""
+    error_mitigations: List[str] = []
+    if primary_err:
+        error_mitigations.append(f"概念理解题：设置2个以上易混淆干扰项（回应'{primary_err}'弱点）")
+    if "计算错误" in [i.category for i in error_patterns.items]:
+        error_mitigations.append("计算推导题：要求写出中间步骤")
+    if "逻辑跳跃" in [i.category for i in error_patterns.items]:
+        error_mitigations.append("综合分析题：要求列出推理步骤，不可跳步")
+    if "忽略条件" in [i.category for i in error_patterns.items]:
+        error_mitigations.append("题干中用加粗突出约束条件")
+
+    # 讲义 must_include：从章节知识点描述动态生成
+    lecture_must: List[str] = []
+    for kp in chapter_kps[:6]:
+        lecture_must.append(f"{kp.name}：{kp.description or '核心概念与原理'}")
+    if gap_kp_names:
+        lecture_must.append(f"重点关注薄弱知识点：{', '.join(gap_kp_names)}")
+
+    lecture_avoid: List[str] = []
+    if primary_err:
+        lecture_avoid.append(f"避免纯代码堆砌而无原理铺垫（回应'{primary_err}'弱点）")
+
+    # 对比表：基于同领域知识点
+    comparison_tables: List[str] = []
+    domains_in_chapter = set(kp.domain for kp in chapter_kps)
+    for d in domains_in_chapter:
+        d_kps = [kp for kp in chapter_kps if kp.domain == d]
+        if len(d_kps) >= 2:
+            comparison_tables.append(f"{d}领域内各知识点的对比（{', '.join(k.name for k in d_kps[:4])}）")
+
+    # 实操指南
+    practical_must: List[str] = []
+    for kp in chapter_kps[:4]:
+        practical_must.append(f"{kp.name}的代码实现与运行验证")
+    practical_must.append("训练循环含loss/accuracy曲线可视化代码")
+    practical_must.append("常见Bug调试指南")
+
+    # 测试题
+    n_kps = len(chapter_kps)
+    total_questions = max(8, min(12, n_kps * 2))
+    n_easy = max(2, total_questions // 4)
+    n_hard = max(2, total_questions // 4)
+    n_medium = total_questions - n_easy - n_hard
+
+    test_must_cover: List[str] = []
+    for kp in chapter_kps[:5]:
+        test_must_cover.append(f"{kp.name}相关概念与计算")
+
     return ResourceGenerationHints(
         scope="chapter",
-        scope_note=(
-            f"针对{learning_scope.chapter_name}的主节点"
-            f"{learning_scope.primary_kp_id}生成三类学习资源"
-        ),
+        scope_note=f"以下提示针对完整章节 {ch_id}（{learning_scope.chapter_name}/{target_depth_cn}层），"
+                   f"资源生成Agent需据此生成该章的全部3类资源",
         target_chapter_id=ch_id,
         target_chapter_name=learning_scope.chapter_name,
-        target_depth=learning_scope.target_depth,
+        target_depth=target_depth_cn,
         depth_rationale=depth_rationale,
         lecture_notes=LectureNotesHints(
-            must_include=requirements,
-            avoid=["只罗列术语而不解释推理过程", "跳过前置条件和输入输出边界"],
-            comparison_tables=["当前知识点与其前置知识的差异"],
-            error_pattern_attention=attention,
-            estimated_pages="6-10页（按深度和学习目标调整）",
+            must_include=lecture_must,
+            avoid=lecture_avoid,
+            comparison_tables=comparison_tables,
+            error_pattern_attention=f"注意针对'{primary_err}'错误模式设计对比讲解" if primary_err else "",
+            estimated_pages=f"{max(8, n_kps * 2)}-{max(12, n_kps * 3)}页（含图）",
         ),
         practical_guide=PracticalGuideHints(
-            must_include=[
-                f"用最小可运行示例实现{topic}",
-                "打印输入、中间结果和输出并解释形状",
-            ],
-            code_style="分步 Python 单元，每段包含目标、代码、预期输出和检查条件",
-            dataset="使用可复现的最小合成数据，避免依赖未声明的外部数据",
-            framework="Python；按学习者画像中的框架偏好调整",
-            estimated_cells="6-12 cells",
+            must_include=practical_must,
+            code_style="Jupyter Notebook分段式，每段不超过30行，Markdown + Code交替，函数/类有完整docstring",
+            dataset="根据章节内容选择合适的数据集",
+            framework="PyTorch 2.x",
+            estimated_cells=f"{max(10, n_kps * 2)}-{max(16, n_kps * 3)} cells",
         ),
         test_questions=TestQuestionsHints(
-            total=8,
-            distribution={"概念理解": 3, "步骤/计算": 2, "代码或形状": 2, "综合迁移": 1},
+            total=total_questions,
+            distribution={
+                "概念理解（选择题/判断题）": max(2, total_questions // 3),
+                "计算推导": max(2, total_questions // 4),
+                "代码填空": max(1, total_questions // 4),
+                "综合分析": max(1, total_questions // 5),
+            },
             difficulty={
-                "easy": {"count": 3},
-                "medium": {"count": 3},
-                "hard": {"count": 2},
+                "easy": {"count": n_easy, "target_accuracy": ">80%"},
+                "medium": {"count": n_medium, "target_accuracy": "60-80%"},
+                "hard": {"count": n_hard, "target_accuracy": "40-60%"},
             },
             target_overall_accuracy_range=[0.60, 0.85],
-            error_pattern_mitigations=[f"针对{attention}"],
-            must_cover=[topic, *learning_scope.predecessor_kp_ids],
-            estimated_time_minutes=30,
+            error_pattern_mitigations=error_mitigations if error_mitigations else ["根据学习者错误模式调整题目设计"],
+            must_cover=test_must_cover,
+            estimated_time_minutes=max(30, total_questions * 4),
         ),
     )
 
 
 def _build_prior_chapters(
-    kg: KnowledgeGraph,
     learner: Learner,
+    kg: KnowledgeGraph,
     current_chapter_id: str,
 ) -> List[PriorChapter]:
-    """Aggregate observed evidence for chapters before the current chapter.
+    """构建前序章节表现 — 基于真实测试记录和交互记录计算
 
-    Learner records are knowledge-point-scoped rather than chapter-scoped. A
-    record therefore contributes only when it belongs to the chapter's primary
-    concept or a co-requisite; prerequisite records are intentionally excluded
-    because they may be shared by multiple chapters.
+    无测试记录的章节不生成历史条目。
+    accuracy / time_spent / error_patterns 均由当前学习者数据聚合获得。
     """
-    current_chapter = kg.get_chapter(current_chapter_id)
-    if not current_chapter:
+    # 确定当前章节在路径中的位置
+    current_ch = kg.get_chapter(current_chapter_id)
+    if not current_ch:
         return []
 
-    history: List[PriorChapter] = []
-    for chapter in kg.chapters:
-        if chapter.chapter_order >= current_chapter.chapter_order:
-            continue
+    prior_chapters: List[PriorChapter] = []
+    for ch in kg.chapters:
+        if ch.chapter_order >= current_ch.chapter_order:
+            break
 
-        chapter_kp_ids = [chapter.primary_kp_id, *chapter.co_requisite_kp_ids]
-        records = [
-            record
-            for record in learner.test_records
-            if record.knowledge_point_id in chapter_kp_ids
-        ]
-        if not records:
-            continue
-
-        accuracy = sum(record.is_correct for record in records) / len(records)
-        total_hours = sum(record.time_spent for record in records) / 3600
-        covered = [kp_id for kp_id in chapter_kp_ids if any(
-            record.knowledge_point_id == kp_id for record in records
-        )]
-        error_patterns = sorted({
-            record.error_pattern for record in records if record.error_pattern
-        })
-        latest_evidence = max(record.timestamp for record in records).strftime("%Y-%m-%d")
-
-        if accuracy < 0.60:
-            depth = "entry"
-            conclusion = "章节证据显示基础尚不稳定，后续相关内容从入门层衔接。"
-        elif accuracy < 0.80:
-            depth = "review"
-            conclusion = "章节证据显示基本掌握，后续相关内容先安排复习与巩固。"
-        else:
-            depth = "advanced"
-            conclusion = "章节证据显示掌握较好，后续相关内容可提高到进阶层。"
-
-        history.append(PriorChapter(
-            chapter_id=chapter.chapter_id,
-            chapter_name=chapter.chapter_name,
-            accuracy=round(accuracy, 3),
-            time_spent_hours=round(total_hours, 2),
-            depth_assigned=depth,
-            kps_covered=covered,
-            error_patterns_observed=error_patterns,
-            completed_at=None,
-            conclusion=f"{conclusion} 最近证据日期：{latest_evidence}；未记录显式章节完成事件。",
+        # 收集该章节涉及的知识点
+        chapter_kp_ids = list(set(
+            [ch.primary_kp_id] + ch.predecessor_kp_ids + ch.co_requisite_kp_ids
         ))
 
-    return history
+        # 筛选属于该章节知识点的测试记录
+        chapter_tests = [
+            t for t in learner.test_records
+            if t.knowledge_point_id in chapter_kp_ids
+        ]
+        # 筛选交互记录
+        chapter_interactions = [
+            i for i in learner.interaction_records
+            if i.knowledge_point_id in chapter_kp_ids
+        ]
+
+        # 无记录则跳过该章节
+        if not chapter_tests and not chapter_interactions:
+            continue
+
+        # 计算准确率
+        if chapter_tests:
+            correct = sum(1 for t in chapter_tests if t.is_correct)
+            accuracy = round(correct / len(chapter_tests), 3)
+        else:
+            accuracy = 0.0
+
+        # 计算用时（小时）
+        total_time_seconds = sum(t.time_spent for t in chapter_tests)
+        total_time_seconds += sum(i.duration for i in chapter_interactions)
+        time_spent_hours = round(total_time_seconds / 3600.0, 2)
+
+        # 聚合错误模式
+        error_cats: List[str] = []
+        for t in chapter_tests:
+            if not t.is_correct and t.error_pattern:
+                if t.error_pattern not in error_cats:
+                    error_cats.append(t.error_pattern)
+
+        # 覆盖的知识点
+        tested_kps = list(set(t.knowledge_point_id for t in chapter_tests))
+
+        # 完成时间：取该章节最后一条测试/交互记录的时间戳
+        all_timestamps: List[datetime] = []
+        for t in chapter_tests:
+            if hasattr(t, 'timestamp') and t.timestamp:
+                all_timestamps.append(t.timestamp)
+        for i in chapter_interactions:
+            if hasattr(i, 'timestamp') and i.timestamp:
+                all_timestamps.append(i.timestamp)
+        completed_at = max(all_timestamps).strftime("%Y-%m-%dT%H:%M:%SZ") if all_timestamps else None
+
+        # 深度判定
+        if accuracy >= 0.75:
+            depth_assigned = "review"
+            conclusion = f"准确率{accuracy:.0%}，掌握良好，已做回顾性验证"
+        elif accuracy >= 0.50:
+            depth_assigned = "advanced"
+            conclusion = f"准确率{accuracy:.0%}，基本掌握，需巩固提升"
+        else:
+            depth_assigned = "entry"
+            conclusion = f"准确率{accuracy:.0%}，掌握不足，建议重新学习"
+
+        prior_chapters.append(PriorChapter(
+            chapter_id=ch.chapter_id,
+            chapter_name=ch.chapter_name,
+            accuracy=accuracy,
+            time_spent_hours=time_spent_hours,
+            depth_assigned=depth_assigned,
+            kps_covered=tested_kps,
+            error_patterns_observed=error_cats,
+            completed_at=completed_at,
+            conclusion=conclusion,
+        ))
+
+    return prior_chapters
 
 
 def _build_evidence(
@@ -538,9 +746,13 @@ def _build_evidence(
     error_patterns: ErrorPatterns,
     gaps: List[KnowledgeGap],
     learner: Learner,
+    kp_priors: Optional[Dict[str, dict]] = None,
 ) -> List[EvidenceRecord]:
-    """构建证据溯源"""
+    """构建证据溯源
+    0825 更新: 新增 kp_priors 参数，补充模式1/模式2自评来源的证据记录
+    """
     evidence: List[EvidenceRecord] = []
+    kp_priors = kp_priors or {}
 
     # 动态统计数据
     total_tests = error_patterns.total_questions
@@ -552,38 +764,62 @@ def _build_evidence(
         claim=f"全局能力θ={global_theta:.2f}, ability_level={_ability_level_str(global_theta)}",
         source="irt_estimation",
         detail=f"累计{total_tests}道题(覆盖{tested_kps}个知识点)的IRT-MLE跨知识点估计，学历先验θ={prior_theta_val}({learner.education.level})，L2正则λ=0.5",
-        confidence=0.90,
+        confidence=0.90 if total_tests >= 5 else 0.70,
     ))
 
-    # 每个结论按实际测试覆盖生成，不能为某个历史样例节点单独写证据。
-    tested_by_kp: Dict[str, List[TestRecord]] = {}
-    for record in learner.test_records:
-        tested_by_kp.setdefault(record.knowledge_point_id, []).append(record)
-    for kp_id, records in sorted(tested_by_kp.items(), key=lambda item: item[0]):
+    # 0825 新增：模式1 知识点细化自评先验覆盖说明
+    if kp_priors:
+        # 按领域分组展示覆盖数
+        dom_cover: Dict[str, int] = {}
+        for kp_id, info in kp_priors.items():
+            # 通过kp_id推断领域（取name第一个字段作为代表，简化处理）
+            # 更稳妥的方式：以 kp_id 聚合，简单记录覆盖量
+            dom_cover["合计"] = dom_cover.get("合计", 0) + 1
+        strongest_id, strongest = max(kp_priors.items(), key=lambda x: x[1]["mastery"])
+        weakest_id, weakest = min(kp_priors.items(), key=lambda x: x[1]["mastery"])
         evidence.append(EvidenceRecord(
-            claim=f"{kp_id} 掌握度={mastery_map.get(kp_id, 0.0):.2f}",
-            source="irt_estimation",
-            detail=f"该知识点实际测试 {len(records)} 题；使用题目难度、区分度和作答结果估计",
-            confidence=0.70 if len(records) < 3 else 0.85,
+            claim=f"模式1细化自评覆盖{len(kp_priors)}个教学点（未测节点以自评值展示），最高「{strongest['name']}={strongest['level']}」，最低「{weakest['name']}={weakest['level']}」",
+            source="self_assessment",
+            detail=f"自填问卷：数学基础/深度学习/优化算法 三领域采用知识点掌握度选择模式（模式1），"
+                   f"细化到{len(kp_priors)}个kp_id，同kp_id下多条自评取均值，置信度0.35~0.65（条目不相关）。"
+                   f"最高自评kp={strongest_id} mastery≈{strongest['mastery']:.2f}，最弱kp={weakest_id} mastery≈{weakest['mastery']:.2f}",
+            confidence=0.60,
         ))
 
-    # 错误模式
+    # 0825 新增：模式2 引导问答覆盖记录（ML基础/实践应用）
+    sa = learner.self_assessment
+    if sa and sa.domain_assessments:
+        guided_domains = []
+        for da in sa.domain_assessments:
+            if getattr(da, "mode", None) == "guided_questions" and da.guided_answers:
+                answered = sum(1 for v in da.guided_answers.values() if v and str(v).strip())
+                guided_domains.append((da.domain, answered, len(da.guided_answers)))
+        if guided_domains:
+            summary = "，".join(f"{d}：{a}/{t}题已作答" for d, a, t in guided_domains)
+            evidence.append(EvidenceRecord(
+                claim=f"模式2引导问答已收集：{summary}",
+                source="self_assessment_and_interaction",
+                detail=f"自填问卷：机器学习基础/实践应用 两领域采用文字引导模式（模式2），"
+                       f"每领域配套4道引导问题，鼓励学习者开放式作答。"
+                       f"详细问答原文保存在 learner.self_assessment.domain_assessments[*].guided_answers 与 note 字段中。",
+                confidence=0.55,  # 文字回答主观度稍高，置信度低于知识点选择
+            ))
+
+    # 错误模式 — 基于真实答题记录自动分类
     if error_patterns.primary_weakness:
         evidence.append(EvidenceRecord(
             claim=f"主要错误模式={error_patterns.primary_weakness}({error_patterns.primary_weakness_ratio:.0%})",
             source="answer_history",
-            detail=f"{error_patterns.total_questions}题中{error_patterns.total_wrong}道错题自动分类；未提供人工双标注。",
+            detail=f"{error_patterns.total_questions}题中{error_patterns.total_wrong}道错题自动分类，分类置信度={error_patterns.classification_confidence}",
             confidence=error_patterns.classification_confidence,
         ))
 
-    # 编程能力 / 职位
-    sa = learner.self_assessment
-    programming_level = sa.programming_level if sa and sa.programming_level else "入门"
+    # 编程能力
+    programming_level = _extract_programming_level(sa)
     evidence.append(EvidenceRecord(
         claim=f"编程能力={programming_level}",
         source="self_assessment",
-        detail=f"自填问卷: 编程能力自评「{programming_level}」"
-                + (f"；担任角色：{sa.position}" if sa and sa.position else ""),
+        detail=f"自填问卷: 实践领域 Python 编程自评「{programming_level}」",
         confidence=0.75,
     ))
 
@@ -600,16 +836,18 @@ def _build_evidence(
             confidence=0.80,
         ))
 
-    # 分课程自评
+    # 五维领域自评
     domain_hints = _self_assessed_domain_hints(sa)
     if domain_hints:
         hint_str = "，".join(
             f"{d}={h['level']}({h['mean']:.2f})" for d, h in domain_hints.items()
         )
+        total_courses = sum(len(da.courses) for da in sa.domain_assessments) if sa and sa.domain_assessments else 0
         evidence.append(EvidenceRecord(
-            claim=f"分课程自评领域结论: {hint_str}",
+            claim=f"五维领域自评结论: {hint_str}",
             source="self_assessment",
-            detail=f"自填问卷分课程自评 {len(sa.courses)} 门课程映射到 4 个领域",
+            detail=f"自填问卷五维领域自评，共 {len(sa.domain_assessments)} 个领域 {total_courses} 门课程。"
+                   f"模式1（知识点细化）和模式2（引导问答）领域的得分逻辑已在 detail 中分别说明。",
             confidence=0.70,
         ))
 
@@ -649,7 +887,6 @@ def _build_diagnosis_summary(
 
     primary_err = error_patterns.primary_weakness
     primary_err_ratio = error_patterns.primary_weakness_ratio
-    primary_err_label = primary_err or "暂无"
 
     sa_hints = _self_assessed_domain_hints(learner.self_assessment)
     sa_sentence = ""
@@ -659,8 +896,8 @@ def _build_diagnosis_summary(
     short = (
         f"{learner.name}({learner.education.level}{learner.education.major}) — "
         f"θ={global_theta:.2f} {level_cn} — "
-        f"当前学习范围由知识点掌握度与章节参数决定 — "
-        f"主要错误模式: {primary_err_label}({primary_err_ratio:.0%})"
+        f"最强领域: {strong_name}({strong_val:.0%})，最弱领域: {weak_name}({weak_val:.0%}) — "
+        f"主要错误模式: {primary_err}({primary_err_ratio:.0%})"
     )
 
     full = (
@@ -675,7 +912,7 @@ def _build_diagnosis_summary(
         f"{sa_sentence}"
     )
 
-    profile_confidence = "中等偏高。IRT估计≥0.85，自填问卷部分0.70-0.75。建议ch03完成后重新诊断。"
+    profile_confidence = f"中等。IRT估计基于{sum(1 for t in learner.test_records) if learner.test_records else 0}条测试记录，自填问卷部分0.70-0.75。建议完成当前章节学习后重新诊断。"
 
     return DiagnosisSummary(short=short, full=full, profile_confidence=profile_confidence)
 
@@ -689,15 +926,21 @@ def build_profile(
     kg: KnowledgeGraph,
     current_chapter_id: str = "ch03_cnn",
 ) -> LearnerProfile:
-    """构建完整学习者画像 — 对齐 0803 结构"""
-
-    if not kg.get_chapter(current_chapter_id):
-        raise ValueError(f"章节 {current_chapter_id} 不存在")
+    """构建完整学习者画像 — 对齐 0803 结构
+    0825 更新: 
+    - 加入知识点级自评先验（模式1 knowledge_points 的kp_id映射）
+    - 未测评节点(test_count=0)如有自评先验则以自评mastery显示，status/unexplored判定也相应放宽
+    - evidence 中新增模式1/模式2来源说明
+    """
 
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
+    sa = learner.self_assessment
 
     # 1. 学历先验θ
     prior_theta = irt.education_prior_theta(learner.education.level)
+
+    # 1b. 【0825 新增】模式1的知识点级自评先验：从自填问卷domain_assessments中提取kp_id→mastery映射
+    kp_priors = _self_assessed_kp_priors(sa)
 
     # 2. 计算所有知识点掌握度 (v2.1: 五路输出含 confidence + status)
     mastery_map, theta_map, test_count_map, confidence_map, status_map = mastery.compute_all_mastery(
@@ -712,12 +955,20 @@ def build_profile(
     total_correct = sum(1 for t in learner.test_records if t.is_correct) if total_tests else 0
     overall_accuracy = total_correct / total_tests if total_tests > 0 else 0.0
 
-    # 5. 分领域掌握度
+    # 5. 分领域掌握度（0825更新：对test_count=0但有kp_priors覆盖的节点取自评mastery参与领域均值）
     domain_mastery: Dict[str, float] = {}
     for domain in kg.domains():
         kp_ids = kg.domain_kp_ids(domain)
-        scores = [mastery_map.get(kid, 0.0) for kid in kp_ids]
-        domain_mastery[domain] = round(sum(scores) / len(scores), 3) if scores else 0.0
+        domain_scores = []
+        for kid in kp_ids:
+            tc = test_count_map.get(kid, 0)
+            if tc > 0:
+                domain_scores.append(mastery_map.get(kid, 0.0))
+            elif kid in kp_priors:
+                domain_scores.append(kp_priors[kid]["mastery"])
+            else:
+                domain_scores.append(mastery_map.get(kid, 0.0))
+        domain_mastery[domain] = round(sum(domain_scores) / len(domain_scores), 3) if domain_scores else 0.0
 
     # 6. 知识盲区分析
     gaps = gap_analyzer.analyze_gaps(
@@ -729,20 +980,21 @@ def build_profile(
         learner.test_records, mastery_map,
     )
 
-    # 8. 子模块构建
+    # 8. 子模块构建 (0825更新：kp_priors 传递给 knowledge_mastery + evidence)
+    depth_labels = _build_depth_labels(kg, mastery_map, test_count_map)
     learning_scope = _build_learning_scope(kg, current_chapter_id, mastery_map)
     knowledge_mastery = _build_knowledge_mastery(
         kg, mastery_map, theta_map, test_count_map, confidence_map, status_map,
         global_theta, overall_accuracy,
+        kp_priors=kp_priors,
     )
     ability_level = _build_ability_level(global_theta, mastery_map, domain_mastery)
     learning_preferences = _build_learning_preferences(
         learner.test_records, learner.interaction_records, learner.self_assessment
     )
-    depth_labels = _build_depth_labels(kg, mastery_map, test_count_map)
-    resource_hints = _build_resource_hints(kg, learning_scope, error_patterns, mastery_map)
-    prior_chapters = _build_prior_chapters(kg, learner, current_chapter_id)
-    evidence = _build_evidence(global_theta, mastery_map, error_patterns, gaps, learner)
+    resource_hints = _build_resource_hints(kg, learning_scope, depth_labels, error_patterns, mastery_map, gaps)
+    prior_chapters = _build_prior_chapters(learner, kg, current_chapter_id)
+    evidence = _build_evidence(global_theta, mastery_map, error_patterns, gaps, learner, kp_priors=kp_priors)
     diagnosis_summary = _build_diagnosis_summary(
         learner, global_theta, _ability_level_str(global_theta), domain_mastery, gaps, error_patterns,
     )
@@ -752,23 +1004,19 @@ def build_profile(
     learner_info = {
         "name": learner.name,
         "education": learner.education.model_dump() if learner.education else {},
-        "position": sa.position if sa else "",
         "projects": [p.model_dump() for p in sa.projects] if sa and sa.projects else [],
-        "courses": [c.model_dump() for c in sa.courses] if sa and sa.courses else [],
+        "domain_assessments": [d.model_dump() for d in sa.domain_assessments] if sa and sa.domain_assessments else [],
         "self_assessment": sa.model_dump() if sa else {
-            "ml_level": "",
-            "dl_level": "",
-            "math_level": "",
-            "programming_level": "",
             "learning_goal": "",
             "weekly_hours": 5,
-            "position": "",
-            "strengths": "",
-            "weaknesses": "",
-            "courses": [],
+            "domain_assessments": [],
             "projects": [],
         },
     }
+
+    # 获取图谱版本信息
+    kg_version = getattr(kg, 'KG_VERSION', 'unknown')
+    mapping_version = getattr(kg, 'MAPPING_VERSION', 'unknown')
 
     return LearnerProfile(
         profile_id=f"PROFILE-{learner.id.upper()}",
@@ -793,6 +1041,8 @@ def build_profile(
             "total_test_count": total_tests,
             "total_interaction_count": len(learner.interaction_records),
             "diagnosed_at": now_str,
-            "next_suggested_diagnosis": "完成当前章节后，根据最新测评记录重新诊断",
+            "next_suggested_diagnosis": f"完成{learning_scope.chapter_name}学习后重新诊断",
+            "kg_version": kg_version,
+            "mapping_version": mapping_version,
         },
     )
