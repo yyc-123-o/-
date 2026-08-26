@@ -467,9 +467,69 @@ def _build_resource_hints(
     )
 
 
-def _build_prior_chapters() -> List[PriorChapter]:
-    """Return only observed chapter history; current records are KP-scoped."""
-    return []
+def _build_prior_chapters(
+    kg: KnowledgeGraph,
+    learner: Learner,
+    current_chapter_id: str,
+) -> List[PriorChapter]:
+    """Aggregate observed evidence for chapters before the current chapter.
+
+    Learner records are knowledge-point-scoped rather than chapter-scoped. A
+    record therefore contributes only when it belongs to the chapter's primary
+    concept or a co-requisite; prerequisite records are intentionally excluded
+    because they may be shared by multiple chapters.
+    """
+    current_chapter = kg.get_chapter(current_chapter_id)
+    if not current_chapter:
+        return []
+
+    history: List[PriorChapter] = []
+    for chapter in kg.chapters:
+        if chapter.chapter_order >= current_chapter.chapter_order:
+            continue
+
+        chapter_kp_ids = [chapter.primary_kp_id, *chapter.co_requisite_kp_ids]
+        records = [
+            record
+            for record in learner.test_records
+            if record.knowledge_point_id in chapter_kp_ids
+        ]
+        if not records:
+            continue
+
+        accuracy = sum(record.is_correct for record in records) / len(records)
+        total_hours = sum(record.time_spent for record in records) / 3600
+        covered = [kp_id for kp_id in chapter_kp_ids if any(
+            record.knowledge_point_id == kp_id for record in records
+        )]
+        error_patterns = sorted({
+            record.error_pattern for record in records if record.error_pattern
+        })
+        latest_evidence = max(record.timestamp for record in records).strftime("%Y-%m-%d")
+
+        if accuracy < 0.60:
+            depth = "entry"
+            conclusion = "章节证据显示基础尚不稳定，后续相关内容从入门层衔接。"
+        elif accuracy < 0.80:
+            depth = "review"
+            conclusion = "章节证据显示基本掌握，后续相关内容先安排复习与巩固。"
+        else:
+            depth = "advanced"
+            conclusion = "章节证据显示掌握较好，后续相关内容可提高到进阶层。"
+
+        history.append(PriorChapter(
+            chapter_id=chapter.chapter_id,
+            chapter_name=chapter.chapter_name,
+            accuracy=round(accuracy, 3),
+            time_spent_hours=round(total_hours, 2),
+            depth_assigned=depth,
+            kps_covered=covered,
+            error_patterns_observed=error_patterns,
+            completed_at=None,
+            conclusion=f"{conclusion} 最近证据日期：{latest_evidence}；未记录显式章节完成事件。",
+        ))
+
+    return history
 
 
 def _build_evidence(
@@ -681,7 +741,7 @@ def build_profile(
     )
     depth_labels = _build_depth_labels(kg, mastery_map, test_count_map)
     resource_hints = _build_resource_hints(kg, learning_scope, error_patterns, mastery_map)
-    prior_chapters = _build_prior_chapters()
+    prior_chapters = _build_prior_chapters(kg, learner, current_chapter_id)
     evidence = _build_evidence(global_theta, mastery_map, error_patterns, gaps, learner)
     diagnosis_summary = _build_diagnosis_summary(
         learner, global_theta, _ability_level_str(global_theta), domain_mastery, gaps, error_patterns,

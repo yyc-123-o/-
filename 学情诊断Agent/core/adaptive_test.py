@@ -18,6 +18,7 @@ Session 生命周期:
 """
 
 from __future__ import annotations
+import math
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -66,6 +67,14 @@ def build_config(data: Optional[dict] = None) -> AdaptiveConfig:
         data = {}
     elif not isinstance(data, dict):
         raise ValueError("adaptive test config 必须是对象")
+    for key in ("domains", "knowledge_point_ids"):
+        value = data.get(key)
+        if value is not None and (
+            not isinstance(value, list)
+            or any(not isinstance(item, str) or not item for item in value)
+        ):
+            raise ValueError(f"{key} 必须是非空字符串数组")
+
     stages = None
     raw_stages = data.get("difficulty_stages")
     if raw_stages:
@@ -95,12 +104,19 @@ def build_config(data: Optional[dict] = None) -> AdaptiveConfig:
         cfg.difficulty_stages = stages
     if cfg.max_questions < 1 or cfg.min_questions < 1 or cfg.min_questions > cfg.max_questions:
         raise ValueError("max_questions 和 min_questions 必须为正数，且 min_questions <= max_questions")
-    if cfg.consecutive_wrong_stop < 0 or cfg.convergence_threshold < 0:
+    if not math.isfinite(cfg.convergence_threshold) or cfg.convergence_threshold < 0:
         raise ValueError("停止条件不能为负数")
     if not cfg.difficulty_stages:
         raise ValueError("至少需要一个难度阶段")
     for stage in cfg.difficulty_stages:
-        if stage.low > stage.high or not 0 <= stage.promote_accuracy <= 1 or stage.min_questions < 1:
+        if (
+            not math.isfinite(stage.low)
+            or not math.isfinite(stage.high)
+            or not math.isfinite(stage.promote_accuracy)
+            or stage.low > stage.high
+            or not 0 <= stage.promote_accuracy <= 1
+            or stage.min_questions < 1
+        ):
             raise ValueError("难度阶段范围、晋升正确率或最少题数无效")
     return cfg
 

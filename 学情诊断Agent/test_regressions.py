@@ -8,7 +8,7 @@ from core import adaptive_test
 from core.profile_builder import build_profile
 from generators.mock_generator import generate_test_bank
 from models.knowledge_graph import KG
-from models.schemas import Education, Learner, SelfAssessment
+from models.schemas import Education, Learner, SelfAssessment, TestRecord as LearnerTestRecord
 from pydantic import ValidationError
 
 
@@ -67,17 +67,15 @@ def test_adaptive_test_honors_domain_filter_and_uses_answer_history_for_theta() 
 
 
 def test_test_record_rejects_invalid_irt_and_timing_inputs() -> None:
-    from models.schemas import TestRecord
-
     with pytest.raises(ValidationError):
-        TestRecord(
+        LearnerTestRecord(
             knowledge_point_id="kp_001",
             difficulty=0.0,
             discrimination=0.0,
             is_correct=True,
         )
     with pytest.raises(ValidationError):
-        TestRecord(
+        LearnerTestRecord(
             knowledge_point_id="kp_001",
             difficulty=0.0,
             discrimination=1.0,
@@ -89,3 +87,68 @@ def test_test_record_rejects_invalid_irt_and_timing_inputs() -> None:
 def test_build_profile_rejects_unknown_chapter() -> None:
     with pytest.raises(ValueError, match="章节"):
         build_profile(_blank_learner(), KG, current_chapter_id="missing-chapter")
+
+
+def test_mock_generator_emits_native_boolean_test_records() -> None:
+    from generators.mock_generator import generate_all_mock_data
+
+    learners, _ = generate_all_mock_data()
+
+    assert all(type(record.is_correct) is bool for learner in learners for record in learner.test_records)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_test_record_rejects_nonfinite_irt_values(value: float) -> None:
+    with pytest.raises(ValidationError):
+        LearnerTestRecord(
+            knowledge_point_id="kp_001",
+            difficulty=value,
+            discrimination=1.0,
+            is_correct=True,
+        )
+
+
+def test_profile_derives_observed_prior_chapter_history_without_completion_claim() -> None:
+    learner = _blank_learner()
+    learner.test_records = [
+        LearnerTestRecord(
+            knowledge_point_id="kp_005",
+            difficulty=0.0,
+            is_correct=True,
+            time_spent=120,
+            error_pattern=None,
+        ),
+        LearnerTestRecord(
+            knowledge_point_id="kp_005",
+            difficulty=0.0,
+            is_correct=False,
+            time_spent=240,
+            error_pattern="计算错误",
+        ),
+    ]
+
+    profile = build_profile(learner, KG, current_chapter_id="ch03_cnn")
+
+    assert [item.chapter_id for item in profile.prior_chapters] == ["ch01_foundation"]
+    history = profile.prior_chapters[0]
+    assert history.accuracy == 0.5
+    assert history.time_spent_hours == 0.1
+    assert history.depth_assigned == "entry"
+    assert history.kps_covered == ["kp_005"]
+    assert history.error_patterns_observed == ["计算错误"]
+    assert history.completed_at is None
+
+
+def test_prerequisite_only_evidence_does_not_fabricate_prior_chapter_history() -> None:
+    learner = _blank_learner()
+    learner.test_records = [
+        LearnerTestRecord(
+            knowledge_point_id="kp_004",
+            difficulty=0.5,
+            is_correct=True,
+        )
+    ]
+
+    profile = build_profile(learner, KG, current_chapter_id="ch03_cnn")
+
+    assert profile.prior_chapters == []

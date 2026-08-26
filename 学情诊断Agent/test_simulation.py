@@ -16,7 +16,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
 
 from models.schemas import (
-    Learner, Education, SelfAssessment, TestRecord, InteractionRecord,
+    Learner, Education, SelfAssessment, TestRecord as LearnerTestRecord, InteractionRecord,
 )
 from models.knowledge_graph import KG
 from core.profile_builder import build_profile
@@ -178,7 +178,7 @@ def run_adaptive_and_diagnose(learner, test_bank, rng, correct_prob=0.5):
     new_records = []
     for a in answers:
         q_info = next((q for q in test_bank if q["question_id"] == a["question_id"]), None)
-        new_records.append(TestRecord(
+        new_records.append(LearnerTestRecord(
             knowledge_point_id=a.get("kp_id", q_info["knowledge_point_id"] if q_info else ""),
             question_id=a["question_id"],
             difficulty=a.get("difficulty", q_info["difficulty"] if q_info else 0.0),

@@ -12,6 +12,8 @@
 """
 
 from __future__ import annotations
+from contextlib import asynccontextmanager
+import math
 import os, sys, uuid
 from datetime import datetime
 from pathlib import Path
@@ -36,10 +38,22 @@ from core.profile_builder import build_profile
 from core import adaptive_test
 from generators.mock_generator import generate_all_mock_data, save_mock_data
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    global _test_bank
+    learners, _test_bank = generate_all_mock_data()
+    for learner in learners:
+        _learners[learner.id] = learner
+    print(f"[启动] {len(_learners)} 组模拟学习者, {len(_test_bank)} 道测试题, {len(KG.chapters)} 个章节")
+    yield
+
+
 app = FastAPI(
     title="学情诊断 Agent v2.1",
     description="基于IRT项目反应理论的学习者画像构建 · 自适应测试 · 知识盲区诊断 · 章节级资源生成提示",
     version="2.1.0",
+    lifespan=lifespan,
 )
 
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
@@ -67,6 +81,18 @@ _INTERACTION_TYPES = {"view", "quiz", "practice", "discussion"}
 _SELF_ASSESSMENT_LEVELS = {"未学过", "入门", "基础", "熟练", "精通"}
 
 
+def _is_finite_number(value: object) -> bool:
+    return (
+        not isinstance(value, bool)
+        and isinstance(value, (int, float))
+        and math.isfinite(value)
+    )
+
+
+def _is_non_negative_int(value: object) -> bool:
+    return not isinstance(value, bool) and isinstance(value, int) and value >= 0
+
+
 def _profile_key(learner_id: str, chapter_id: str | None) -> tuple[str, str]:
     return learner_id, chapter_id or "ch03_cnn"
 
@@ -75,15 +101,6 @@ def _invalidate_profiles(learner_id: str) -> None:
     for key in tuple(_profiles):
         if key[0] == learner_id:
             _profiles.pop(key, None)
-
-
-@app.on_event("startup")
-async def startup():
-    global _test_bank
-    learners, _test_bank = generate_all_mock_data()
-    for l in learners:
-        _learners[l.id] = l
-    print(f"[启动] {len(_learners)} 组模拟学习者, {len(_test_bank)} 道测试题, {len(KG.chapters)} 个章节")
 
 
 # ============================================================
@@ -152,7 +169,10 @@ async def upload_learner(payload: dict = Body(...)):
     import uuid as _uuid
     if not isinstance(payload, dict):
         raise HTTPException(status_code=422, detail="学习者数据必须是 JSON 对象")
-    lid = payload.get("id", f"uploaded_{_uuid.uuid4().hex[:8]}")
+    supplied_id = payload.get("id")
+    lid = supplied_id or f"uploaded_{_uuid.uuid4().hex[:8]}"
+    if supplied_id and lid in _learners:
+        raise HTTPException(status_code=409, detail=f"学习者 ID 已存在: {lid}")
 
     # 解析 education
     edu_data = payload.get("education", {})
@@ -232,15 +252,23 @@ async def upload_learner(payload: dict = Body(...)):
             raise HTTPException(status_code=422, detail=f"未知知识点: {t.get('knowledge_point_id')}")
         if not isinstance(t.get("is_correct"), bool):
             raise HTTPException(status_code=422, detail="test_records.is_correct 必须是布尔值")
-        if t.get("time_spent", 60) < 0 or t.get("discrimination", 1.0) <= 0:
-            raise HTTPException(status_code=422, detail="测试时间必须非负且区分度必须为正数")
+        time_spent = t.get("time_spent", 60)
+        discrimination = t.get("discrimination", 1.0)
+        difficulty = t.get("difficulty", 0.0)
+        if not _is_non_negative_int(time_spent):
+            raise HTTPException(status_code=422, detail="test_records.time_spent 必须是非负整数")
+        if not _is_finite_number(discrimination) or discrimination <= 0:
+            raise HTTPException(status_code=422, detail="test_records.discrimination 必须是正数")
+        if not _is_finite_number(difficulty):
+            raise HTTPException(status_code=422, detail="test_records.difficulty 必须是有限数值")
         test_records.append(TestRecord(
             knowledge_point_id=t["knowledge_point_id"],
             question_id=t.get("question_id", ""),
-            difficulty=t.get("difficulty", 0.0),
-            discrimination=t.get("discrimination", 1.0),
+            difficulty=difficulty,
+            discrimination=discrimination,
             is_correct=t["is_correct"],
-            time_spent=t.get("time_spent", 60),
+            timestamp=t.get("timestamp", datetime.now()),
+            time_spent=time_spent,
             hint_used=t.get("hint_used", False),
             error_pattern=t.get("error_pattern"),
         ))
@@ -255,12 +283,16 @@ async def upload_learner(payload: dict = Body(...)):
             raise HTTPException(status_code=422, detail="interaction_records 条目必须是对象")
         if i.get("knowledge_point_id") not in set(KG.all_ids()):
             raise HTTPException(status_code=422, detail=f"未知知识点: {i.get('knowledge_point_id')}")
-        if i.get("type", "view") not in _INTERACTION_TYPES or i.get("duration", 60) < 0:
-            raise HTTPException(status_code=422, detail="交互类型或持续时间无效")
+        duration = i.get("duration", 60)
+        if i.get("type", "view") not in _INTERACTION_TYPES:
+            raise HTTPException(status_code=422, detail="交互类型无效")
+        if not _is_non_negative_int(duration):
+            raise HTTPException(status_code=422, detail="interaction_records.duration 必须是非负整数")
         interaction_records.append(InteractionRecord(
             knowledge_point_id=i["knowledge_point_id"],
             type=i.get("type", "view"),
-            duration=i.get("duration", 60),
+            duration=duration,
+            timestamp=i.get("timestamp", datetime.now()),
             detail=i.get("detail", ""),
         ))
 
@@ -420,8 +452,9 @@ async def answer_adaptive_test(payload: dict = Body(...)):
     """
     if "is_correct" in payload:
         raise HTTPException(status_code=422, detail="禁止提交 is_correct，请提交 selected_answer")
-    if "selected_answer" not in payload:
-        raise HTTPException(status_code=422, detail="缺少 selected_answer")
+    for field_name in ("session_id", "question_id", "selected_answer"):
+        if field_name not in payload:
+            raise HTTPException(status_code=422, detail=f"缺少 {field_name}")
     time_spent = payload.get("time_spent", 60)
     if isinstance(time_spent, bool) or not isinstance(time_spent, int) or time_spent < 0:
         raise HTTPException(status_code=422, detail="time_spent 必须是非负整数")
