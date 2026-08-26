@@ -135,6 +135,50 @@ KNOWLEDGE_POINTS: List[KnowledgePoint] = [
 class KnowledgeGraph:
     """知识图谱管理器"""
 
+    # 版本化
+    KG_VERSION = "1.0"
+    MAPPING_VERSION = "1.0"
+
+    # 旧知识点 ID (kp_xxx) 到平台标准概念 ID 的映射
+    # 大多数 1 对 1，kp_002 为复合映射（等量展开为 3 个平台概念）
+    KP_TO_PLATFORM_MAP: Dict[str, List[str]] = {
+        # ---- 数学基础域 ----
+        "kp_001": ["math.calculus"],
+        "kp_002": ["math.linalg.vector", "math.linalg.matrix", "math.linalg.eigen"],
+        "kp_003": ["math.probability"],
+        "kp_004": ["math.linalg.matrix_ops"],
+        "kp_005": ["math.calculus.gradient"],
+        "kp_026": ["math.information_theory"],
+        # ---- 机器学习基础域 ----
+        "kp_006": ["ml.supervised"],
+        "kp_007": ["ml.unsupervised"],
+        "kp_008": ["ml.overfitting"],
+        "kp_009": ["ml.cross_validation"],
+        "kp_010": ["ml.evaluation_metrics"],
+        "kp_027": ["ml.ensemble"],
+        # ---- 深度学习域 ----
+        "kp_011": ["dl.nn_basics"],
+        "kp_012": ["dl.cnn"],
+        "kp_013": ["dl.rnn"],
+        "kp_014": ["dl.transformer"],
+        "kp_015": ["dl.activation"],
+        "kp_028": ["dl.normalization"],
+        # ---- 优化算法域 ----
+        "kp_016": ["opt.gradient_descent"],
+        "kp_017": ["opt.backprop"],
+        "kp_018": ["opt.adam"],
+        "kp_019": ["opt.regularization"],
+        "kp_020": ["opt.lr_schedule"],
+        "kp_029": ["opt.loss_functions"],
+        # ---- 实践应用域 ----
+        "kp_021": ["prac.data_preprocessing"],
+        "kp_022": ["prac.feature_engineering"],
+        "kp_023": ["prac.hyperparameter_tuning"],
+        "kp_024": ["prac.model_deployment"],
+        "kp_025": ["prac.ab_testing"],
+        "kp_030": ["prac.data_augmentation"],
+    }
+
     def __init__(self, points: List[KnowledgePoint] | None = None, chapters: List[Chapter] | None = None):
         self.points = points if points is not None else KNOWLEDGE_POINTS
         self.chapters = chapters if chapters is not None else CHAPTERS
@@ -213,6 +257,47 @@ class KnowledgeGraph:
             }
             for ch in self.chapters
         ]
+
+    # ============================================================
+    # 旧知识点 ID (kp_xxx) → 平台标准概念 ID 映射
+    # ============================================================
+
+    def map_kp_to_platform(self, kp_id: str) -> List[str]:
+        """返回单个 kp 对应的平台标准概念 ID 列表。
+        大多数 kp 返回 1 个，kp_002 为复合映射返回 3 个。
+        未知 kp_id 返回空列表。
+        """
+        mapping = self.KP_TO_PLATFORM_MAP.get(kp_id)
+        return list(mapping) if mapping else []
+
+    def map_kp_list_to_platform(self, kp_ids: List[str]) -> List[str]:
+        """批量将 kp_id 列表映射为平台概念 ID 列表，结果去重保序。"""
+        result: List[str] = []
+        seen: set = set()
+        for kp_id in kp_ids:
+            for platform_id in self.map_kp_to_platform(kp_id):
+                if platform_id not in seen:
+                    seen.add(platform_id)
+                    result.append(platform_id)
+        return result
+
+    def mapping_coverage(self) -> dict:
+        """返回映射覆盖率校验信息。
+        - total_kps: 旧知识点总数 (30)
+        - mapped: 已建立映射的数量
+        - unmapped: 未映射的 kp_id 列表
+        - composite: 复合（一对多）映射的 kp_id 列表
+        """
+        total_kps = len(self.KP_TO_PLATFORM_MAP)
+        mapped = sum(1 for v in self.KP_TO_PLATFORM_MAP.values() if v)
+        unmapped = [kp_id for kp_id in self.all_ids() if kp_id not in self.KP_TO_PLATFORM_MAP]
+        composite = [kp_id for kp_id, v in self.KP_TO_PLATFORM_MAP.items() if len(v) > 1]
+        return {
+            "total_kps": total_kps,
+            "mapped": mapped,
+            "unmapped": unmapped,
+            "composite": composite,
+        }
 
 
 # 全局单例

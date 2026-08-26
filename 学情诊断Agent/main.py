@@ -35,7 +35,7 @@ from models.schemas import (
 )
 from models.knowledge_graph import KG
 from core.profile_builder import build_profile
-from core import adaptive_test
+from core import adaptive_test, learning_verifier
 from generators.mock_generator import generate_all_mock_data, save_mock_data
 
 
@@ -74,6 +74,7 @@ async def pydantic_validation_handler(_request, exc: ValidationError):
 
 _learners: Dict[str, Learner] = {}
 _profiles: Dict[tuple[str, str], LearnerProfile] = {}
+_baselines: Dict[str, LearnerProfile] = {}   # 第二流程: 保存 baseline 画像 (key: learner_id)
 _test_bank: list = []
 _applied_sessions: Dict[str, dict] = {}
 _EDUCATION_LEVELS = {"\u4e13\u79d1", "\u672c\u79d1", "\u7855\u58eb", "\u535a\u58eb"}
@@ -295,7 +296,6 @@ async def upload_learner(payload: dict = Body(...)):
             timestamp=i.get("timestamp", datetime.now()),
             detail=i.get("detail", ""),
         ))
-
     learner = Learner(
         id=lid,
         name=payload.get("name", "未命名"),
@@ -341,6 +341,78 @@ async def diagnose_learner(
         profile=profile,
         message=f"诊断完成 (章节: {ch_id}): {profile.meta.get('total_test_count', 0)}条测试记录, {len(profile.knowledge_gaps)}个知识盲区",
     )
+
+
+# ============================================================
+# ★ 学习成果检验 (第二流程)
+# ============================================================
+
+@app.post("/api/learner/{learner_id}/save-baseline")
+async def save_baseline(learner_id: str):
+    """保存当前画像为 baseline（第一流程完成时调用）"""
+    key = _profile_key(learner_id, None)
+    profile = _profiles.get(key)
+    if not profile:
+        learner = _learners.get(learner_id)
+        if not learner:
+            raise HTTPException(status_code=404, detail="学习者不存在")
+        profile = build_profile(learner, KG)
+        _profiles[key] = profile
+    _baselines[learner_id] = profile
+    return {
+        "message": "baseline 画像已保存",
+        "learner_id": learner_id,
+        "profile_id": profile.profile_id,
+    }
+
+
+@app.post("/api/learner/{learner_id}/re-diagnose")
+async def re_diagnose(
+    learner_id: str,
+    chapter_id: Optional[str] = Query(None, description="复诊章节ID"),
+):
+    """学习后复诊 — 基于学习后的答题记录重新生成画像"""
+    learner = _learners.get(learner_id)
+    if not learner:
+        raise HTTPException(status_code=404, detail="学习者不存在")
+
+    ch_id = chapter_id or "ch03_cnn"
+    if not KG.get_chapter(ch_id):
+        raise HTTPException(status_code=400, detail=f"章节 {ch_id} 不存在")
+
+    profile = build_profile(learner, KG, current_chapter_id=ch_id)
+    _profiles[_profile_key(learner_id, ch_id)] = profile
+
+    return DiagnosisResult(
+        success=True,
+        profile=profile,
+        message=f"复诊完成 (章节: {ch_id}): {profile.meta.get('total_test_count', 0)}条测试记录",
+    )
+
+
+@app.post("/api/learner/{learner_id}/verify-outcome")
+async def verify_outcome(
+    learner_id: str,
+    chapter_id: Optional[str] = Query(None, description="检验章节ID"),
+):
+    """对比 baseline 与学习后画像，生成学习成果检验报告"""
+    baseline = _baselines.get(learner_id)
+    if not baseline:
+        raise HTTPException(status_code=400, detail="未找到 baseline 画像，请先调用 save-baseline")
+
+    key = _profile_key(learner_id, chapter_id)
+    post = _profiles.get(key)
+    if not post:
+        learner = _learners.get(learner_id)
+        if not learner:
+            raise HTTPException(status_code=404, detail="学习者不存在")
+        ch_id = chapter_id or "ch03_cnn"
+        post = build_profile(learner, KG, current_chapter_id=ch_id)
+        _profiles[_profile_key(learner_id, ch_id)] = post
+
+    ch_id = chapter_id or post.learning_scope.chapter_id
+    report = learning_verifier.compare_profiles(baseline, post, learner_id, ch_id)
+    return report.model_dump(mode="json")
 
 
 @app.get("/api/learner/{learner_id}/profile")
