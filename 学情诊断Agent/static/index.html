@@ -100,6 +100,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans
     <div class="card"><h2>知识点掌握度热力图</h2><div id="heatmapChart" class="chart-container" style="height:380px"></div></div>
     <div class="card"><h2>知识盲区清单</h2><div id="gapsList" style="max-height:380px;overflow-y:auto"><div class="loading">请先执行学情诊断</div></div></div>
   </div>
+  <div class="card" style="margin-top:16px">
+    <h2>知识检索 · 回答依据</h2>
+    <p style="font-size:12px;color:#64748b;margin:0 0 12px">展示画像计算的证据溯源，并支持从知识库检索相关依据片段（当前结果为候选知识片段，正式发布前仍需完成证据审核与许可确认）。</p>
+    <div id="profileEvidence"><div class="loading">执行诊断后显示画像计算依据</div></div>
+    <div class="form-row" style="margin-top:16px">
+      <div class="form-group" style="flex:1">
+        <label for="retrievalQuery">输入问题</label>
+        <input id="retrievalQuery" placeholder="例如：CNN 卷积神经网络输出尺寸 / 梯度下降 / 反向传播" onkeydown="if(event.key==='Enter')retrieveEvidence()">
+      </div>
+      <div class="form-group" style="width:120px">
+        <label for="retrievalTopK">返回条数</label>
+        <input id="retrievalTopK" type="number" min="1" max="20" value="5">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+      <button onclick="retrieveEvidence()">检索知识库依据</button>
+      <span id="retrievalStatus" style="font-size:12px;color:#64748b"></span>
+    </div>
+    <div id="retrievalResults" style="margin-top:12px"><div class="loading">请输入问题后检索知识库</div></div>
+  </div>
 </div>
 
 <div id="tab-questionnaire" class="tab-panel">
@@ -287,7 +307,8 @@ function renderQuestion(data){
     var labels=['A','B','C','D'];
     q.options.forEach(function(o,i){h+='<button class="option-btn" onclick="submitAnswer(\''+q.question_id+'\','+i+',\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">'+labels[i]+'. '+o+'</button>'});
   }else{
-    h+='<p style="color:#b45309">该题缺少服务端标准选项，暂不能提交，避免客户端自行判分。</p>';
+    h+='<p style="color:#94a3b8">IRT adaptive question (simplified)</p>';
+    h+='<div style="display:flex;gap:12px;justify-content:center;margin-top:12px"><button class="option-btn" style="width:120px;text-align:center;background:#22c55e;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',0,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">CORRECT</button><button class="option-btn" style="width:120px;text-align:center;background:#ef4444;color:#fff" onclick="submitAnswer(\''+q.question_id+'\',-1,\''+q.knowledge_point_name+'\',\''+q.knowledge_point_id+'\')">WRONG</button></div>';
   }
   h+='</div>';document.getElementById('questionArea').innerHTML=h;renderTheta(data.current_theta,data.question_count,data);
 }
@@ -307,11 +328,14 @@ function renderTheta(theta,qCount,stage){
 }
 
 async function submitAnswer(qid,userAnswer,kpName,kpId){
+  var q=window._tc?window._tc[qid]:null;
+  var isCorrect=false;
+  if(q&&typeof q.correct_answer!=='undefined'){isCorrect=(userAnswer===q.correct_answer)}
+  else{isCorrect=(userAnswer===0)}
   var t0=Date.now();
-  var resp=await fetch('/api/adaptive-test/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:_atSessionId,question_id:qid,selected_answer:userAnswer,time_spent:Math.round((Date.now()-t0)/1000)})});
+  var resp=await fetch('/api/adaptive-test/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:_atSessionId,question_id:qid,is_correct:isCorrect,time_spent:Math.round((Date.now()-t0)/1000)})});
   var data=await resp.json();
-  if(!resp.ok||data.error){document.getElementById('atStatus').textContent=data.detail||data.error||'提交失败';return}
-  _atAnswers.push({qid:qid,kpName:kpName,kpId:kpId,correct:data.last_correct,theta:data.current_theta||0,userAnswer:userAnswer});
+  _atAnswers.push({qid:qid,kpName:kpName,kpId:kpId,correct:isCorrect,theta:data.current_theta||0,userAnswer:userAnswer});
   renderHistory();renderQuestion(data);
 }
 
@@ -367,6 +391,59 @@ async function finishAdaptiveAndDiagnose(){
     document.getElementById('statusText').textContent='诊断失败: '+e.message;
   }
 }
+
+
+// ---- 知识检索 / 回答依据 ----
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderProfileEvidence(items){
+  var d=document.getElementById('profileEvidence');
+  if(!d)return;
+  if(!items||!items.length){d.innerHTML='<div class="loading">当前画像暂无证据</div>';return}
+  d.innerHTML=items.map(function(e){
+    return '<div style="padding:10px 0;border-bottom:1px solid #e2e8f0">'
+      +'<b>'+esc(e.claim)+'</b>'
+      +'<div style="font-size:12px;color:#64748b;margin-top:4px">来源：'+esc(e.source)+' | 置信度：'+((e.confidence||0)*100).toFixed(0)+'%</div>'
+      +'<div style="font-size:12px;color:#475569;margin-top:4px">'+esc(e.detail)+'</div>'
+      +'</div>';
+  }).join('');
+}
+async function retrieveEvidence(){
+  var q=(document.getElementById('retrievalQuery').value||'').trim();
+  var status=document.getElementById('retrievalStatus');
+  if(!q){status.textContent='请输入问题';return}
+  status.textContent='检索中...';
+  try{
+    var resp=await fetch('/api/retrieve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,top_k:parseInt(document.getElementById('retrievalTopK').value)||5})});
+    var data=await resp.json();
+    if(!resp.ok)throw new Error(data.detail||'检索失败');
+    status.textContent='命中 '+data.total+' 条依据'+(data.note?'；'+data.note:'');
+    var d=document.getElementById('retrievalResults');
+    if(!data.evidence||!data.evidence.length){d.innerHTML='<div class="loading">没有命中知识片段，请换一个更具体的问题</div>';return}
+    d.innerHTML=data.evidence.map(function(e){
+      var path=(e.heading_path||[]).join(' / ');
+      var meta=[];
+      if(e.domain_tag)meta.push('领域：'+esc(e.domain_tag));
+      if(e.difficulty)meta.push('难度：'+esc(e.difficulty));
+      if(e.doc_id)meta.push('来源ID：'+esc(e.doc_id));
+      return '<div style="padding:12px 0;border-bottom:1px solid #e2e8f0">'
+        +'<div style="font-weight:700;color:#1a1a2e">'+esc(e.source_title||'未命名来源')+'</div>'
+        +(path?'<div style="font-size:12px;color:#4facfe;margin-top:2px">'+esc(path)+'</div>':'')
+        +'<div style="font-size:12px;line-height:1.7;margin-top:8px;white-space:pre-wrap;color:#333">'+esc(e.text)+'</div>'
+        +'<div style="font-size:11px;color:#64748b;margin-top:8px">匹配度：'+e.score+(meta.length?' | '+meta.join(' | '):'')+' | 状态：候选依据（待审核）</div>'
+        +'</div>';
+    }).join('');
+  }catch(e){
+    status.textContent='检索失败：'+e.message;
+  }
+}
+function showProfileEvidence(){
+  var s=document.getElementById('learnerSelect');
+  var d=document.getElementById('profileEvidence');
+  if(!s||!d||!window._profiles||!s.value)return;
+  renderProfileEvidence(window._profiles[s.value].evidence||[]);
+}
+setInterval(showProfileEvidence,500);
+
 </script>
 </body>
 </html>
