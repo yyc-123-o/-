@@ -2,7 +2,11 @@ from collections.abc import Iterator
 
 import pytest
 from neo4j import Driver
-from testcontainers.neo4j import Neo4jContainer
+
+Neo4jContainer = pytest.importorskip(
+    "testcontainers.neo4j",
+    reason="Neo4j integration tests require testcontainers",
+).Neo4jContainer
 
 
 @pytest.fixture

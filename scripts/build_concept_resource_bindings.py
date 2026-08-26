@@ -1,14 +1,15 @@
 import argparse
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from skillforge_kb.binding.matcher import build_candidate_bindings
 from skillforge_kb.binding.report import build_binding_report, write_binding_outputs
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.retrieval.corpus import KnowledgeCorpus
-
-ROOT = Path(__file__).resolve().parents[1]
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(

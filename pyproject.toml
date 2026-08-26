@@ -49,6 +49,7 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = "-m 'not integration'"
 markers = ["integration: requires local services or Docker"]
 
 [tool.ruff]

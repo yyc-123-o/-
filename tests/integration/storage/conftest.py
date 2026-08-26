@@ -1,8 +1,12 @@
 from collections.abc import Iterator
 from datetime import UTC, datetime
 
-import psycopg
 import pytest
+
+psycopg = pytest.importorskip(
+    "psycopg",
+    reason="PostgreSQL integration tests require psycopg",
+)
 
 from skillforge_kb.domain.enums import Language, LicenseStatus, SourceTier
 from skillforge_kb.domain.models import SourceRecord

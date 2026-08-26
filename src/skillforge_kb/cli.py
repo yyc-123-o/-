@@ -9,6 +9,7 @@ import typer
 import uvicorn
 import yaml
 from langgraph.checkpoint.sqlite import SqliteSaver
+from neo4j import GraphDatabase
 from pydantic import ValidationError
 
 from skillforge_kb.agents.runtime import (
@@ -31,6 +32,7 @@ from skillforge_kb.evaluation import (
     write_synthetic_dataset,
 )
 from skillforge_kb.ontology.catalog import OntologyCatalog
+from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 from skillforge_kb.platform.runtime import (
     build_default_platform_service,
     build_default_profile_agent_adapter,
@@ -301,11 +303,7 @@ def graph_publish(
         Path, typer.Option(exists=True, dir_okay=False)
     ] = DEFAULT_RELATIONS_FILE,
 ) -> None:
-    from neo4j import GraphDatabase
     from neo4j.exceptions import DriverError, Neo4jError
-    from pydantic import ValidationError
-
-    from skillforge_kb.ontology.neo4j import Neo4jConceptGraph
 
     catalog = _load_validated_catalog(course_file, relations_file)
     try:
