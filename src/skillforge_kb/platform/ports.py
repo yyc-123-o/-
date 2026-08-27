@@ -14,6 +14,7 @@ from skillforge_kb.evaluation.knowledge_tracing import KnowledgeTracingObservati
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
 from skillforge_kb.resources.evidence_bundle import EvidenceBundle
 from skillforge_kb.resources.handoff import ResourceHandoffContract
+from skillforge_kb.retrieval.models import KnowledgeRetrievalResult
 
 from .models import PlatformRunRequest, PlatformRunResult
 
@@ -32,6 +33,8 @@ class RetrievalAgentPort(Protocol):
         request: DomainRetrievalRequest,
         handoff: ResourceHandoffContract,
     ) -> DomainRetrievalResult: ...
+
+    def search(self, query: str, top_k: int = 5) -> KnowledgeRetrievalResult: ...
 
 
 class ResourceAgentPort(Protocol):

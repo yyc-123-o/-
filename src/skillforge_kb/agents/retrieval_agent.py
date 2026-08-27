@@ -6,8 +6,14 @@ from skillforge_kb.evidence.manifest import EvidenceIndex
 from skillforge_kb.evidence.models import EvidenceReviewStatus
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.resources.handoff import ResourceHandoffContract
+from skillforge_kb.retrieval.bm25 import tokenize
 from skillforge_kb.retrieval.corpus import KnowledgeCorpus
-from skillforge_kb.retrieval.models import KnowledgeChunk, KnowledgeHit, KnowledgeQuery
+from skillforge_kb.retrieval.models import (
+    KnowledgeChunk,
+    KnowledgeHit,
+    KnowledgeQuery,
+    KnowledgeRetrievalResult,
+)
 from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
 from .retrieval_agent_models import (
@@ -37,6 +43,16 @@ class DomainRetrievalAgent:
         self._retrieval_tool = retrieval_tool
         self._evidence_index = evidence_index
         self._catalog = catalog
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> KnowledgeRetrievalResult:
+        """Free-form candidate search across the corpus (never publishable)."""
+        return self._retrieval_tool.invoke(
+            KnowledgeQuery(query=query, top_k=top_k)
+        )
 
     def retrieve(
         self,
@@ -331,7 +347,9 @@ def _sort_evidence(items: Iterable[RetrievedEvidence]) -> tuple[RetrievedEvidenc
 
 
 _CODE_MARKERS = re.compile(
-    r"(?:```|\b(?:import|from|def|class|return)\b|torch\.|numpy\.|np\.)",
+    r"(?:```|\b(?:import|from|def|class|return)\b|"
+    r"torch\.|numpy\.|np\.|nn\.|self\.|"
+    r"Conv2d|ConvTranspose2d|Conv1d|Linear\()",
     re.IGNORECASE,
 )
 _EXERCISE_MARKERS = re.compile(
@@ -356,9 +374,26 @@ def _is_relevant_chunk(
     *,
     concept_terms: tuple[str, ...] = (),
 ) -> bool:
-    """Reject lexical false positives before they become typed evidence."""
+    """Reject lexical false positives before they become typed evidence.
+
+    Relevance is a deterministic token overlap check rather than an exact
+    substring requirement. A chunk is relevant when a concept term appears
+    literally (e.g. ``Scalar`` inside ``scalar values``) or shares a token with
+    the term under the bilingual tokenizer (e.g. the ``卷积`` bigram inside
+    ``卷积运算``). This keeps ``卷积`` chunks discoverable for the
+    ``卷积运算`` concept while still rejecting a ``向量`` chunk for ``标量``.
+    """
+    if not concept_terms:
+        return True
     searchable = " ".join((*chunk.heading_path, chunk.source_title, chunk.text))
-    return not concept_terms or any(
-        re.search(re.escape(term), searchable, re.IGNORECASE)
-        for term in concept_terms
-    )
+    lowered = searchable.casefold()
+    chunk_tokens = frozenset(tokenize(searchable))
+    for term in concept_terms:
+        if not term or not term.strip():
+            continue
+        if term.casefold() in lowered:
+            return True
+        term_tokens = tokenize(term)
+        if any(token in chunk_tokens for token in term_tokens):
+            return True
+    return False

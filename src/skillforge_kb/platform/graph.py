@@ -40,6 +40,7 @@ from skillforge_kb.resources.controlled_generation import PracticeExercise
 from skillforge_kb.resources.evidence_bundle import build_evidence_bundle
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import ResourceBrief
+from skillforge_kb.retrieval.models import KnowledgeRetrievalResult
 
 from .models import (
     AssessmentModel,
@@ -468,6 +469,15 @@ class PlatformService:
                 raise ValueError("no prediction observations")
             return evaluate_knowledge_tracing_by_model(observations)
 
+    def search_evidence(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> KnowledgeRetrievalResult:
+        """Run a free-form candidate search across the knowledge corpus."""
+        with self._lock:
+            return self._dependencies.retrieval_agent.search(query, top_k)
+
     def _execute(
         self,
         request: PlatformRunRequest,
@@ -558,14 +568,11 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
         handoff = state["handoff"]
         request = state["request"]
         try:
-            scope = (
-                f"{handoff.concept_id} {handoff.chapter_id} "
-                f"{handoff.section_id} {handoff.delivery_depth.value}"
-            )
+            scope = _build_retrieval_scope(dependencies, handoff)
             rewritten_queries = (
-                f"{scope} definition concept",
-                f"{scope} implementation code",
-                f"{scope} exercise assessment",
+                f"{scope} 定义 概念 解释 是什么",
+                f"{scope} 代码 实现 示例 参数",
+                f"{scope} 练习 习题 评估 例题",
             )
             retrieval_request = DomainRetrievalRequest(
                 original_query=(
@@ -866,6 +873,41 @@ def _serializable(value: object) -> object:
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     return value
+
+
+def _build_retrieval_scope(
+    dependencies: PlatformGraphDependencies,
+    handoff: ResourceHandoffContract,
+) -> str:
+    """Build a bilingual, natural-language retrieval scope for one node.
+
+    Prefer the reviewed concept metadata (Chinese/English names, aliases,
+    summary, and section title) over the raw concept ID so the BM25 query
+    carries the terms a learner would actually use.
+    """
+    if dependencies.catalog is None:
+        return (
+            f"{handoff.concept_id} {handoff.chapter_id} "
+            f"{handoff.section_id} {handoff.delivery_depth.value}"
+        )
+    try:
+        concept = dependencies.catalog.get_concept(handoff.concept_id)
+        section = dependencies.catalog.section_for(handoff.concept_id)
+    except (KeyError, ValueError):
+        return (
+            f"{handoff.concept_id} {handoff.chapter_id} "
+            f"{handoff.section_id} {handoff.delivery_depth.value}"
+        )
+    parts = [
+        concept.names.zh,
+        concept.names.en,
+        *concept.aliases,
+        concept.summary,
+        section.title.zh,
+        handoff.concept_id,
+        handoff.delivery_depth.value,
+    ]
+    return " ".join(part for part in parts if part)
 
 
 def _result_from_state(state: PlatformGraphState) -> PlatformRunResult:

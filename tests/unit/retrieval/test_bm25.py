@@ -124,4 +124,7 @@ def test_body_anchor_must_be_repeated_to_show_concept_focus(tmp_path: Path) -> N
     )
 
     assert result.status is KnowledgeRetrievalStatus.OK
-    assert [hit.chunk_id for hit in result.hits] == ["scalar-guide"]
+    # Anchors now rank rather than filter: the chunk that repeats the concept
+    # twice must still outrank the single-mention chunk.
+    assert result.hits[0].chunk_id == "scalar-guide"
+    assert "scalar-mention" in {hit.chunk_id for hit in result.hits}
