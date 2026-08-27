@@ -41,13 +41,17 @@ from core.retrieval import RetrievalEngine
 from generators.mock_generator import generate_all_mock_data, save_mock_data
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
+def initialize_state() -> None:
     global _test_bank
     learners, _test_bank = generate_all_mock_data()
     for learner in learners:
         _learners[learner.id] = learner
     print(f"[启动] {len(_learners)} 组模拟学习者, {len(_test_bank)} 道测试题, {len(KG.chapters)} 个章节")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    initialize_state()
     yield
 
 

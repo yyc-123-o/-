@@ -79,6 +79,12 @@ def create_app(
     static_root = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static_root), name="static")
 
+    from skillforge_kb.diagnosis_bridge import load_diagnosis_app
+
+    diagnosis = load_diagnosis_app()
+    diagnosis.initialize_state()
+    app.mount("/diagnosis", diagnosis.app)
+
     @app.exception_handler(IdempotencyConflict)
     async def idempotency_conflict_handler(
         _request: object,

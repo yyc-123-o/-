@@ -321,6 +321,17 @@ button.green[onclick="submitQuestionnaire()"]:hover{background:var(--success-hov
 </div>
 
 <script>
+/* 诊断 Agent 挂载在 /diagnosis 前缀下：将所有 /api/ 请求重写到 /diagnosis/api/ */
+(function(){
+  var _nativeFetch = window.fetch;
+  window.fetch = function(url, opts){
+    if (typeof url === 'string' && url.indexOf('/api/') === 0) {
+      url = '/diagnosis' + url;
+    }
+    return _nativeFetch.call(this, url, opts);
+  };
+})();
+
 var radarChart=null,heatmapChart=null,_profiles={},_atSessionId=null,_atLearnerId=null,_atAnswers=[];
 
 /* ---- 工具：安全初始化图表 ---- */
