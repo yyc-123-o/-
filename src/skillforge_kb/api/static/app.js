@@ -29,6 +29,10 @@ runButton.addEventListener("click", runPlatform);
 document.querySelectorAll('[role="tab"]').forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tab));
 });
+document.getElementById("evidence-search-btn").addEventListener("click", runEvidenceSearch);
+document.getElementById("evidence-query").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") runEvidenceSearch();
+});
 
 async function handleProfileFile(event) {
   resetProfileError();
@@ -625,7 +629,7 @@ function reasonCodeLabel(code) {
 }
 
 function renderEvidence(result) {
-  const target = document.getElementById("evidence-view");
+  const target = document.getElementById("evidence-results");
   target.replaceChildren();
   const retrieval = result.retrieval;
   if (!retrieval) {
@@ -671,27 +675,118 @@ function evidenceSection(title, records) {
     list.append(textElement("p", "无记录"));
   } else {
     records.forEach((record) => {
-      const card = document.createElement("article");
-      card.className = "record-card";
-      const header = document.createElement("header");
-      header.append(
-        textElement("h3", record.source_title),
-        textElement("span", contentKindLabel(record.content_kind), "kind-tag"),
-      );
-      card.append(
-        header,
-        textElement("p", record.excerpt),
-        textElement(
-          "p",
-          `${record.evidence_status} · ${record.retrieval_method} · ${record.locator}`,
-          "record-meta",
-        ),
-      );
-      list.append(card);
+      list.append(evidenceCard({
+        sourceTitle: record.source_title,
+        contentKind: record.content_kind,
+        headingPath: record.heading_path,
+        body: record.excerpt || record.text || "",
+        meta: [
+          record.evidence_status,
+          record.retrieval_method,
+          record.locator,
+          typeof record.score === "number" ? `score ${record.score.toFixed(3)}` : null,
+        ],
+      }));
     });
   }
   section.append(heading, list);
   return section;
+}
+
+function evidenceCard({ sourceTitle, contentKind, headingPath, body, meta }) {
+  const card = document.createElement("article");
+  card.className = "record-card";
+  const header = document.createElement("header");
+  const titleLine = document.createElement("div");
+  titleLine.className = "record-title";
+  titleLine.append(textElement("h3", sourceTitle));
+  if (contentKind) {
+    titleLine.append(textElement("span", contentKindLabel(contentKind), "kind-tag"));
+  }
+  header.append(titleLine);
+  if (Array.isArray(headingPath) && headingPath.length) {
+    header.append(textElement("p", headingPath.join(" / "), "record-path"));
+  }
+  card.append(
+    header,
+    textElement("p", truncate(body, 420)),
+    textElement("p", meta.filter(Boolean).join(" · "), "record-meta"),
+  );
+  return card;
+}
+
+function truncate(text, limit) {
+  const value = String(text || "");
+  return value.length > limit ? `${value.slice(0, limit)}…` : value;
+}
+
+async function runEvidenceSearch() {
+  const input = document.getElementById("evidence-query");
+  const statusEl = document.getElementById("evidence-search-status");
+  const button = document.getElementById("evidence-search-btn");
+  const query = input.value.trim();
+  if (!query) {
+    statusEl.textContent = "请输入检索内容。";
+    return;
+  }
+  button.disabled = true;
+  button.textContent = "检索中";
+  statusEl.textContent = "正在检索…";
+  try {
+    const response = await fetch("/api/v1/retrieval/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, top_k: 10 }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail?.message || "检索失败");
+    }
+    renderSearchResults(query, payload);
+    if (payload.status === "unavailable") {
+      statusEl.textContent = payload.error_message || "检索失败";
+      return;
+    }
+    statusEl.textContent = payload.hits?.length
+      ? `返回 ${payload.hits.length} 条候选片段。`
+      : "知识库中没有匹配的候选片段。";
+  } catch (error) {
+    statusEl.textContent = error instanceof Error ? error.message : "检索失败";
+  } finally {
+    button.disabled = false;
+    button.textContent = "检索";
+  }
+}
+
+function renderSearchResults(query, payload) {
+  const target = document.getElementById("evidence-results");
+  target.replaceChildren();
+  const hits = payload.hits || [];
+  const section = document.createElement("section");
+  const heading = document.createElement("div");
+  heading.className = "section-heading";
+  heading.append(
+    textElement("h2", "检索结果"),
+    textElement("span", `“${query}” · ${hits.length} 条`),
+  );
+  section.append(heading);
+  if (!hits.length) {
+    section.append(textElement("p", "知识库中没有匹配的候选片段，试试更通用的关键词。"));
+  } else {
+    const list = document.createElement("div");
+    list.className = "record-list";
+    hits.forEach((hit) => {
+      list.append(evidenceCard({
+        sourceTitle: hit.source_title,
+        contentKind: null,
+        headingPath: hit.heading_path,
+        body: hit.text,
+        meta: ["candidate", "bm25", `score ${(hit.score ?? 0).toFixed(3)}`, hit.chunk_id],
+      }));
+    });
+    section.append(list);
+  }
+  target.append(section);
 }
 
 function contentKindLabel(kind) {

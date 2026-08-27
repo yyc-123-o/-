@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="data:,">
     <title>SkillForge 课程平台</title>
-    <link rel="stylesheet" href="/static/app.css?v=20260825-platform-generalization-1">
+    <link rel="stylesheet" href="/static/app.css?v=20260825-retrieval-search-2">
   </head>
   <body>
     <div class="app-shell">
@@ -117,7 +117,18 @@
             <div class="empty-state"><strong>等待一次运行</strong><span>路径节点、先修关系和当前交接会显示在这里。</span></div>
           </section>
           <section id="evidence-view" class="tab-panel" role="tabpanel" hidden>
-            <div class="empty-state"><strong>等待证据检索</strong><span>正式证据与候选片段会按内容类型分组。</span></div>
+            <div class="evidence-search" aria-label="自由检索知识库">
+              <label for="evidence-query">自由检索知识库</label>
+              <div class="evidence-search-row">
+                <input id="evidence-query" type="text" inputmode="search" autocomplete="off"
+                       placeholder="支持自然语言，例如：卷积和互相关有什么区别？">
+                <button id="evidence-search-btn" type="button" class="secondary-action compact-action">检索</button>
+              </div>
+              <p id="evidence-search-status" class="field-hint">也可直接查看上方运行产生的候选证据；检索结果均为未审核候选，不可作为正式证据。</p>
+            </div>
+            <div id="evidence-results" class="evidence-results" aria-live="polite">
+              <div class="empty-state"><strong>等待证据检索</strong><span>正式证据与候选片段会按内容类型分组。</span></div>
+            </div>
           </section>
           <section id="resource-view" class="tab-panel" role="tabpanel" hidden>
             <div id="learning-workbench" class="learning-workbench" aria-live="polite">
@@ -127,6 +138,6 @@
         </main>
       </div>
     </div>
-    <script type="module" src="/static/app.js?v=20260825-platform-generalization-1"></script>
+    <script type="module" src="/static/app.js?v=20260825-retrieval-search-2"></script>
   </body>
 </html>

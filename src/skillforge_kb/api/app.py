@@ -18,6 +18,7 @@ from skillforge_kb.platform.models import (
 )
 from skillforge_kb.platform.practice_review import PracticeReviewResult
 from skillforge_kb.platform.repository import IdempotencyConflict
+from skillforge_kb.retrieval.models import KnowledgeRetrievalResult
 
 
 class PlatformApplicationService(Protocol):
@@ -49,6 +50,8 @@ class PlatformApplicationService(Protocol):
         self,
         profile_id: str,
     ) -> tuple[KnowledgeTracingEvaluationReport, ...]: ...
+
+    def search_evidence(self, query: str, top_k: int = 5) -> KnowledgeRetrievalResult: ...
 
 
 class ProfileAdaptationService(Protocol):
@@ -97,6 +100,33 @@ def create_app(
             "status": "ok",
             "execution_modes": ["strict", "candidate_preview"],
         }
+
+    @app.post("/api/v1/retrieval/search")
+    def search_evidence(payload: dict[str, object]) -> dict[str, object]:
+        query = payload.get("query")
+        if not isinstance(query, str) or not query.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "invalid_search_query",
+                    "message": "query is required",
+                },
+            )
+        top_k_raw = payload.get("top_k", 5)
+        if isinstance(top_k_raw, bool):
+            top_k = 5
+        elif isinstance(top_k_raw, int):
+            top_k = top_k_raw
+        elif isinstance(top_k_raw, str):
+            try:
+                top_k = int(top_k_raw)
+            except ValueError:
+                top_k = 5
+        else:
+            top_k = 5
+        top_k = max(1, min(top_k, 20))
+        result = service.search_evidence(query.strip(), top_k)
+        return result.model_dump(mode="json")
 
     @app.post("/api/v1/profiles/adapt")
     def adapt_profile(raw_profile: dict[str, object]) -> dict[str, object]:
