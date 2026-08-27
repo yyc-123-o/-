@@ -17,6 +17,9 @@ const topKInput = document.getElementById("top-k");
 const runStatus = document.getElementById("run-status");
 const runId = document.getElementById("run-id");
 const publicationStatus = document.getElementById("publication-status");
+const profileJsonInput = document.getElementById("profile-json-input");
+const loadProfileJsonButton = document.getElementById("load-profile-json");
+const profileJsonStatus = document.getElementById("profile-json-status");
 
 profileFile.addEventListener("change", handleProfileFile);
 targetConceptInput.addEventListener("input", () => {
@@ -26,6 +29,7 @@ targetConceptInput.addEventListener("input", () => {
     : "未指定目标时运行完整课程路径。";
 });
 runButton.addEventListener("click", runPlatform);
+loadProfileJsonButton.addEventListener("click", runPastedProfile);
 document.querySelectorAll('[role="tab"]').forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tab));
 });
@@ -68,6 +72,39 @@ async function consumeDiagnosisHandoff() {
     runButton.disabled = true;
     profileError.textContent = error instanceof Error ? error.message : "诊断画像交接失败";
     renderProfileSummary();
+  }
+}
+
+async function runPastedProfile() {
+  resetProfileError();
+  if (!profileJsonInput.value.trim()) {
+    profileJsonStatus.textContent = "请先粘贴画像 JSON";
+    return;
+  }
+  loadProfileJsonButton.disabled = true;
+  profileJsonStatus.textContent = "正在校验画像...";
+  try {
+    const pasted = JSON.parse(profileJsonInput.value);
+    const normalized = await normalizeProfile(pasted?.profile || pasted);
+    state.profile = normalized.snapshot;
+    state.profileWarnings = normalized.warnings;
+    state.targetConceptId = "";
+    targetConceptInput.value = "";
+    targetHint.textContent = "未指定目标时运行完整课程路径。";
+    validateProfile(state.profile);
+    renderProfileSummary();
+    runButton.disabled = false;
+    profileJsonStatus.textContent = "画像已载入，正在生成完整课程路径...";
+    await runPlatform();
+  } catch (error) {
+    state.profile = null;
+    state.profileWarnings = [];
+    runButton.disabled = true;
+    renderProfileSummary();
+    profileJsonStatus.textContent = "画像载入失败";
+    profileError.textContent = error instanceof Error ? error.message : "画像 JSON 无效";
+  } finally {
+    loadProfileJsonButton.disabled = false;
   }
 }
 

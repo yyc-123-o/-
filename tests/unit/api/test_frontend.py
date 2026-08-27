@@ -83,3 +83,14 @@ def test_platform_consumes_diagnosis_profile_handoff(client: TestClient) -> None
     assert "consumeDiagnosisHandoff" in javascript.text
     assert "sessionStorage.removeItem" in javascript.text
     assert 'href="/diagnosis/"' in html.text
+
+
+def test_platform_exposes_direct_profile_json_test_input(client: TestClient) -> None:
+    javascript = client.get("/static/app.js")
+    html = client.get("/platform")
+
+    assert javascript.status_code == 200
+    assert "runPastedProfile" in javascript.text
+    assert "profile-json-input" in html.text
+    assert "load-profile-json" in html.text
+    assert "text-control textarea" in client.get("/static/app.css").text

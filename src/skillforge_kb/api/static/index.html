@@ -54,6 +54,14 @@
               <span>尚未选择画像</span>
             </div>
             <p id="profile-error" class="field-error" role="alert"></p>
+            <label class="text-control profile-json-control" for="profile-json-input">
+              <span>直接粘贴画像 JSON（内部测试）</span>
+              <textarea id="profile-json-input" rows="6" placeholder="粘贴学情诊断 Agent v2.1 输出或平台标准画像"></textarea>
+            </label>
+            <button id="load-profile-json" class="secondary-action compact-action" type="button">
+              载入画像并运行
+            </button>
+            <p id="profile-json-status" class="field-hint">仅用于测试，可直接跳过文件上传。</p>
           </section>
 
           <section class="control-section">
