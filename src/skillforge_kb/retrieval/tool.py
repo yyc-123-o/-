@@ -3,7 +3,7 @@ from typing import Protocol
 
 from langchain_core.tools import StructuredTool
 
-from .models import KnowledgeQuery, KnowledgeRetrievalResult
+from .models import KnowledgeQuery, KnowledgeRetrievalResult, KnowledgeRetrievalStatus
 
 
 class KnowledgeRetriever(Protocol):
@@ -11,8 +11,9 @@ class KnowledgeRetriever(Protocol):
 
 
 class KnowledgeRetrievalTool:
-    def __init__(self, retriever: KnowledgeRetriever) -> None:
+    def __init__(self, retriever: KnowledgeRetriever, *, strict_scope: bool = False) -> None:
         self._retriever = retriever
+        self._strict_scope = strict_scope
 
     def invoke(
         self,
@@ -20,8 +21,27 @@ class KnowledgeRetrievalTool:
     ) -> KnowledgeRetrievalResult:
         query = KnowledgeQuery.model_validate(request)
         try:
-            result = self._retriever.retrieve(query)
-            return KnowledgeRetrievalResult.model_validate(result)
+            result = KnowledgeRetrievalResult.model_validate(self._retriever.retrieve(query))
+            if (
+                self._strict_scope
+                and result.status is KnowledgeRetrievalStatus.OK
+                and query.anchors
+            ):
+                anchors = tuple(item.casefold() for item in query.anchors)
+                hits = tuple(
+                    hit
+                    for hit in result.hits
+                    if any(
+                        anchor in " ".join((hit.source_title, *hit.heading_path)).casefold()
+                        for anchor in anchors
+                    )
+                )
+                if not hits:
+                    return KnowledgeRetrievalResult.no_results(
+                        query, corpus_digest=result.corpus_digest
+                    )
+                result = result.model_copy(update={"hits": hits})
+            return result
         except Exception as exc:
             return KnowledgeRetrievalResult.unavailable(
                 query,

@@ -57,7 +57,7 @@ def build_standalone_course_planning_agent(
     return CoursePlanningAgent.create(
         catalog,
         attributes,
-        knowledge_tool=KnowledgeRetrievalTool(retriever),
+        knowledge_tool=KnowledgeRetrievalTool(retriever, strict_scope=True),
         checkpointer=checkpointer,
     )
 

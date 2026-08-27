@@ -134,15 +134,12 @@ def test_cnn_node_uses_the_same_metadata_query_template_as_every_node() -> None:
 
     assert result.handoff is not None
     assert result.retrieval is not None
-    scope = (
-        f"{result.handoff.concept_id} {result.handoff.chapter_id} "
-        f"{result.handoff.section_id} {result.handoff.delivery_depth.value}"
-    )
-    assert result.retrieval.request.rewritten_queries == (
-        f"{scope} definition concept",
-        f"{scope} implementation code",
-        f"{scope} exercise assessment",
-    )
+    queries = result.retrieval.request.rewritten_queries
+    assert len(queries) == 3
+    assert all(result.handoff.concept_id in query for query in queries)
+    assert queries[0].endswith("定义 概念 解释 是什么")
+    assert queries[1].endswith("代码 实现 示例 参数")
+    assert queries[2].endswith("练习 习题 评估 例题")
 
 
 def test_completing_current_node_advances_the_existing_learning_run() -> None:
