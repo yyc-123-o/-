@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from models.schemas import (
     Learner, LearnerProfile, KnowledgeGap, DiagnosisResult,
@@ -186,13 +186,7 @@ def _build_learning_scope(kg: KnowledgeGraph, current_chapter_id: str = "ch03_cn
     """构建章节级学习范围"""
     ch = kg.get_chapter(current_chapter_id)
     if not ch:
-        return LearningScope(
-            scope_type="chapter",
-            chapter_id=current_chapter_id,
-            chapter_name="未知章节",
-            primary_kp_id="",
-            primary_kp_name="",
-        )
+        raise ValueError(f"章节 {current_chapter_id} 不存在")
 
     primary_kp = kg.get(ch.primary_kp_id)
     successors = kg.get_chapter_successors(current_chapter_id)
@@ -513,12 +507,12 @@ def _build_resource_hints(
     ch = kg.get_chapter(learning_scope.chapter_id)
     ch_id = learning_scope.chapter_id
 
-    # 收集该章节涉及的所有知识点（主知识点 + 前驱 + 共修）
+    # 资源提示需要覆盖完整章节范围（主知识点 + 前驱 + 共修）。
     chapter_kp_ids: List[str] = []
     if ch:
-        chapter_kp_ids = list(set(
-            [ch.primary_kp_id] + ch.predecessor_kp_ids + ch.co_requisite_kp_ids
-        ))
+        chapter_kp_ids = list(
+            {ch.primary_kp_id, *ch.predecessor_kp_ids, *ch.co_requisite_kp_ids}
+        )
     chapter_kps = [kg.get(kid) for kid in chapter_kp_ids if kg.get(kid)]
     chapter_kps = [kp for kp in chapter_kps if kp is not None]
 
@@ -662,10 +656,9 @@ def _build_prior_chapters(
         if ch.chapter_order >= current_ch.chapter_order:
             break
 
-        # 收集该章节涉及的知识点
-        chapter_kp_ids = list(set(
-            [ch.primary_kp_id] + ch.predecessor_kp_ids + ch.co_requisite_kp_ids
-        ))
+        # 仅以章节自身的主知识点和共需知识点归属学习记录。
+        # predecessor_kp_ids 是路径约束，不能据此推断学生学过本章。
+        chapter_kp_ids = list({ch.primary_kp_id, *ch.co_requisite_kp_ids})
 
         # 筛选属于该章节知识点的测试记录
         chapter_tests = [
@@ -704,21 +697,14 @@ def _build_prior_chapters(
         # 覆盖的知识点
         tested_kps = list(set(t.knowledge_point_id for t in chapter_tests))
 
-        # 完成时间：取该章节最后一条测试/交互记录的时间戳
-        all_timestamps: List[datetime] = []
-        for t in chapter_tests:
-            if hasattr(t, 'timestamp') and t.timestamp:
-                all_timestamps.append(t.timestamp)
-        for i in chapter_interactions:
-            if hasattr(i, 'timestamp') and i.timestamp:
-                all_timestamps.append(i.timestamp)
-        completed_at = max(all_timestamps).strftime("%Y-%m-%dT%H:%M:%SZ") if all_timestamps else None
+        # 历史记录只证明发生过学习活动；未接入章节完成事件，不能声明章节已完成。
+        completed_at = None
 
         # 深度判定
         if accuracy >= 0.75:
             depth_assigned = "review"
             conclusion = f"准确率{accuracy:.0%}，掌握良好，已做回顾性验证"
-        elif accuracy >= 0.50:
+        elif accuracy > 0.50:
             depth_assigned = "advanced"
             conclusion = f"准确率{accuracy:.0%}，基本掌握，需巩固提升"
         else:
@@ -932,6 +918,9 @@ def build_profile(
     - 未测评节点(test_count=0)如有自评先验则以自评mastery显示，status/unexplored判定也相应放宽
     - evidence 中新增模式1/模式2来源说明
     """
+
+    if not kg.get_chapter(current_chapter_id):
+        raise ValueError(f"章节 {current_chapter_id} 不存在")
 
     now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
     sa = learner.self_assessment

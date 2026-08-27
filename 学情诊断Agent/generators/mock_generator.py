@@ -23,7 +23,7 @@ from models.schemas import (
     Learner, Education, SelfAssessment, TestRecord, InteractionRecord,
     CourseSelfAssessment, DomainAssessment, ProjectExperience,
 )
-from models.knowledge_graph import KG, KnowledgePoint
+from models.knowledge_graph import KG, KnowledgeGraph, KnowledgePoint
 
 # 错题时的错误模式候选
 _ERROR_PATTERNS = ["概念混淆", "计算错误", "逻辑跳跃", "忽略条件"]

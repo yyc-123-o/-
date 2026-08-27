@@ -7,7 +7,6 @@ dependencies = [
   "uvicorn[standard]>=0.35,<1",
   "numpy>=1.26,<3",
   "pydantic>=2.11,<3",
-  "numpy>=1.26,<3",
   "scipy>=1.13,<2",
   "pydantic-settings>=2.10,<3",
   "langchain-core>=0.3.68,<1",
@@ -25,7 +24,6 @@ dependencies = [
   "structlog>=25.4,<26",
   "langgraph>=0.6,<1",
   "langgraph-checkpoint-sqlite>=3,<4",
-  "scipy>=1.13,<2",
 ]
 
 [project.scripts]

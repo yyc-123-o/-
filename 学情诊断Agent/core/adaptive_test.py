@@ -26,6 +26,7 @@
 """
 
 from __future__ import annotations
+import math
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -68,6 +69,7 @@ IRT_PRIOR_STD = 1.0
 class AdaptiveSession:
     session_id: str
     learner_id: str
+    started_at: str = field(default_factory=lambda: datetime.now().isoformat())
     domains: List[str] = field(default_factory=lambda: list(DOMAINS))
     question_count: int = 0
     # 题库分桶
@@ -85,6 +87,7 @@ class AdaptiveSession:
     # 会话终态
     finished: bool = False
     stop_reason: str = ""
+    final_theta: Optional[float] = None
     # P1-2: IRT 先验 θ (用于最终能力估计的正则化)
     prior_theta: float = 0.0
     # 兼容字段 (前端可能仍依赖展示)
@@ -93,6 +96,9 @@ class AdaptiveSession:
     domain_results: List[dict] = field(default_factory=list)
     # 会话配置 (保留兼容)
     knowledge_point_ids: Optional[List[str]] = None
+    max_questions: int = MAX_QUESTIONS
+    min_questions: int = MIN_QUESTIONS
+    min_kp_coverage: int = MIN_KP_COVERAGE
     # 当前待答题目 (用于服务端校验提交的题目是否匹配)
     current_question_id: Optional[str] = None
 
@@ -133,6 +139,7 @@ def _group_bank_by_kp(
     test_bank: List[dict],
     domains: List[str],
     knowledge_point_ids: Optional[List[str]] = None,
+    domain_filter_active: bool = False,
 ) -> Tuple[Dict[str, List[dict]], List[str]]:
     """按 kp_id 分组题库, 同时返回范围内 kp_id 列表 (按领域+kp名稳定排序)"""
     domain_set = set(domains)
@@ -141,7 +148,8 @@ def _group_bank_by_kp(
     grouped: Dict[str, List[dict]] = {}
     meta = {}  # kp_id -> (domain_order, kp_name) 用于排序
     for q in test_bank:
-        if q.get("domain") not in domain_set:
+        question_domain = q.get("domain")
+        if domain_filter_active and question_domain not in domain_set:
             continue
         kp = q.get("knowledge_point_id")
         if not kp:
@@ -151,7 +159,7 @@ def _group_bank_by_kp(
         grouped.setdefault(kp, []).append(q)
         if kp not in meta:
             try:
-                dorder = DOMAINS.index(q["domain"])
+                dorder = DOMAINS.index(question_domain)
             except ValueError:
                 dorder = 99
             meta[kp] = (dorder, q.get("knowledge_point_name", ""), kp)
@@ -165,16 +173,19 @@ def _group_bank_by_domain(
     test_bank: List[dict],
     domains: List[str],
     knowledge_point_ids: Optional[List[str]] = None,
+    domain_filter_active: bool = False,
 ) -> Dict[str, List[dict]]:
     """按领域分组 (保留, 供兼容展示)"""
     grouped: Dict[str, List[dict]] = {d: [] for d in domains}
     kp_set = set(knowledge_point_ids) if knowledge_point_ids else None
     for q in test_bank:
-        if q.get("domain") not in grouped:
+        question_domain = q.get("domain")
+        if domain_filter_active and question_domain not in grouped:
             continue
         if kp_set is not None and q.get("knowledge_point_id") not in kp_set:
             continue
-        grouped[q["domain"]].append(q)
+        if question_domain in grouped:
+            grouped[question_domain].append(q)
     return grouped
 
 
@@ -295,12 +306,15 @@ def _check_stop_condition(session: AdaptiveSession) -> Optional[str]:
     covered = len(session.covered_kp_ids)
 
     # 条件 (b) 硬上限
-    if n >= MAX_QUESTIONS:
-        return f"达到总题数上限 {MAX_QUESTIONS} 题 (已覆盖 {covered}/{len(session.all_kp_ids)} kp)"
+    if n >= session.max_questions:
+        return f"达到总题数上限 {session.max_questions} 题 (已覆盖 {covered}/{len(session.all_kp_ids)} kp)"
 
     # 条件 (a) 覆盖 + 题数达标
-    if covered >= MIN_KP_COVERAGE and n >= MIN_QUESTIONS:
-        return f"已覆盖 {covered} 个知识点 ≥ {MIN_KP_COVERAGE}, 且答题 {n} 题 ≥ {MIN_QUESTIONS}"
+    if covered >= min(session.min_kp_coverage, len(session.all_kp_ids)) and n >= session.min_questions:
+        return (
+            f"已覆盖 {covered} 个知识点 ≥ {min(session.min_kp_coverage, len(session.all_kp_ids))}, "
+            f"且答题 {n} 题 ≥ {session.min_questions}"
+        )
 
     # 题库完全耗尽 (已无任何未答题)
     if _select_question(session) is None:
@@ -488,9 +502,12 @@ def start_session(
     if domains is None:
         domains = list(DOMAINS)
     knowledge_point_ids = config.get("knowledge_point_ids")
+    domain_filter_active = config.get("domain_filter_active", False)
 
     sid = f"sess_{uuid.uuid4().hex[:8]}"
-    bank_by_kp, all_kp_ids = _group_bank_by_kp(test_bank, domains, knowledge_point_ids)
+    bank_by_kp, all_kp_ids = _group_bank_by_kp(
+        test_bank, domains, knowledge_point_ids, domain_filter_active
+    )
 
     session = AdaptiveSession(
         session_id=sid,
@@ -499,9 +516,14 @@ def start_session(
         prior_theta=float(prior_theta),
         current_theta=float(prior_theta),
         knowledge_point_ids=knowledge_point_ids,
-        bank_grouped=_group_bank_by_domain(test_bank, domains, knowledge_point_ids),
+        bank_grouped=_group_bank_by_domain(
+            test_bank, domains, knowledge_point_ids, domain_filter_active
+        ),
         bank_by_kp=bank_by_kp,
         all_kp_ids=all_kp_ids,
+        max_questions=config["max_questions"],
+        min_questions=config["min_questions"],
+        min_kp_coverage=config["min_kp_coverage"],
     )
     _sessions[sid] = session
 
@@ -549,7 +571,10 @@ def start_session(
         "total_kp": len(session.all_kp_ids),
         "covered_kp": 0,
         "current_theta": round(session.current_theta, 4),
-        "coverage_target": f"Phase1 覆盖 {MIN_KP_COVERAGE}/{len(session.all_kp_ids)} kp, 上限 {MAX_QUESTIONS} 题",
+        "coverage_target": (
+            f"Phase1 覆盖 {min(session.min_kp_coverage, len(session.all_kp_ids))}/"
+            f"{len(session.all_kp_ids)} kp, 上限 {session.max_questions} 题"
+        ),
     }
 
 
@@ -561,6 +586,11 @@ def submit_answer(
     test_bank: List[dict],
 ) -> dict:
     """提交答案 (v4.0): 更新 kp 覆盖计数 + IRT θ + 判定停止"""
+    if isinstance(time_spent, bool) or not isinstance(time_spent, int) or time_spent < 0:
+        return {"error": "time_spent 必须是非负整数"}
+    if isinstance(selected_answer, bool) or not isinstance(selected_answer, int):
+        return {"error": "selected_answer 必须是整数选项下标"}
+
     session = _sessions.get(session_id)
     if not session:
         return {"error": "会话不存在"}
@@ -569,8 +599,6 @@ def submit_answer(
 
     if session.current_question_id != question_id:
         return {"error": "提交的题目不是当前会话要求回答的题目"}
-    if isinstance(time_spent, bool) or not isinstance(time_spent, int) or time_spent < 0:
-        return {"error": "time_spent 必须是非负整数"}
 
     # 查题目 (优先 session.bank_by_kp, 再全局 test_bank)
     q = None
@@ -584,8 +612,6 @@ def submit_answer(
     if not q:
         return {"error": "题目不存在"}
 
-    if isinstance(selected_answer, bool) or not isinstance(selected_answer, int):
-        return {"error": "selected_answer 必须是整数选项下标"}
     if selected_answer < 0 or selected_answer >= len(q.get("options", [])):
         return {"error": "选项无效"}
     if "correct_answer" not in q:
@@ -632,6 +658,7 @@ def submit_answer(
         final_theta, theta_info = _estimate_final_theta(
             session.answers, prior_theta=session.prior_theta
         )
+        session.final_theta = final_theta
         kp_mastery = _estimate_kp_mastery(session)
         return {
             "session_id": session_id,
@@ -661,6 +688,7 @@ def submit_answer(
         final_theta, theta_info = _estimate_final_theta(
             session.answers, prior_theta=session.prior_theta
         )
+        session.final_theta = final_theta
         kp_mastery = _estimate_kp_mastery(session)
         return {
             "session_id": session_id,
@@ -723,9 +751,14 @@ def get_session(session_id: str) -> Optional[dict]:
     if not s:
         return None
     if s.finished:
-        final_theta, theta_info = _estimate_final_theta(
-            s.answers, prior_theta=s.prior_theta
-        )
+        if s.final_theta is None:
+            final_theta, theta_info = _estimate_final_theta(
+                s.answers, prior_theta=s.prior_theta
+            )
+            s.final_theta = final_theta
+        else:
+            final_theta = s.final_theta
+            _, theta_info = _estimate_final_theta(s.answers, prior_theta=s.prior_theta)
         kp_mastery = _estimate_kp_mastery(s)
     else:
         final_theta, theta_info = None, None
@@ -761,28 +794,92 @@ def get_session(session_id: str) -> Optional[dict]:
 # ============================================================
 
 def build_config(data: Optional[dict] = None) -> dict:
-    data = data or {}
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        raise ValueError("adaptive test config 必须是对象")
+
+    def require_finite_number(key: str, default: float) -> float:
+        value = data.get(key, default)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+            raise ValueError(f"{key} 必须是有限数值")
+        return float(value)
+
     raw_domains = data.get("domains")
-    if raw_domains:
-        domains = [d for d in raw_domains if d in DOMAINS]
-    else:
-        domains = list(DOMAINS)
+    if raw_domains is not None and (
+        not isinstance(raw_domains, list)
+        or any(not isinstance(domain, str) or not domain for domain in raw_domains)
+    ):
+        raise ValueError("domains 必须是非空字符串数组")
+    if raw_domains and any(domain not in DOMAINS for domain in raw_domains):
+        raise ValueError("domains 包含不支持的领域")
+    domains = list(raw_domains) if raw_domains else list(DOMAINS)
 
     kp_ids = data.get("knowledge_point_ids")
+    if kp_ids is not None and (
+        not isinstance(kp_ids, list)
+        or any(not isinstance(kp_id, str) or not kp_id for kp_id in kp_ids)
+    ):
+        raise ValueError("knowledge_point_ids 必须是非空字符串数组")
     knowledge_point_ids = list(kp_ids) if kp_ids else None
+
+    raw_stages = data.get("difficulty_stages")
+    if raw_stages is not None:
+        if not isinstance(raw_stages, list) or not raw_stages or any(
+            not isinstance(stage, dict) for stage in raw_stages
+        ):
+            raise ValueError("difficulty_stages 必须是非空对象数组")
+        for stage in raw_stages:
+            low = stage.get("low", -3.0)
+            high = stage.get("high", 3.0)
+            promote_accuracy = stage.get("promote_accuracy", 0.70)
+            min_stage_questions = stage.get("min_questions", 2)
+            if (
+                any(
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(value)
+                    for value in (low, high, promote_accuracy)
+                )
+                or low > high
+                or not 0 <= promote_accuracy <= 1
+                or isinstance(min_stage_questions, bool)
+                or not isinstance(min_stage_questions, int)
+                or min_stage_questions < 1
+            ):
+                raise ValueError("难度阶段范围、晋升正确率或最少题数无效")
+
+    max_questions = require_finite_number("max_questions", MAX_QUESTIONS)
+    min_questions = require_finite_number("min_questions", MIN_QUESTIONS)
+    min_kp_coverage = require_finite_number("min_kp_coverage", MIN_KP_COVERAGE)
+    if (
+        not max_questions.is_integer()
+        or not min_questions.is_integer()
+        or not min_kp_coverage.is_integer()
+        or min_questions < 1
+        or max_questions < min_questions
+        or min_kp_coverage < 1
+    ):
+        raise ValueError("题数和覆盖数必须为正整数，且 min_questions <= max_questions")
+
+    convergence_threshold = require_finite_number("convergence_threshold", 0.15)
+    if convergence_threshold < 0:
+        raise ValueError("停止条件不能为负数")
 
     return {
         "domains": domains,
+        "domain_filter_active": bool(raw_domains),
         "knowledge_point_ids": knowledge_point_ids,
         "max_questions_per_domain": 20,        # 保留旧键, v4 未使用
         "stop_consecutive_wrong": 3,           # 保留旧键
         "promote_consecutive_correct": 2,      # 保留旧键
         "difficulty_tiers": [t["label"] for t in DIFFICULTY_TIERS],
         # v4 新参数 (作为参考, 无需前端传入)
-        "min_kp_coverage": MIN_KP_COVERAGE,
+        "min_kp_coverage": int(min_kp_coverage),
         "target_kp_coverage": TARGET_KP_COVERAGE,
-        "min_questions": MIN_QUESTIONS,
-        "max_questions": MAX_QUESTIONS,
+        "min_questions": int(min_questions),
+        "max_questions": int(max_questions),
+        "convergence_threshold": convergence_threshold,
     }
 
 
