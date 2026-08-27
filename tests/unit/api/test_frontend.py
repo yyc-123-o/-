@@ -94,3 +94,11 @@ def test_platform_exposes_direct_profile_json_test_input(client: TestClient) -> 
     assert "profile-json-input" in html.text
     assert "load-profile-json" in html.text
     assert "text-control textarea" in client.get("/static/app.css").text
+
+
+def test_platform_profile_script_cache_is_busted_for_import_fix(client: TestClient) -> None:
+    html = client.get("/platform")
+
+    assert html.status_code == 200
+    assert "app.js?v=20260828-profile-import-1" in html.text
+    assert "extractProfilePayload" in client.get("/static/app.js").text

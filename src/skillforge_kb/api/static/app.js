@@ -122,7 +122,7 @@ async function handleProfileFile(event) {
     return;
   }
   try {
-    const uploadedProfile = JSON.parse(await file.text());
+    const uploadedProfile = extractProfilePayload(JSON.parse(await file.text()));
     const normalized = await normalizeProfile(uploadedProfile);
     state.profile = normalized.snapshot;
     state.profileWarnings = normalized.warnings;
@@ -147,6 +147,7 @@ async function handleProfileFile(event) {
 }
 
 async function normalizeProfile(profile) {
+  profile = extractProfilePayload(profile);
   if (profile?.schema_version && profile?.graph_version) {
     return {
       snapshot: profile,
@@ -171,6 +172,17 @@ async function normalizeProfile(profile) {
     warnings: payload.warnings || [],
     suggestedTargetConceptId: payload.suggested_target_concept_id || "",
   };
+}
+
+function extractProfilePayload(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  if (value.profile && typeof value.profile === "object" && !Array.isArray(value.profile)) {
+    return extractProfilePayload(value.profile);
+  }
+  if (value.snapshot && typeof value.snapshot === "object" && !Array.isArray(value.snapshot)) {
+    return extractProfilePayload(value.snapshot);
+  }
+  return value;
 }
 
 function validateProfile(profile) {
