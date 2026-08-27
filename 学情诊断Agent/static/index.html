@@ -1531,26 +1531,26 @@ async function finishAdaptiveAndDiagnose(){
     document.getElementById('btnFinishAT').disabled=false;
     return;
   }
-  document.getElementById('atStatus').textContent=applyData.message+' 正在诊断...';
-  var lid=_atLearnerId;_atSessionId=null;_atAnswers=[];
-
-  await loadLearners();
-  switchTab('dashboard');
-
-  var sel=document.getElementById('learnerSelect');
-  await new Promise(function(r){setTimeout(r,100);});
-  sel.value=lid;
-  if(sel.value!==lid){
-    console.log('Learner not in dropdown, diagnosing directly: '+lid);
-  }
+  document.getElementById('atStatus').textContent=applyData.message+' 正在生成最终画像...';
+  var lid=_atLearnerId;
   try {
-    await doDiagnose(lid);
-    setTimeout(function(){
-      if(radarChart)radarChart.resize();
-      if(heatmapChart)heatmapChart.resize();
-    },300);
+    var profileResp=await fetch('/api/learner/'+encodeURIComponent(lid)+'/profile');
+    var profileData=await profileResp.json();
+    if(!profileResp.ok){throw new Error(profileData.detail||'获取最终画像失败');}
+    if(!profileData || typeof profileData !== 'object' || !profileData.profile_id){
+      throw new Error('诊断服务返回的画像无效');
+    }
+    sessionStorage.setItem('skillforge.pendingProfile.v1',JSON.stringify({
+      profile:profileData,
+      learner_id:lid,
+      created_at:Date.now()
+    }));
+    _atSessionId=null;_atAnswers=[];
+    document.getElementById('atStatus').textContent='画像已生成，正在进入完整课程路径...';
+    window.location.href='/platform?from=diagnosis';
   } catch(e){
     document.getElementById('statusText').textContent='诊断失败: '+e.message;
+    document.getElementById('btnFinishAT').disabled=false;
   }
 }
 

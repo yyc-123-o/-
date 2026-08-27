@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Protocol
 
 from fastapi import FastAPI, HTTPException, Response, status
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
@@ -182,7 +182,11 @@ def create_app(
                 },
             ) from exc
 
-    @app.get("/", response_class=FileResponse, include_in_schema=False)
+    @app.get("/", include_in_schema=False)
+    def entrypoint() -> RedirectResponse:
+        return RedirectResponse(url="/diagnosis/", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+    @app.get("/platform", response_class=FileResponse, include_in_schema=False)
     def console() -> FileResponse:
         return FileResponse(static_root / "index.html")
 

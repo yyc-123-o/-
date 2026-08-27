@@ -34,6 +34,43 @@ document.getElementById("evidence-query").addEventListener("keydown", (event) =>
   if (event.key === "Enter") runEvidenceSearch();
 });
 
+void consumeDiagnosisHandoff();
+
+async function consumeDiagnosisHandoff() {
+  const handoffKey = "skillforge.pendingProfile.v1";
+  let raw;
+  try {
+    raw = sessionStorage.getItem(handoffKey);
+    if (!raw) return;
+    sessionStorage.removeItem(handoffKey);
+  } catch (_error) {
+    return;
+  }
+  try {
+    const handoff = JSON.parse(raw);
+    const createdAt = Number(handoff?.created_at);
+    if (!handoff?.profile || !Number.isFinite(createdAt) || Date.now() - createdAt > 15 * 60 * 1000) {
+      throw new Error("诊断画像交接已失效，请重新完成学情诊断");
+    }
+    const normalized = await normalizeProfile(handoff.profile);
+    state.profile = normalized.snapshot;
+    state.profileWarnings = normalized.warnings;
+    state.targetConceptId = "";
+    targetConceptInput.value = "";
+    targetHint.textContent = "诊断已完成，正在生成完整课程路径。";
+    validateProfile(state.profile);
+    renderProfileSummary();
+    profileError.textContent = "已接收学情诊断结果，正在生成完整课程路径...";
+    await runPlatform();
+  } catch (error) {
+    state.profile = null;
+    state.profileWarnings = [];
+    runButton.disabled = true;
+    profileError.textContent = error instanceof Error ? error.message : "诊断画像交接失败";
+    renderProfileSummary();
+  }
+}
+
 async function handleProfileFile(event) {
   resetProfileError();
   const file = event.target.files?.[0];

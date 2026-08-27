@@ -1,8 +1,15 @@
 from fastapi.testclient import TestClient
 
 
-def test_console_is_the_root_screen(client: TestClient) -> None:
-    response = client.get("/")
+def test_root_starts_at_diagnosis_console(client: TestClient) -> None:
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "/diagnosis/"
+
+
+def test_platform_console_is_available_after_diagnosis(client: TestClient) -> None:
+    response = client.get("/platform")
 
     assert response.status_code == 200
     assert 'id="profile-file"' in response.text
@@ -13,14 +20,14 @@ def test_console_is_the_root_screen(client: TestClient) -> None:
 
 
 def test_console_declares_an_inline_favicon(client: TestClient) -> None:
-    response = client.get("/")
+    response = client.get("/platform")
 
     assert response.status_code == 200
     assert 'rel="icon" href="data:,' in response.text
 
 
 def test_static_assets_are_served(client: TestClient) -> None:
-    html = client.get("/")
+    html = client.get("/platform")
     css = client.get("/static/app.css")
     javascript = client.get("/static/app.js")
 
@@ -65,3 +72,14 @@ def test_static_assets_are_served(client: TestClient) -> None:
     assert "演示学习资源已生成" in javascript.text
     assert "个性化计算" in javascript.text
     assert "const rawJson" not in javascript.text
+
+
+def test_platform_consumes_diagnosis_profile_handoff(client: TestClient) -> None:
+    javascript = client.get("/static/app.js")
+    html = client.get("/platform")
+
+    assert javascript.status_code == 200
+    assert "skillforge.pendingProfile.v1" in javascript.text
+    assert "consumeDiagnosisHandoff" in javascript.text
+    assert "sessionStorage.removeItem" in javascript.text
+    assert 'href="/diagnosis/"' in html.text
