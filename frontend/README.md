@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-打开 `http://127.0.0.1:5173/dashboard`。
+打开 `http://127.0.0.1:5173/`。
 
 开发服务器会将 `/api` 和 `/diagnosis/api` 请求代理到 `http://127.0.0.1:8000`。如需修改地址，可设置：
 
@@ -32,7 +32,8 @@ FastAPI 会优先托管 `frontend/web/dist`，因此生产检查前需要先执�
 
 ## 页面路由
 
-- `/dashboard`：学习首页
+- `/`：知径首页
+- `/dashboard`：学习工作台
 - `/diagnosis`：学情诊断概览
 - `/diagnosis/basic`：基础信息
 - `/diagnosis/assessment`：知识水平评估

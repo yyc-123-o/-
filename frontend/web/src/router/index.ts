@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: "/", redirect: "/dashboard" },
+    { path: "/", meta: { title: "知径 | AI 个性化学习平台", layout: "public" }, component: () => import("@/views/LandingView.vue") },
     { path: "/dashboard", meta: { title: "首页 Dashboard" }, component: () => import("@/views/DashboardView.vue") },
     { path: "/diagnosis", meta: { title: "学情诊断" }, component: () => import("@/views/DiagnosisView.vue") },
     { path: "/diagnosis/basic", meta: { title: "基础信息" }, component: () => import("@/views/DiagnosisBasicView.vue") },
@@ -15,7 +15,7 @@ const router = createRouter({
     { path: "/history", meta: { title: "学习历史" }, component: () => import("@/views/HistoryView.vue") },
     { path: "/profile/settings", meta: { title: "个人中心" }, component: () => import("@/views/SettingsView.vue") },
   ],
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (to) => (to.hash ? { el: to.hash, behavior: "smooth" } : { top: 0 }),
 });
 
 export default router;
