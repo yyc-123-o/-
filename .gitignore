@@ -14,6 +14,7 @@ data/build/
 reports/generated/
 frontend/web/node_modules/
 frontend/web/dist/
+frontend/web/.vite/
 
 # Standalone learner-profile diagnostics write reproducible outputs locally.
 /学情诊断Agent/test_outputs/
