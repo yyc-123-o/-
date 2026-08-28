@@ -114,7 +114,7 @@ LearnerProfile        # 新增10个字段（见下方）
 | 5 | 在 `knowledge_graph.py` 的 `KnowledgePoint` 中新增 `depth_levels` 字段（3层标注） | `models/knowledge_graph.py` | 小 |
 | 6 | 在 `mock_generator.py` 中新增章节级数据生成逻辑 | `generators/mock_generator.py` | 中 |
 | 7 | 在 `profile_builder.py` 中新增 `_compute_sub_ability_scores()` | `core/profile_builder.py` | 小 |
-| 8 | 前端 `index.html` 新增错误模式分布的饼图/柱状图 | `static/index.html` | 小 |
+| 8 | 前端 `index.html` 新增错误模式分布的饼图/柱状图 | `../frontend/diagnosis/index.html` | 小 |
 
 ### 🟢 P2 — 锦上添花
 

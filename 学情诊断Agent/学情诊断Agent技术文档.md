@@ -348,7 +348,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### 6.2 访问系统
-- 前端界面：`http://127.0.0.1:8000/static/index.html`
+- 前端界面：`http://127.0.0.1:8000/`
 - API 文档：`http://127.0.0.1:8000/docs`
 
 ### 6.3 典型使用流程

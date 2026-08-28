@@ -17,6 +17,14 @@
     ]
   },
   "self_assessment": {
+    "ml_level": "",
+    "dl_level": "",
+    "math_level": "",
+    "programming_level": "",
+    "position": "",
+    "strengths": "",
+    "weaknesses": "",
+    "courses": [],
     "learning_goal": "深入LLM前沿，准备发表一篇NLP方向论文",
     "weekly_hours": 20,
     "domain_assessments": [

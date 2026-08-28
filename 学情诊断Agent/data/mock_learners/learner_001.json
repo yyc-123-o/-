@@ -13,6 +13,14 @@
     ]
   },
   "self_assessment": {
+    "ml_level": "",
+    "dl_level": "",
+    "math_level": "",
+    "programming_level": "",
+    "position": "",
+    "strengths": "",
+    "weaknesses": "",
+    "courses": [],
     "learning_goal": "入门AI，能看懂简单的ML代码",
     "weekly_hours": 5,
     "domain_assessments": [
