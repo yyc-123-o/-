@@ -26,6 +26,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
+WEB_ROOT = PROJECT_ROOT.parent / "frontend" / "web"
+WEB_DIST = WEB_ROOT / "dist"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -62,7 +64,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
+if WEB_DIST.is_dir():
+    app.mount("/static", StaticFiles(directory=str(WEB_DIST)), name="static")
 
 
 @app.exception_handler(ValidationError)
@@ -631,8 +634,17 @@ async def generate_mock_data():
 # ============================================================
 
 @app.get("/", response_class=HTMLResponse)
-async def index():
-    html_path = PROJECT_ROOT / "static" / "index.html"
+@app.get("/{frontend_path:path}", response_class=HTMLResponse)
+async def index(frontend_path: str = ""):
+    html_path = WEB_DIST / "index.html"
+    if not html_path.is_file():
+        return HTMLResponse(
+            content=(
+                "<h1>知径前端尚未构建</h1>"
+                "<p>请在 frontend/web 目录执行 npm install && npm run build。</p>"
+            ),
+            status_code=503,
+        )
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
 
 

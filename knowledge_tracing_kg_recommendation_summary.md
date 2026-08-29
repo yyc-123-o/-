@@ -19,12 +19,12 @@
    - 已有 knowledge_mastery、abilities、error_patterns、preferences 等字段。
    - 规划器已经会读取学生画像来判断跳过、补救、学习深度。
 
-3. 规则式测评更新
+3. 规则式测评更新#########################################################
    - 已有 AssessmentEvent、AssessmentLedger、AssessmentUpdateResult。
    - 已有 apply_assessment_event 规则基线。
    - 规则基线可以根据答对/答错、提示、重试、作答时间更新 mastery、confidence 和 error_patterns。
 
-4. 确定性课程规划器
+4. 确定性课程规划器#################################################
    - 已有 CoursePlanner。
    - 能根据课程图谱和学生画像生成完整课程路径。
    - 会保留硬先修顺序，不随意改变 path order。

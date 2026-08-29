@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Protocol
 
 from fastapi import FastAPI, HTTPException, Response, status
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
@@ -83,8 +83,13 @@ def create_app(
     )
     app.state.platform_service = service
     app.state.profile_adapter = profile_adapter
-    static_root = Path(__file__).with_name("static")
+    static_root = Path(__file__).resolve().parents[3] / "frontend"
+    web_root = static_root / "web"
+    web_dist = web_root / "dist"
     app.mount("/static", StaticFiles(directory=static_root), name="static")
+    assets_dir = web_dist / "assets"
+    if assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="web-assets")
 
     from skillforge_kb.diagnosis_bridge import load_diagnosis_app
 
@@ -189,13 +194,13 @@ def create_app(
                 },
             ) from exc
 
-    @app.get("/", include_in_schema=False)
-    def entrypoint() -> RedirectResponse:
-        return RedirectResponse(url="/diagnosis/", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+    @app.get("/", response_class=FileResponse, include_in_schema=False)
+    def entrypoint() -> FileResponse:
+        return _frontend_index(web_dist)
 
     @app.get("/platform", response_class=FileResponse, include_in_schema=False)
     def console() -> FileResponse:
-        return FileResponse(static_root / "index.html")
+        return _frontend_index(web_dist)
 
     @app.post(
         "/api/v1/runs",
@@ -325,7 +330,26 @@ def create_app(
                 detail={"code": "invalid_start_node", "message": str(exc)},
             ) from exc
 
+    @app.get("/{frontend_path:path}", response_class=FileResponse, include_in_schema=False)
+    def frontend_fallback(frontend_path: str) -> FileResponse:
+        if frontend_path.startswith(("api/", "static/", "assets/")):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="resource not found")
+        return _frontend_index(web_dist)
+
     return app
+
+
+def _frontend_index(web_dist: Path) -> FileResponse:
+    index = web_dist / "index.html"
+    if not index.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "frontend_not_built",
+                "message": "Vue frontend is not built. Run npm run build in frontend/web.",
+            },
+        )
+    return FileResponse(index)
 
 
 def _run_not_found(run_id: str) -> HTTPException:
