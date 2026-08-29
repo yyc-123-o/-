@@ -97,21 +97,23 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
     status.value = "自适应测试进行中";
   }
 
-  async function answer(questionId: string, answer: number) {
+  async function answer(questionId: string, selectedAnswer: number) {
     if (!session.value?.session_id) return;
-    const question = session.value.next_question;
-    const correct = question?.correct_answer === undefined ? answer === 0 : question.correct_answer === answer;
-    adaptiveAnswers.value.push({
-      question: question?.question_text || "自适应题目",
-      correct,
-      concept: question?.knowledge_point_name || "当前知识点",
-    });
+    const answeredName = session.value.next_question?.knowledge_point_name || session.value.next_question?.question_text || "自适应题目";
+    // 后端硬编码判分：必须提交 selected_answer（选项下标），禁止提交 is_correct
     session.value = await diagnosisApi.answerAdaptive({
       session_id: session.value.session_id,
       question_id: questionId,
-      is_correct: correct,
+      selected_answer: selectedAnswer,
       time_spent: 30,
     });
+    if (typeof session.value.last_correct === "boolean") {
+      adaptiveAnswers.value.push({
+        question: answeredName,
+        correct: session.value.last_correct,
+        concept: answeredName,
+      });
+    }
     if (session.value.finished) status.value = "测试完成，可以生成画像";
   }
 

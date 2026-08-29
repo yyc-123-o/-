@@ -570,3 +570,40 @@ p { color: var(--muted); line-height: 1.75; }
   .landing-section, .section-tinted, .landing-feedback { padding-left: 0; padding-right: 0; }
   .landing-cta, .landing-footer { flex-direction: column; align-items: flex-start; }
 }
+
+/* ===== 学习成果检验 (OUTCOME VERIFICATION) ===== */
+.status-pill-danger { color: var(--red); background: #fff0f1; }
+.outcome-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.outcome-verdict { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; padding: 15px 16px; background: var(--blue-soft); border: 1px solid #d4e2fc; border-radius: 12px; }
+.outcome-verdict.is-up { background: var(--green-soft); border-color: #cdeeda; }
+.outcome-verdict.is-flat { background: var(--amber-soft); border-color: #f3e3bd; }
+.outcome-verdict.is-down { background: #fff0f1; border-color: #f4ccd1; }
+.outcome-verdict h3 { margin: 4px 0 0; font-size: 17px; }
+.outcome-verdict p { margin: 5px 0 0; font-size: 11px; }
+.outcome-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.outcome-metric { display: grid; gap: 5px; padding: 12px 13px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 11px; }
+.outcome-metric span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.outcome-metric b { font-size: 14px; }
+.outcome-metric i { font-style: normal; font-size: 11px; font-weight: 800; }
+.delta-up { color: var(--green); }
+.delta-down { color: var(--red); }
+.delta-flat { color: var(--muted); }
+.outcome-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 16px; }
+.outcome-sub h4 { margin: 0 0 6px; font-size: 12px; }
+.outcome-row { display: grid; grid-template-columns: minmax(0, 1fr) 120px 62px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.outcome-row:last-child { border-bottom: 0; }
+.outcome-row strong, .outcome-row small { display: block; }
+.outcome-row strong { font-size: 12px; }
+.outcome-row small { margin-top: 2px; color: var(--muted); font-size: 10px; }
+.outcome-row b { text-align: right; font-size: 11px; }
+.outcome-row-kp { grid-template-columns: minmax(0, 1fr) auto; }
+.outcome-gaps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.gap-group h4 { margin: 0 0 4px; font-size: 12px; }
+.gap-group .tag-list { margin-top: 8px; }
+.tag-green { color: var(--green); background: var(--green-soft); }
+.tag-amber { color: var(--amber); background: var(--amber-soft); }
+.tag-red { color: var(--red); background: #fff0f1; }
+.outcome-hint { margin-top: 14px; padding: 12px 14px; color: var(--muted); background: var(--surface-soft); border: 1px dashed var(--line); border-radius: 11px; font-size: 11px; }
+@media (max-width: 960px) {
+  .outcome-metrics, .outcome-columns, .outcome-gaps { grid-template-columns: 1fr; }
+}

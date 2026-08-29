@@ -105,3 +105,60 @@ export interface DiagnosisProfile {
   };
   meta?: { total_test_count?: number; total_interaction_count?: number };
 }
+
+export interface OutcomeMetric {
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface OutcomeDomainChange {
+  domain: string;
+  before: number;
+  after: number;
+  delta: number;
+}
+
+export interface OutcomeKpChange {
+  kp_id: string;
+  name: string;
+  domain: string;
+  before: number | null;
+  after: number | null;
+  delta: number;
+  category: string;
+}
+
+export interface OutcomeGapChange {
+  kp_id: string;
+  name: string;
+  domain: string;
+  before: number;
+  after: number;
+}
+
+export interface OutcomeErrorPatternChange {
+  category: string;
+  before_ratio: number;
+  after_ratio: number;
+  delta: number;
+}
+
+export interface LearningOutcomeReport {
+  report_id: string;
+  learner_id: string;
+  chapter_id: string;
+  baseline_profile_id: string;
+  post_profile_id: string;
+  overall_verdict: string;
+  theta: Partial<OutcomeMetric>;
+  accuracy: Partial<OutcomeMetric>;
+  ability_level: { before?: string; after?: string };
+  domain_changes: OutcomeDomainChange[];
+  kp_changes: OutcomeKpChange[];
+  gaps_resolved: OutcomeGapChange[];
+  gaps_remaining: OutcomeGapChange[];
+  gaps_new: OutcomeGapChange[];
+  error_pattern_changes: OutcomeErrorPatternChange[];
+  recommendation: string;
+}

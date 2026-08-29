@@ -28,5 +28,8 @@ export interface AdaptiveSession {
   finished?: boolean;
   final_theta?: number;
   stop_reason?: string;
+  last_correct?: boolean;
+  covered_kp?: number;
+  total_kp?: number;
   answers?: unknown[];
 }
