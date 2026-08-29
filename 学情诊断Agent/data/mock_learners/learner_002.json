@@ -15,6 +15,14 @@
     ]
   },
   "self_assessment": {
+    "ml_level": "",
+    "dl_level": "",
+    "math_level": "",
+    "programming_level": "",
+    "position": "",
+    "strengths": "",
+    "weaknesses": "",
+    "courses": [],
     "learning_goal": "系统掌握深度学习，能独立完成CV方向项目",
     "weekly_hours": 10,
     "domain_assessments": [

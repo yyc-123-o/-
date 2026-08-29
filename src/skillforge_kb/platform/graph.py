@@ -43,9 +43,12 @@ from skillforge_kb.resources.models import ResourceBrief
 from skillforge_kb.retrieval.models import KnowledgeRetrievalResult
 
 from .models import (
+    ASSESSMENT_PASSING_SCORE,
     AssessmentModel,
     AssessmentSubmission,
     ExecutionMode,
+    LearningProgress,
+    LectureProgressSubmission,
     PlatformFailure,
     PlatformRunRequest,
     PlatformRunResult,
@@ -82,6 +85,7 @@ class PlatformGraphState(TypedDict, total=False):
     evidence_gap: EvidenceGap
     failure: PlatformFailure
     steps: tuple[PlatformStepRecord, ...]
+    learning_progress: LearningProgress | None
 
 
 PlatformGraph = CompiledStateGraph[
@@ -105,6 +109,7 @@ class PlatformGraphDependencies:
 
 
 class PlatformService:
+    _ASSESSMENT_PASSING_SCORE = ASSESSMENT_PASSING_SCORE
     def __init__(
         self,
         dependencies: PlatformGraphDependencies,
@@ -163,6 +168,12 @@ class PlatformService:
                 raise ValueError("current node cannot be completed before resources are ready")
             if planning.current_node.concept_id != concept_id:
                 raise ValueError("completion concept does not match the current learning node")
+            progress = existing.learning_progress
+            if progress is not None and not progress.can_complete:
+                raise ValueError(
+                    "learning completion gate is not satisfied: "
+                    "lecture, practice, and passing assessment are required"
+                )
             event = PlanningAgentEvent(
                 event_id=f"event_{sha256(f'{run_id}:{concept_id}:completed'.encode()).hexdigest()}",
                 kind=PlanningEventKind.CONCEPTS_COMPLETED,
@@ -173,6 +184,7 @@ class PlatformService:
                 run_id,
                 planning_event=event,
                 previous_steps=existing.steps,
+                previous_progress=existing.learning_progress,
             )
             self._repository.save(result)
             return result
@@ -191,6 +203,10 @@ class PlatformService:
                 raise ValueError("assessment updates are not configured")
             submission = AssessmentSubmission.model_validate(submission)
             submission = self._grade_candidate_quiz(existing, submission)
+            is_passing = (
+                submission.score is not None
+                and submission.score >= self._ASSESSMENT_PASSING_SCORE
+            )
             submission_digest = build_payload_digest(
                 submission.model_dump(mode="json")
             )
@@ -215,6 +231,12 @@ class PlatformService:
                 raise ValueError("assessment is only available for a ready learning node")
             if planning.current_node.concept_id != submission.concept_id:
                 raise ValueError("assessment concept does not match the current learning node")
+            prior_progress = existing.learning_progress
+            if (
+                prior_progress is not None
+                and prior_progress.concept_id != submission.concept_id
+            ):
+                prior_progress = None
             existing_mastery = next(
                 (
                     item.mastery_score
@@ -240,14 +262,14 @@ class PlatformService:
                 profile_id=request.profile.profile_id,
                 graph_version=request.profile.graph_version,
                 concept_ids=(submission.concept_id,),
-                correct=submission.score >= submission.passing_score,
+                correct=is_passing,
                 response_time_ms=submission.response_time_ms,
                 hint_count=submission.hint_count,
                 attempt_count=submission.attempt_count,
                 timestamp=observed_at,
                 error_kind=(
                     None
-                    if submission.score >= submission.passing_score
+                    if is_passing
                     else submission.error_kind
                 ),
                 evidence_refs=submission.evidence_refs,
@@ -258,7 +280,7 @@ class PlatformService:
                 concept_id=submission.concept_id,
                 model_version=model_version,
                 predicted_mastery=prior_mastery,
-                correct=submission.score >= submission.passing_score,
+                correct=is_passing,
                 observed_at=observed_at,
             )
             ledger = AssessmentLedger(profile=request.profile)
@@ -278,6 +300,25 @@ class PlatformService:
                 update={"profile": update.ledger.profile}
             )
             self._repository.update_request(run_id, updated_request)
+            progress = LearningProgress(
+                concept_id=submission.concept_id,
+                lecture_progress=(
+                    prior_progress.lecture_progress if prior_progress is not None else 0.0
+                ),
+                practice_completed=(
+                    prior_progress.practice_completed if prior_progress is not None else False
+                ),
+                assessment_passed=is_passing,
+                assessment_attempts=(
+                    (prior_progress.assessment_attempts if prior_progress is not None else 0)
+                    + 1
+                ),
+                failed_attempts=(
+                    (prior_progress.failed_attempts if prior_progress is not None else 0)
+                    + (0 if is_passing else 1)
+                ),
+                remediation_required=not is_passing,
+            )
             refreshed_event = PlanningAgentEvent(
                 event_id=f"event_{sha256(f'{run_id}:{submission.assessment_id}:refresh'.encode()).hexdigest()}",
                 kind=PlanningEventKind.PROFILE_REFRESHED,
@@ -289,8 +330,9 @@ class PlatformService:
                 run_id,
                 planning_event=refreshed_event,
                 previous_steps=existing.steps,
+                previous_progress=progress,
             )
-            if submission.score < submission.passing_score:
+            if not progress.can_complete:
                 self._repository.save(refreshed)
                 self._repository.save_assessment(
                     run_id,
@@ -314,6 +356,7 @@ class PlatformService:
                 run_id,
                 planning_event=completed_event,
                 previous_steps=refreshed.steps,
+                previous_progress=refreshed.learning_progress,
             )
             self._repository.save(result)
             self._repository.save_assessment(
@@ -376,7 +419,8 @@ class PlatformService:
     ) -> PracticeReviewResult:
         with self._lock:
             existing = self._repository.get(run_id)
-            if existing is None:
+            request = self._repository.get_request(run_id)
+            if existing is None or request is None:
                 raise KeyError(f"platform run not found: {run_id}")
             submission = PracticeReviewSubmission.model_validate(submission)
             planning = existing.planning
@@ -414,12 +458,163 @@ class PlatformService:
                     ),
                     required_tokens=("result", "print"),
                 )
-            return review_practice_submission(
+            review = review_practice_submission(
                 concept_id=submission.concept_id,
                 source=submission.source,
                 exercise=exercise,
                 llm=cast(object, self._dependencies.practice_llm),
             )
+            if review.accepted:
+                practice_event_id = (
+                    "practice_"
+                    + sha256(
+                        f"{run_id}:{submission.concept_id}:{submission.source}".encode()
+                    ).hexdigest()
+                )
+                practice_digest = build_payload_digest(
+                    {"concept_id": submission.concept_id, "source": submission.source}
+                )
+                recorded = self._repository.get_assessment(run_id, practice_event_id)
+                if recorded is not None:
+                    recorded_digest, _ = recorded
+                    if recorded_digest != practice_digest:
+                        raise ValueError(
+                            "practice event ID was already used with a different payload"
+                        )
+                    return review
+                observed_at = datetime.now(UTC)
+                practice_event = AssessmentEvent(
+                    event_id=practice_event_id,
+                    profile_id=request.profile.profile_id,
+                    graph_version=request.profile.graph_version,
+                    concept_ids=(submission.concept_id,),
+                    correct=True,
+                    response_time_ms=0,
+                    hint_count=0,
+                    attempt_count=1,
+                    timestamp=observed_at,
+                    evidence_refs=(practice_event_id,),
+                )
+                update = apply_assessment_event(
+                    self._dependencies.catalog,
+                    AssessmentLedger(profile=request.profile),
+                    practice_event,
+                )
+                updated_request = request.model_copy(update={"profile": update.ledger.profile})
+                self._repository.update_request(run_id, updated_request)
+                prior = existing.learning_progress
+                progress = LearningProgress(
+                    concept_id=submission.concept_id,
+                    lecture_progress=(prior.lecture_progress if prior is not None else 0.0),
+                    practice_completed=True,
+                    assessment_passed=(
+                        prior.assessment_passed
+                        if prior is not None and prior.concept_id == submission.concept_id
+                        else False
+                    ),
+                    assessment_attempts=(
+                        prior.assessment_attempts
+                        if prior is not None and prior.concept_id == submission.concept_id
+                        else 0
+                    ),
+                    failed_attempts=(
+                        prior.failed_attempts
+                        if prior is not None and prior.concept_id == submission.concept_id
+                        else 0
+                    ),
+                    remediation_required=False,
+                )
+                refreshed_event = PlanningAgentEvent(
+                    event_id=f"event_{sha256(f'{run_id}:{practice_event_id}:refresh'.encode()).hexdigest()}",
+                    kind=PlanningEventKind.PROFILE_REFRESHED,
+                    profile=update.ledger.profile,
+                    start_concept_id=submission.concept_id,
+                )
+                refreshed = self._execute(
+                    updated_request,
+                    run_id,
+                    planning_event=refreshed_event,
+                    previous_steps=existing.steps,
+                    previous_progress=progress,
+                )
+                self._repository.save(refreshed)
+                self._repository.save_assessment(
+                    run_id,
+                    practice_event_id,
+                    practice_digest,
+                    refreshed,
+                )
+                self._repository.save_prediction_observation(
+                    run_id,
+                    practice_event_id,
+                    KnowledgeTracingObservation(
+                        observation_id=practice_event_id,
+                        profile_id=request.profile.profile_id,
+                        concept_id=submission.concept_id,
+                        model_version="practice.v1",
+                        predicted_mastery=(
+                            next(
+                                (
+                                    item.mastery_score
+                                    for item in request.profile.knowledge_mastery
+                                    if item.concept_id == submission.concept_id
+                                ),
+                                0.50,
+                            )
+                        ),
+                        correct=True,
+                        observed_at=observed_at,
+                    ),
+                )
+            return review
+
+    def record_lecture_progress(
+        self,
+        run_id: str,
+        submission: LectureProgressSubmission | dict[str, object],
+    ) -> PlatformRunResult:
+        with self._lock:
+            existing = self._repository.get(run_id)
+            if existing is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            submission = LectureProgressSubmission.model_validate(submission)
+            planning = existing.planning
+            if (
+                existing.status is not PlatformRunStatus.COMPLETED
+                or existing.resources is None
+                or planning is None
+                or planning.current_node is None
+            ):
+                raise ValueError(
+                    "lecture progress is only available for a ready learning node"
+                )
+            if planning.current_node.concept_id != submission.concept_id:
+                raise ValueError(
+                    "lecture progress concept does not match the current learning node"
+                )
+            prior = existing.learning_progress
+            if prior is not None and prior.concept_id != submission.concept_id:
+                prior = None
+            progress = LearningProgress(
+                concept_id=submission.concept_id,
+                lecture_progress=max(
+                    min(
+                        submission.progress,
+                        prior.max_next_lecture_progress
+                        if prior is not None
+                        else 0.25,
+                    ),
+                    prior.lecture_progress if prior is not None else 0.0,
+                ),
+                practice_completed=prior.practice_completed if prior is not None else False,
+                assessment_passed=prior.assessment_passed if prior is not None else False,
+                assessment_attempts=prior.assessment_attempts if prior is not None else 0,
+                failed_attempts=prior.failed_attempts if prior is not None else 0,
+                remediation_required=prior.remediation_required if prior is not None else False,
+            )
+            result = existing.model_copy(update={"learning_progress": progress})
+            self._repository.save(result)
+            return result
 
     def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
         with self._lock:
@@ -485,6 +680,7 @@ class PlatformService:
         *,
         planning_event: PlanningAgentEvent | None = None,
         previous_steps: tuple[PlatformStepRecord, ...] = (),
+        previous_progress: LearningProgress | None = None,
     ) -> PlatformRunResult:
         state_input: PlatformGraphState = {
             "request": request,
@@ -492,6 +688,8 @@ class PlatformService:
             "status": PlatformRunStatus.PENDING,
             "steps": previous_steps,
         }
+        if previous_progress is not None:
+            state_input["learning_progress"] = previous_progress
         if planning_event is not None:
             state_input["planning_event"] = planning_event
         state = cast(PlatformGraphState, self._graph.invoke(state_input))
@@ -698,11 +896,18 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
             resources = ResourceAgentResult.model_validate(
                 state["resources"].model_dump()
             )
+            progress = state.get("learning_progress")
+            if progress is not None and progress.concept_id != state["handoff"].concept_id:
+                progress = None
             return _success_update(
                 state,
                 dependencies,
                 PlatformStage.VALIDATE_RESOURCE,
-                {"resources": resources, "route": "completed"},
+                {
+                    "resources": resources,
+                    "route": "completed",
+                    "learning_progress": progress,
+                },
                 resources,
             )
         except Exception as exc:
@@ -911,6 +1116,12 @@ def _build_retrieval_scope(
 
 
 def _result_from_state(state: PlatformGraphState) -> PlatformRunResult:
+    progress = state.get("learning_progress")
+    if progress is None and state.get("handoff") is not None and state.get("resources") is not None:
+        progress = LearningProgress(
+            concept_id=state["handoff"].concept_id,
+            lecture_progress=0.0,
+        )
     return PlatformRunResult(
         run_id=state["run_id"],
         request_digest=build_request_digest(state["request"]),
@@ -923,4 +1134,5 @@ def _result_from_state(state: PlatformGraphState) -> PlatformRunResult:
         evidence_gap=state.get("evidence_gap"),
         failure=state.get("failure"),
         steps=state.get("steps", ()),
+        learning_progress=progress,
     )

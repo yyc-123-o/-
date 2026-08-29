@@ -559,19 +559,26 @@ function selectPathNode(result, node) {
   enter.type = "button";
   enter.className = "primary-action compact-action";
   const startable = isStartableNode(node);
+  const remediationTarget = node.status === "blocked"
+    ? remediationTargetFor(result, node)
+    : null;
   enter.textContent = node.status === "available"
     ? "进入学习"
     : node.status === "pending" && startable
       ? "进入该节点"
       : node.status === "blocked"
-        ? "存在前置阻塞"
+        ? remediationTarget
+          ? "学习前置知识"
+          : "存在前置阻塞"
         : "查看学习条件";
-  enter.disabled = !startable;
+  enter.disabled = !startable && !remediationTarget;
   enter.addEventListener("click", () => {
     if (node.status === "available") {
       activateTab("resource-view");
     } else if (node.status === "pending") {
       startNode(result, node);
+    } else if (remediationTarget) {
+      startNode(result, remediationTarget);
     }
   });
   actions.append(enter);
@@ -628,6 +635,24 @@ function isStartableNode(node) {
     return (node.blocking_prerequisite_ids || []).length === 0;
   }
   return node.status === "available";
+}
+
+function remediationTargetFor(result, blockedNode) {
+  const nodes = result.planning?.path?.nodes || [];
+  const nodesById = new Map(nodes.map((node) => [node.concept_id, node]));
+  const visit = (node, seen = new Set()) => {
+    if (!node || seen.has(node.concept_id)) return null;
+    if (node.status === "available" || node.status === "pending") return node;
+    if (node.status !== "blocked") return null;
+    const nextSeen = new Set(seen);
+    nextSeen.add(node.concept_id);
+    for (const prerequisiteId of node.blocking_prerequisite_ids || []) {
+      const target = visit(nodesById.get(prerequisiteId), nextSeen);
+      if (target) return target;
+    }
+    return null;
+  };
+  return visit(blockedNode);
 }
 
 async function startNode(result, node) {
@@ -901,7 +926,12 @@ function renderResources(result) {
     );
     return;
   }
-  workbench.append(resourceIdentity(result), generationGate(result), resourceRequirements(result));
+  workbench.append(
+    resourceIdentity(result),
+    generationGate(result),
+    learningProgressPanel(result),
+    resourceRequirements(result),
+  );
   const stack = document.createElement("div");
   stack.className = "resource-stack";
   if (result.resources.publication_status === "candidate_draft") {
@@ -922,6 +952,38 @@ function renderResources(result) {
     }
   }
   workbench.append(stack);
+}
+
+function learningProgressPanel(result) {
+  const progress = result.learning_progress;
+  if (!progress) return document.createDocumentFragment();
+  const section = document.createElement("section");
+  section.className = "learning-progress-panel";
+  section.append(textElement("h3", "知识点完成进度"));
+  const list = document.createElement("ul");
+  [
+    ["讲义学习", progress.lecture_completed],
+    ["实践任务", progress.practice_completed],
+    ["测验达标", progress.assessment_passed],
+  ].forEach(([label, completed]) => {
+    const item = document.createElement("li");
+    item.className = completed ? "is-complete" : "is-pending";
+    item.append(textElement("span", completed ? "已完成" : "待完成"), textElement("strong", label));
+    list.append(item);
+  });
+  if (progress.remediation_required) {
+    section.append(textElement("p", `测验失败 ${progress.failed_attempts} 次，建议先复习讲义并重新完成实践。`, "progress-remediation"));
+  }
+  section.append(list, textElement("p", progress.can_complete ? "完成门禁已通过，可以进入下一个知识点。" : "完成条件：讲义、实践和测验全部通过。", "progress-summary"));
+  if (progress.can_complete && result.handoff?.concept_id) {
+    const advance = document.createElement("button");
+    advance.type = "button";
+    advance.className = "primary-action compact-action";
+    advance.textContent = "完成节点并继续";
+    advance.addEventListener("click", () => completeCurrentNode(result, { concept_id: result.handoff.concept_id }));
+    section.append(advance);
+  }
+  return section;
 }
 
 function retrievalGuide(result, retrieval) {
@@ -986,7 +1048,7 @@ function buildFormalLearningTabs(result, artifacts) {
   const panel = document.createElement("div");
   panel.className = "learning-tab-panel";
   const tabs = [
-    ["lesson", "讲义", () => buildLessonPanel(lesson)],
+    ["lesson", "讲义", () => buildLecturePanel(result, lesson)],
     ["practice", "实践", () => buildPracticePanel(result, practice)],
     ["assessment", "测验", () => buildAssessmentPanel(result)],
   ];
@@ -1023,7 +1085,7 @@ function buildLearningTabs(result, draft) {
   const panel = document.createElement("div");
   panel.className = "learning-tab-panel";
   const tabs = [
-    ["lesson", "讲义", () => buildLessonPanel(draft.lecture)],
+    ["lesson", "讲义", () => buildLecturePanel(result, draft.lecture)],
     ["practice", "实践", () => buildPracticePanel(result, draft.practical_guide)],
     ["assessment", "测验", () => buildAssessmentPanel(result)],
   ];
@@ -1049,6 +1111,47 @@ function buildLearningTabs(result, draft) {
   shell.append(tabList, panel);
   show("lesson");
   return shell;
+}
+
+function buildLecturePanel(result, lecture) {
+  const article = buildLessonPanel(lecture);
+  const progress = result.learning_progress?.lecture_progress || 0;
+  const controls = document.createElement("div");
+  controls.className = "lecture-progress-controls";
+  const label = textElement("label", `阅读进度：${Math.round(progress * 100)}%`);
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.min = "0";
+  slider.max = "100";
+  slider.value = String(Math.round(progress * 100));
+  slider.setAttribute("aria-label", "讲义阅读进度");
+  slider.addEventListener("input", () => { label.textContent = `阅读进度：${slider.value}%`; });
+  const save = document.createElement("button");
+  save.type = "button";
+  save.className = "primary-action compact-action";
+  save.textContent = "保存学习进度";
+  save.addEventListener("click", async () => {
+    save.disabled = true;
+    try {
+      const response = await fetch(`/api/v1/runs/${encodeURIComponent(result.run_id)}/lecture-progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ concept_id: result.handoff.concept_id, progress: Number(slider.value) / 100 }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail?.message || "学习进度保存失败");
+      state.result = payload;
+      renderResult(payload);
+      activateTab("resource-view");
+    } catch (error) {
+      renderClientError(error instanceof Error ? error.message : "学习进度保存失败");
+    } finally {
+      save.disabled = false;
+    }
+  });
+  controls.append(label, slider, save);
+  article.prepend(controls);
+  return article;
 }
 
 function buildLessonPanel(lecture) {
@@ -1148,6 +1251,14 @@ async function submitPracticeReview(result, editor, button, feedback) {
       feedback.append(issues);
     }
     feedback.append(textElement("p", `下一步：${payload.next_step}`, "practice-next-step"));
+    if (payload.accepted) {
+      const latest = await fetch(`/api/v1/runs/${encodeURIComponent(result.run_id)}`);
+      const latestPayload = await latest.json();
+      if (latest.ok) {
+        state.result = latestPayload;
+        renderResult(latestPayload);
+      }
+    }
   } catch (error) {
     feedback.className = "practice-feedback is-needs-revision";
     feedback.append(textElement("p", error instanceof Error ? error.message : "代码检查失败"));

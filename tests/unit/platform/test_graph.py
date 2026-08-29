@@ -162,6 +162,145 @@ def test_rule_assessment_records_prior_mastery(platform_case, profile) -> None:
     assert observation.predicted_mastery == 0.50
 
 
+def test_practice_review_persists_completion_progress(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="practice-progress",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None and initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    exercise = initial.resources.preview_package.draft.practical_guide.exercise
+    source = "\n".join(f"{token} = 1" for token in exercise.required_tokens)
+    source += "\nresult = 1\nprint(result)"
+    review = service.review_practice(
+        initial.run_id,
+        {"concept_id": concept_id, "source": source},
+    )
+    assert review.accepted is True
+    updated = service.get(initial.run_id)
+    assert updated is not None and updated.learning_progress is not None
+    assert updated.learning_progress.practice_completed is True
+    assert updated.learning_progress.assessment_passed is False
+
+
+def test_accepted_practice_updates_profile_and_knowledge_tracing_history(
+    platform_case,
+    profile,
+) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="practice-kt-update",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None and initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    exercise = initial.resources.preview_package.draft.practical_guide.exercise
+    source = "\n".join(f"{token} = 1" for token in exercise.required_tokens)
+    source += "\nresult = 1\nprint(result)"
+
+    review = service.review_practice(
+        initial.run_id,
+        {"concept_id": concept_id, "source": source},
+    )
+
+    assert review.accepted is True
+    request = service._repository.get_request(initial.run_id)
+    assert request is not None
+    mastery = next(item for item in request.profile.knowledge_mastery if item.concept_id == concept_id)
+    assert mastery.mastery_score is not None and mastery.mastery_score > 0.50
+    observations = service._repository.list_prediction_observations(initial.run_id)
+    assert len(observations) == 1
+    assert observations[0].concept_id == concept_id
+    assert observations[0].correct is True
+
+
+def test_failed_assessment_records_remediation_progress(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="failed-assessment-progress",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None and initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    result = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "failed-assessment-1",
+            "concept_id": concept_id,
+            "score": 0.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+    assert result.learning_progress is not None
+    assert result.learning_progress.failed_attempts == 1
+    assert result.learning_progress.remediation_required is True
+
+
+def test_passing_assessment_without_practice_does_not_complete_node(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="assessment-without-practice",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None and initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    result = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "assessment-without-practice-1",
+            "concept_id": concept_id,
+            "score": 1.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
+    )
+    assert result.learning_progress is not None
+    assert result.learning_progress.assessment_passed is True
+    assert result.learning_progress.practice_completed is False
+    assert result.planning is not None and result.planning.current_node is not None
+    assert result.planning.current_node.concept_id == concept_id
+    assert result.status is PlatformRunStatus.COMPLETED
+    assert result.learning_progress.can_complete is False
+
+
+def test_explicit_completion_requires_recorded_learning_gates(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="completion-gate",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+    assert initial.planning is not None and initial.planning.current_node is not None
+    concept_id = initial.planning.current_node.concept_id
+    exercise = initial.resources.preview_package.draft.practical_guide.exercise
+    source = "\n".join(f"{token} = 1" for token in exercise.required_tokens)
+    source += "\nresult = 1\nprint(result)"
+    assert service.review_practice(
+        initial.run_id,
+        {"concept_id": concept_id, "source": source},
+    ).accepted
+    with pytest.raises(ValueError, match="completion gate"):
+        service.complete_current_node(initial.run_id, concept_id)
+
+
 def test_bkt_assessment_records_prior_and_replay_is_idempotent(
     platform_case,
     profile,

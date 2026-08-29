@@ -317,6 +317,7 @@ def build_course_planning_graph(
                         "existing": existing_path.model_dump(mode="json"),
                         "profile": candidate_profile.model_dump(mode="json"),
                         "completed_concept_ids": list(event.completed_concept_ids),
+                        "allow_skips": event.kind is PlanningEventKind.PROFILE_REFRESHED,
                     }
                 )
             )
@@ -385,7 +386,10 @@ def build_course_planning_graph(
                 (node for node in unfinished if node.concept_id == event.start_concept_id),
                 None,
             )
-            if requested is None:
+            if (
+                requested is None
+                and event.kind is not PlanningEventKind.PROFILE_REFRESHED
+            ):
                 return _failure_update(
                     event,
                     PlanningAgentFailureCode.PLANNING_ERROR,
@@ -689,6 +693,7 @@ def _build_result(
         ),
         None,
     )
+    remediation_queue = _build_remediation_queue(path) if path is not None else ()
     return CoursePlanningAgentResult(
         thread_id=thread_id,
         status=values.get("status", PlanningAgentStatus.IDLE),
@@ -697,9 +702,41 @@ def _build_result(
         current_node=current_node,
         current_adaptation=current_adaptation,
         adaptations=adaptations,
+        remediation_queue=remediation_queue,
         knowledge_context=values.get("knowledge_context"),
         planning_audit=values.get("planning_audit"),
         failure=values.get("failure"),
         last_event_id=values.get("last_event_id"),
         event_duplicate=bool(values.get("event_duplicate", False)),
     )
+
+
+def _build_remediation_queue(path: PathDecision) -> tuple[str, ...]:
+    """Return prerequisite-study entry points without changing the course path."""
+    nodes_by_id = {node.concept_id: node for node in path.nodes}
+
+    def first_actionable(node: PathNode, visited: frozenset[str]) -> str | None:
+        if node.concept_id in visited:
+            return None
+        if node.status in {PathStatus.AVAILABLE, PathStatus.PENDING}:
+            return node.concept_id
+        if node.status is not PathStatus.BLOCKED:
+            return None
+        seen = visited | {node.concept_id}
+        for prerequisite_id in node.blocking_prerequisite_ids:
+            prerequisite = nodes_by_id.get(prerequisite_id)
+            if prerequisite is None:
+                continue
+            target = first_actionable(prerequisite, seen)
+            if target is not None:
+                return target
+        return None
+
+    queue: list[str] = []
+    for node in path.nodes:
+        if node.status is not PathStatus.BLOCKED:
+            continue
+        target = first_actionable(node, frozenset())
+        if target is not None and target not in queue:
+            queue.append(target)
+    return tuple(queue)

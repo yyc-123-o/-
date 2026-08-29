@@ -143,6 +143,7 @@ class CoursePlanningAgentResult(BaseModel):
     current_node: PathNode | None = None
     current_adaptation: NodeAdaptationDecision | None = None
     adaptations: tuple[NodeAdaptationDecision, ...] = ()
+    remediation_queue: tuple[ConceptId, ...] = ()
     knowledge_context: KnowledgeRetrievalResult | None = None
     planning_audit: PlanningToolAudit | None = None
     failure: PlanningAgentFailure | None = None
@@ -181,6 +182,21 @@ class CoursePlanningAgentResult(BaseModel):
             actual_ids = tuple(item.concept_id for item in self.adaptations)
             if actual_ids != expected_ids:
                 raise ValueError("adaptations must match unfinished path nodes in order")
+            nodes_by_id = {node.concept_id: node for node in self.path.nodes}
+            if len(self.remediation_queue) != len(set(self.remediation_queue)):
+                raise ValueError("remediation queue concept IDs must be unique")
+            for concept_id in self.remediation_queue:
+                node = nodes_by_id.get(concept_id)
+                if node is None:
+                    raise ValueError("remediation queue concept is not in the path")
+                if node.status in {
+                    PathStatus.BLOCKED,
+                    PathStatus.COMPLETED,
+                    PathStatus.SKIPPED,
+                }:
+                    raise ValueError(
+                        "remediation queue concepts must be unfinished and non-blocked"
+                    )
 
         if self.status is PlanningAgentStatus.READY:
             self._validate_ready_state()

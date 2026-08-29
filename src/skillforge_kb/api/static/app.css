@@ -1046,6 +1046,37 @@ input:focus-visible {
 .resource-requirements dt { color: var(--muted); }
 .resource-requirements dd { margin: 0; overflow-wrap: anywhere; }
 
+.learning-progress-panel {
+  padding: 16px;
+  border: 1px solid var(--rule);
+  background: var(--ground);
+  box-shadow: var(--shadow-sm);
+}
+
+.learning-progress-panel h3 { margin: 0 0 12px; }
+.learning-progress-panel ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.learning-progress-panel li {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--rule);
+}
+.learning-progress-panel li span { font-size: 12px; color: var(--muted); }
+.learning-progress-panel li.is-complete { border-color: var(--success); background: var(--success-soft); }
+.learning-progress-panel li.is-pending { border-color: var(--warning); background: var(--warning-soft); }
+.progress-summary, .progress-remediation { margin: 12px 0 0; }
+
+@media (max-width: 680px) {
+  .learning-progress-panel ul { grid-template-columns: 1fr; }
+}
+
 .kind-tag {
   flex: 0 0 auto;
   color: var(--resource);

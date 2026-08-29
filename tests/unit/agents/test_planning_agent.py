@@ -137,6 +137,8 @@ def reset_event(*, label: str = "reset") -> PlanningAgentEvent:
 def enriched_profile(
     profile: LearnerProfileSnapshot,
     concept_id: str,
+    *,
+    mastery_score: float = 0.84,
 ) -> LearnerProfileSnapshot:
     assessment_id = "assessment-agent-refresh"
     return profile.model_copy(
@@ -145,7 +147,7 @@ def enriched_profile(
             "knowledge_mastery": [
                 KnowledgeMastery(
                     concept_id=concept_id,
-                    mastery_score=0.84,
+                    mastery_score=mastery_score,
                     assessment_status=AssessmentStatus.ASSESSED,
                     confidence=0.90,
                     observed_at=datetime(2026, 7, 30, tzinfo=UTC),
@@ -187,6 +189,47 @@ def test_initialize_builds_a_ready_path(agent, profile) -> None:
         if node.status not in {PathStatus.COMPLETED, PathStatus.SKIPPED}
     )
     assert tuple(item.concept_id for item in result.adaptations) == unfinished
+
+
+def test_initialize_exposes_actionable_remediation_queue(agent, profile) -> None:
+    result = agent.invoke(
+        initialize_event(profile, label="initialize-remediation"),
+        thread_id="remediation-queue",
+    )
+
+    assert result.path is not None
+    blocked = next(node for node in result.path.nodes if node.status is PathStatus.BLOCKED)
+    assert result.remediation_queue[0] == "math.linear-algebra.scalar"
+    assert len(result.remediation_queue) == len(set(result.remediation_queue))
+    statuses = {
+        node.concept_id: node.status
+        for node in result.path.nodes
+    }
+    assert all(
+        statuses[concept_id] in {PathStatus.AVAILABLE, PathStatus.PENDING}
+        for concept_id in result.remediation_queue
+    )
+    assert blocked.blocking_prerequisite_ids == ("math.linear-algebra.scalar",)
+
+
+def test_profile_refresh_skipping_requested_node_selects_next_available(agent, profile) -> None:
+    initial = agent.invoke(
+        initialize_event(profile, label="skip-refresh-init"),
+        thread_id="skip-refresh",
+    )
+    assert initial.current_node is not None
+    refreshed = enriched_profile(
+        profile,
+        initial.current_node.concept_id,
+        mastery_score=0.90,
+    )
+    result = agent.invoke(
+        refresh_event(refreshed, label="skip-refresh-event"),
+        thread_id="skip-refresh",
+    )
+    assert result.status is PlanningAgentStatus.READY
+    assert result.current_node is not None
+    assert result.current_node.concept_id != initial.current_node.concept_id
 
 
 def test_connected_agent_retrieves_without_changing_path(
