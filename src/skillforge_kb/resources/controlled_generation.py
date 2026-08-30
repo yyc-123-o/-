@@ -243,7 +243,9 @@ class PracticalGuideDraft(BaseModel):
     starter_code_lines: int = Field(default=0, ge=0)
     required_core_code_lines: int = Field(default=1, ge=1)
     debug_hint_depth: int = Field(default=0, ge=0, le=3)
+    experiment_protocol: tuple[str, ...] = ()
     exercise: PracticeExercise | None = None
+    project_exercise: PracticeExercise | None = None
 
 
 class StudentQuizItem(BaseModel):
@@ -547,14 +549,19 @@ def build_generation_prompt(
         "ID and a knowledge scope ID.\nJSON SCHEMA:\n"
         f"{schema_json}"
         + (
-            "\nPEDAGOGICAL REQUIREMENTS: For lecture, write seven ordered blocks with kinds "
+            "\nPEDAGOGICAL REQUIREMENTS: For lecture, write at least seven ordered blocks with kinds "
             "objective, intuition, definition, derivation, example, pitfall, summary. "
             "Each body must explain the concept in complete sentences, include a concrete example, "
             "and connect the explanation to the learner objective."
             if material == "lecture"
-            else "\nPEDAGOGICAL REQUIREMENTS: For practical_guide, provide a Python starter_code with TODO, "
-            "an expected_output, checks, and required_tokens. The student must be able to edit the code "
-            "and submit it for static feedback; never place a reference solution in starter_code."
+            else "\nPEDAGOGICAL REQUIREMENTS: For practical_guide, provide two distinct Python exercises: "
+            "exercise is a short teaching example with TODOs, while project_exercise is a more complex "
+            "project-style task with data flow, reusable functions, and measurable acceptance criteria. "
+            "Each exercise must provide starter_code, expected_output, checks, and required_tokens. "
+            "Also provide an experiment_protocol with at least four ordered steps covering a baseline, "
+            "one-variable change, boundary case, and evidence-based conclusion. The student must be able "
+            "to edit either code sample and submit it for static feedback; never place a reference solution "
+            "in starter_code."
             if material == "practical_guide"
             else "\nPEDAGOGICAL REQUIREMENTS: For student_quiz, write eight answerable questions with at least "
             "two choices each. Keep correct_choice as a server-only answer key and do not put answers in prompt or hints."
@@ -584,7 +591,7 @@ def build_trace(
     return GenerationTrace(
         policy_id=brief.policy.policy_id,
         brief_id=brief.brief_id,
-        prompt_version="controlled-generation.v2",
+        prompt_version="controlled-generation.v3-dual-exercise",
         model_name=adapter.model_name,
         generator_model=adapter.model_name,
         generator_prompt_hash=_digest("prompt", generator_prompt),
@@ -654,8 +661,11 @@ class ResourceAuditor:
                 draft.practical_guide.title,
                 *draft.practical_guide.learning_steps,
                 *draft.practical_guide.notebook_tasks,
+                *draft.practical_guide.experiment_protocol,
                 draft.practical_guide.exercise.task if draft.practical_guide.exercise else "",
                 draft.practical_guide.exercise.starter_code if draft.practical_guide.exercise else "",
+                draft.practical_guide.project_exercise.task if draft.practical_guide.project_exercise else "",
+                draft.practical_guide.project_exercise.starter_code if draft.practical_guide.project_exercise else "",
                 student_text,
                 *(item.answer for item in draft.teacher_guide.items),
                 *(item.error_diagnosis for item in draft.teacher_guide.items),

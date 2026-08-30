@@ -135,6 +135,10 @@ class PlatformService:
         with self._lock:
             existing = self._repository.reserve(request)
             if existing is not None:
+                if self._resource_needs_refresh(existing):
+                    refreshed = self._execute(request, existing.run_id)
+                    self._repository.save(refreshed)
+                    return refreshed
                 return existing
             result = self._execute(
                 request,
@@ -142,6 +146,38 @@ class PlatformService:
             )
             self._repository.save(result)
             return result
+
+    @staticmethod
+    def _resource_needs_refresh(result: PlatformRunResult) -> bool:
+        """Regenerate previews created before the richer lesson contract."""
+        if result.status is PlatformRunStatus.FAILED:
+            return True
+        resources = result.resources
+        preview = resources.preview_package if resources is not None else None
+        draft = preview.draft if preview is not None else None
+        practical = draft.practical_guide if draft is not None else None
+        if practical is not None and practical.project_exercise is None:
+            return True
+        lecture = draft.lecture if draft is not None else None
+        if lecture is not None:
+            # Earlier cached records had prose-only lesson blocks. New lessons
+            # must contain the two runnable teaching snippets.
+            if sum(bool(block.code) for block in lecture.blocks) < 2:
+                return True
+            stale_markers = (
+                "textcnn", "dcgan", "生成对抗", "bi-lstm", "注意力机制",
+            )
+            lecture_text = " ".join(
+                (
+                    lecture.title,
+                    *lecture.sections,
+                    *(block.body for block in lecture.blocks),
+                    *(claim.text for claim in lecture.claims),
+                )
+            ).casefold()
+            if any(marker in lecture_text for marker in stale_markers):
+                return True
+        return False
 
     def complete_current_node(
         self,
@@ -176,6 +212,35 @@ class PlatformService:
             )
             self._repository.save(result)
             return result
+
+    def refresh_current_resources(self, run_id: str) -> PlatformRunResult:
+        """Regenerate the current node's resource package without changing learning progress."""
+        with self._lock:
+            existing = self._repository.get(run_id)
+            request = self._repository.get_request(run_id)
+            if existing is None or request is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            planning = existing.planning
+            if (
+                existing.status is not PlatformRunStatus.COMPLETED
+                or planning is None
+                or planning.current_node is None
+            ):
+                raise ValueError("current resources are not ready to refresh")
+            event = PlanningAgentEvent(
+                event_id=f"event_{sha256(f'{run_id}:{planning.current_node.concept_id}:resource-refresh'.encode()).hexdigest()}",
+                kind=PlanningEventKind.PROFILE_REFRESHED,
+                profile=request.profile,
+                start_concept_id=planning.current_node.concept_id,
+            )
+            refreshed = self._execute(
+                request,
+                run_id,
+                planning_event=event,
+                previous_steps=existing.steps,
+            )
+            self._repository.save(refreshed)
+            return refreshed
 
     def submit_assessment(
         self,
@@ -390,9 +455,10 @@ class PlatformService:
             if planning.current_node.concept_id != submission.concept_id:
                 raise ValueError("practice concept does not match the current learning node")
             preview = existing.resources.preview_package
+            practical = preview.draft.practical_guide if preview is not None and preview.draft is not None else None
             exercise = (
-                preview.draft.practical_guide.exercise
-                if preview is not None and preview.draft is not None
+                practical.project_exercise if practical is not None and submission.exercise_kind == "project"
+                else practical.exercise if practical is not None
                 else None
             )
             if exercise is None:
@@ -915,6 +981,7 @@ def _result_from_state(state: PlatformGraphState) -> PlatformRunResult:
         run_id=state["run_id"],
         request_digest=build_request_digest(state["request"]),
         profile_id=state["request"].profile.profile_id,
+        profile=state["request"].profile,
         status=state["status"],
         planning=state.get("planning"),
         retrieval=state.get("retrieval"),

@@ -6,6 +6,8 @@ import type { DiagnosisProfile } from "@/types/learner";
 import { useLearnerStore } from "./learner";
 
 const FORM_KEY = "zhijing.diagnosis.form.v1";
+const DOMAINS_KEY = "zhijing.diagnosis.domains.v1";
+const SESSION_KEY = "zhijing.diagnosis.adaptive-session.v1";
 const defaultForm: BasicForm = {
   name: "",
   education: { level: "本科", major: "", institution: "", gpa: null },
@@ -21,14 +23,33 @@ function loadForm(): BasicForm {
   }
 }
 
+function loadDomains(): DomainAssessment[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DOMAINS_KEY) || "");
+    return Array.isArray(saved) ? saved as DomainAssessment[] : [];
+  } catch {
+    return [];
+  }
+}
+
+function loadSessionId(): string {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || "") as { session_id?: unknown };
+    return typeof saved.session_id === "string" ? saved.session_id : "";
+  } catch {
+    return "";
+  }
+}
+
 export const useDiagnosisStore = defineStore("diagnosis", () => {
   const form = ref<BasicForm>(loadForm());
-  const domains = ref<DomainAssessment[]>([]);
+  const domains = ref<DomainAssessment[]>(loadDomains());
   const learnersLoading = ref(false);
   const submitting = ref(false);
   const error = ref("");
   const status = ref("准备开始");
   const session = ref<AdaptiveSession | null>(null);
+  const persistedSessionId = ref(loadSessionId());
   const adaptiveAnswers = ref<Array<{ question: string; correct: boolean; concept: string }>>([]);
   const activeStage = ref(1);
   const learner = useLearnerStore();
@@ -43,7 +64,14 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
 
   function saveForm() {
     localStorage.setItem(FORM_KEY, JSON.stringify(form.value));
+    localStorage.setItem(DOMAINS_KEY, JSON.stringify(domains.value));
     status.value = "草稿已保存";
+  }
+
+  function persistSession(next: AdaptiveSession | null) {
+    persistedSessionId.value = next?.session_id || "";
+    if (next?.session_id) localStorage.setItem(SESSION_KEY, JSON.stringify({ session_id: next.session_id }));
+    else localStorage.removeItem(SESSION_KEY);
   }
 
   async function loadLearners() {
@@ -62,6 +90,9 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
       const result = await diagnosisApi.upload(form.value, domains.value);
       await learner.loadLearners();
       await learner.selectLearner(result.learner_id);
+      session.value = null;
+      persistSession(null);
+      adaptiveAnswers.value = [];
       activeStage.value = 2;
       status.value = "基础信息已保存";
       saveForm();
@@ -93,11 +124,12 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
   async function startAdaptive() {
     if (!learner.selectedLearnerId) throw new Error("请先选择学习者");
     session.value = await diagnosisApi.startAdaptive(learner.selectedLearnerId);
+    persistSession(session.value);
     activeStage.value = 2;
     status.value = "自适应测试进行中";
   }
 
-  async function answer(questionId: string, selectedAnswer: number) {
+  async function answer(questionId: string, selectedAnswer: number, questionStartedAt: number) {
     if (!session.value?.session_id) return;
     const answeredName = session.value.next_question?.knowledge_point_name || session.value.next_question?.question_text || "自适应题目";
     // 后端硬编码判分：必须提交 selected_answer（选项下标），禁止提交 is_correct
@@ -105,8 +137,9 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
       session_id: session.value.session_id,
       question_id: questionId,
       selected_answer: selectedAnswer,
-      time_spent: 30,
+      time_spent: Math.max(1, Math.round((Date.now() - questionStartedAt) / 1000)),
     });
+    persistSession(session.value);
     if (typeof session.value.last_correct === "boolean") {
       adaptiveAnswers.value.push({
         question: answeredName,
@@ -120,12 +153,29 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
   async function finishAdaptive() {
     if (!session.value?.session_id || !learner.selectedLearnerId) throw new Error("没有可提交的测试会话");
     await diagnosisApi.applyAdaptive(learner.selectedLearnerId, session.value.session_id);
+    persistSession(null);
     await runDiagnosis();
     status.value = "测试结果已更新到学习画像";
   }
 
+  async function resumeAdaptive() {
+    if (!persistedSessionId.value || !learner.selectedLearnerId) return;
+    try {
+      const restored = await diagnosisApi.session(persistedSessionId.value);
+      if (restored.learner_id !== learner.selectedLearnerId) {
+        persistSession(null);
+        return;
+      }
+      session.value = restored;
+      activeStage.value = 2;
+      status.value = restored.finished ? "测试完成，可以生成画像" : "已恢复自适应测试";
+    } catch {
+      persistSession(null);
+    }
+  }
+
   return {
     form, domains, learnersLoading, submitting, error, status, session, adaptiveAnswers, activeStage,
-    completedStages, saveForm, loadLearners, submitBasic, runDiagnosis, startAdaptive, answer, finishAdaptive,
+    completedStages, saveForm, loadLearners, submitBasic, runDiagnosis, startAdaptive, answer, finishAdaptive, resumeAdaptive,
   };
 });

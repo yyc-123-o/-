@@ -84,9 +84,9 @@ onMounted(() => learner.loadLearners());
     <aside class="right-rail">
       <div class="rail-status"><span class="eyebrow">LEARNER STATUS</span><span class="status-pill status-pill-success">实时</span></div>
       <div class="rail-profile">
-        <div class="avatar avatar-large">{{ learner.profile?.learner.name?.slice(0, 1) || "学" }}</div>
+        <div class="avatar avatar-large">{{ learner.profile?.learner?.name?.slice(0, 1) || "学" }}</div>
         <strong>{{ learner.learnerName }}</strong>
-        <span>{{ learner.profile?.learner.education?.major || "完成诊断后生成你的学习画像" }}</span>
+        <span>{{ learner.profile?.learner?.education?.major || "完成诊断后生成你的学习画像" }}</span>
       </div>
       <div class="rail-metric"><span>总体掌握度</span><b>{{ learner.profile ? `${Math.round(learner.mastery * 100)}%` : "待诊断" }}</b></div>
       <div class="rail-metric"><span>薄弱知识点</span><b>{{ learner.profile ? learner.weakPoints.length : "—" }}</b></div>

@@ -38,6 +38,7 @@ export const useLearningPathStore = defineStore("learningPath", () => {
 
   function setRun(next: PlatformRun) {
     run.value = next;
+    if (next.profile) learner.setSnapshot(next.profile);
   }
 
   return { run, loading, error, nodes, currentNode, generate, startNode, completeNode, setRun };

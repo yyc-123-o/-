@@ -98,11 +98,28 @@ def _write_materials(destination: Path, package: CandidateLearningPackage) -> No
         f"# {lecture.title}\n\n" + "\n\n".join(lecture.sections) + "\n",
         encoding="utf-8",
     )
+    def exercise_section(title: str, exercise: object | None) -> str:
+        if exercise is None:
+            return ""
+        return (
+            f"\n\n## {title}\n\n{exercise.task}\n\n"
+            "```python\n"
+            f"{exercise.starter_code}\n"
+            "```\n\n"
+            f"Expected output: {exercise.expected_output}\n\n"
+            + "Checks:\n"
+            + "\n".join(f"- {check}" for check in exercise.checks)
+        )
+
     (destination / "02_pytorch_practical_guide.md").write_text(
         f"# {practical.title}\n\n## Steps\n"
         + "\n".join(f"- {step}" for step in practical.learning_steps)
         + "\n\n## Notebook tasks\n"
         + "\n".join(f"- {task}" for task in practical.notebook_tasks)
+        + "\n\n## Experiment protocol\n"
+        + "\n".join(f"{index}. {step}" for index, step in enumerate(practical.experiment_protocol, start=1))
+        + exercise_section("基础教学代码", practical.exercise)
+        + exercise_section("项目式复杂代码", practical.project_exercise)
         + "\n",
         encoding="utf-8",
     )

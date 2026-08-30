@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { ArrowLeft, ArrowRight, BriefcaseBusiness, GraduationCap, Save, Target, UserRound } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { useDiagnosisStore } from "@/stores/diagnosis";
@@ -16,8 +16,39 @@ const knowledgeGroups = [
   { domain: "深度学习", items: ["神经网络基础", "卷积神经网络 CNN", "Transformer"] },
   { domain: "优化算法", items: ["梯度下降", "反向传播", "Adam 优化器"] },
 ];
-const levels = ["未学过", "了解", "基础", "熟练", "精通"];
+const levels = [
+  { label: "未学过", value: "未学过" },
+  { label: "了解", value: "基本了解" },
+  { label: "基础", value: "基础" },
+  { label: "熟练", value: "熟练" },
+  { label: "精通", value: "精通" },
+];
 watch(diagnosis.form, diagnosis.saveForm, { deep: true });
+watch(diagnosis.domains, diagnosis.saveForm, { deep: true });
+onMounted(() => {
+  for (const group of knowledgeGroups) {
+    let assessment = diagnosis.domains.find((item) => item.domain === group.domain);
+    if (!assessment) {
+      assessment = { domain: group.domain, courses: [] };
+      diagnosis.domains.push(assessment);
+    }
+    for (const name of group.items) {
+      const course = assessment.courses.find((item) => item.name === name);
+      if (!course) assessment.courses.push({ name, level: "未学过" });
+      else if (course.level === "了解") course.level = "基本了解";
+    }
+  }
+});
+function selectedLevel(domain: string, name: string) {
+  const level = diagnosis.domains.find((item) => item.domain === domain)
+    ?.courses.find((item) => item.name === name)?.level;
+  return level === "了解" ? "基本了解" : level || "未学过";
+}
+function selectLevel(domain: string, name: string, level: string) {
+  const assessment = diagnosis.domains.find((item) => item.domain === domain);
+  const course = assessment?.courses.find((item) => item.name === name);
+  if (course) course.level = level;
+}
 const completion = computed(() => {
   let score = 0;
   if (diagnosis.form.name) score += 25;
@@ -55,7 +86,7 @@ async function save() {
               <div class="knowledge-group-heading"><div><h3>{{ group.domain }}</h3><span>{{ group.items.length }} 个核心知识点</span></div><span class="group-dot" /></div>
               <div v-for="item in group.items" :key="item" class="knowledge-card">
                 <div><strong>{{ item }}</strong><small>选择你对这个知识点的直觉掌握程度</small></div>
-                <div class="level-pills"><button v-for="level in levels" :key="level" type="button" :class="{ selected: level === '未学过' }">{{ level }}</button></div>
+                <div class="level-pills"><button v-for="level in levels" :key="level.value" type="button" :aria-pressed="selectedLevel(group.domain, item) === level.value" :class="{ selected: selectedLevel(group.domain, item) === level.value }" @click="selectLevel(group.domain, item, level.value)">{{ level.label }}</button></div>
               </div>
             </div>
           </div>

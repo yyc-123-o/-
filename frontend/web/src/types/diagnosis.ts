@@ -13,6 +13,7 @@ export interface DomainAssessment {
 
 export interface AdaptiveSession {
   session_id: string;
+  learner_id?: string;
   next_question?: {
     question_id: string;
     question_text?: string;
@@ -24,6 +25,10 @@ export interface AdaptiveSession {
   current_domain?: string;
   current_tier?: string;
   current_theta?: number;
+  standard_error?: number | null;
+  estimator_method?: string;
+  item_calibration_status?: "provisional" | "calibrated";
+  selection_reason?: string;
   question_count: number;
   finished?: boolean;
   final_theta?: number;
@@ -31,5 +36,6 @@ export interface AdaptiveSession {
   last_correct?: boolean;
   covered_kp?: number;
   total_kp?: number;
+  coverage_target?: string;
   answers?: unknown[];
 }

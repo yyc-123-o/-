@@ -272,6 +272,18 @@ def create_app(
                 detail={"code": "invalid_assessment", "message": str(exc)},
             ) from exc
 
+    @app.post("/api/v1/runs/{run_id}/refresh-resources", response_model=PlatformRunResult)
+    def refresh_resources(run_id: str) -> PlatformRunResult:
+        try:
+            return service.refresh_current_resources(run_id)
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_resource_refresh", "message": str(exc)},
+            ) from exc
+
     @app.post(
         "/api/v1/runs/{run_id}/practice-review",
         response_model=PracticeReviewResult,

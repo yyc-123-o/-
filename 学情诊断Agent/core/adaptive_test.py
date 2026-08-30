@@ -27,12 +27,27 @@
 
 from __future__ import annotations
 import math
+import warnings
 import numpy as np
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 from core import irt
+
+
+# adaptivetesting 1.2.1 currently imports warnings.deprecated, which is only
+# available in Python 3.13+. Keep the compatibility shim local to this module
+# so the package can be used on the project's Python 3.12 runtime.
+if not hasattr(warnings, "deprecated"):
+    def _deprecated(_message="", **_kwargs):
+        return lambda func: func
+    warnings.deprecated = _deprecated  # type: ignore[attr-defined]
+
+try:
+    import adaptivetesting as _cat
+except Exception:  # pragma: no cover - optional fallback for minimal installs
+    _cat = None
 
 
 # ============================================================
@@ -84,6 +99,10 @@ class AdaptiveSession:
     all_kp_ids: List[str] = field(default_factory=list)                 # 范围内所有 kp_id (已排序)
     # 当前 IRT θ (每答 1 题更新 1 次, 用于选题匹配代表性难度)
     current_theta: float = 0.0
+    standard_error: Optional[float] = None
+    estimator_method: str = "adaptivetesting-EAP"
+    item_calibration_status: str = "provisional"
+    selection_reason: str = ""
     # 会话终态
     finished: bool = False
     stop_reason: str = ""
@@ -99,6 +118,7 @@ class AdaptiveSession:
     max_questions: int = MAX_QUESTIONS
     min_questions: int = MIN_QUESTIONS
     min_kp_coverage: int = MIN_KP_COVERAGE
+    standard_error_threshold: Optional[float] = None
     # 当前待答题目 (用于服务端校验提交的题目是否匹配)
     current_question_id: Optional[str] = None
 
@@ -189,11 +209,54 @@ def _group_bank_by_domain(
     return grouped
 
 
+def _cat_item(question: dict):
+    """Convert a project question into adaptivetesting's dichotomous item."""
+    item = _cat.TestItem()
+    item.id = question.get("question_id")
+    item.a = float(question.get("discrimination", 1.0))
+    item.b = float(question.get("difficulty", 0.0))
+    item.c = float(question.get("guessing", question.get("c", 0.0)))
+    item.d = float(question.get("upper_asymptote", question.get("d", 1.0)))
+    item.additional_properties["category"] = [question.get("knowledge_point_id", "")]
+    return item
+
+
+def _cat_estimate(answers: List[dict], prior_theta: float) -> Tuple[float, float, str]:
+    """Estimate theta and posterior standard error with the selected CAT library."""
+    responses = [
+        (
+            answer.get("discrimination", 1.0),
+            answer.get("difficulty", 0.0),
+            bool(answer.get("is_correct", False)),
+        )
+        for answer in answers
+    ]
+    theta, standard_error, method = irt.estimate_eap_theta(
+        responses, prior_theta=prior_theta, prior_std=IRT_PRIOR_STD
+    )
+    if method not in {"adaptivetesting-EAP", "grid-EAP"} or standard_error is None:
+        raise ValueError("adaptivetesting EAP 不可用")
+    if not math.isfinite(theta) or not math.isfinite(standard_error):
+        raise ValueError("adaptivetesting 返回了非有限能力估计")
+    return theta, standard_error, method
+
+
 def _update_irt_theta(session: AdaptiveSession):
-    """基于当前已答题, MLE + 先验正则 更新 session.current_theta"""
+    """基于答题记录用 adaptivetesting EAP 更新 theta 和标准误。"""
     if not session.answers:
         session.current_theta = float(session.prior_theta)
+        session.standard_error = None
         return
+    try:
+        theta, standard_error, method = _cat_estimate(session.answers, session.prior_theta)
+        session.current_theta = float(theta)
+        session.standard_error = float(standard_error)
+        session.estimator_method = method
+        return
+    except Exception:
+        # Keep the service usable if the optional dependency is unavailable or
+        # an unusual item record cannot be represented by the library.
+        session.estimator_method = "project-IRT-MLE-fallback"
     responses = [
         (
             a.get("discrimination", 1.0),
@@ -207,6 +270,7 @@ def _update_irt_theta(session: AdaptiveSession):
     except Exception:
         theta = session.prior_theta
     session.current_theta = float(theta)
+    session.standard_error = None
 
 
 # ============================================================
@@ -243,6 +307,15 @@ def _pick_max_fisher(cands: List[dict], theta: float) -> Optional[dict]:
     if not cands:
         return None
 
+    if _cat is not None:
+        try:
+            items = [_cat_item(q) for q in cands]
+            selected = _cat.maximum_information_criterion(items, float(theta))
+            selected_id = selected.id
+            return next(q for q in cands if q.get("question_id") == selected_id)
+        except Exception:
+            pass
+
     def info(q):
         a = float(q.get("discrimination", 1.0))
         b = float(q.get("difficulty", 0.0))
@@ -275,6 +348,7 @@ def _select_question(session: AdaptiveSession) -> Optional[dict]:
         cands = _candidate_questions_by_kp(session, uncovered_kps)
         q = _pick_nearest_difficulty(cands, session.current_theta)
         if q is not None:
+            session.selection_reason = "优先覆盖尚未测评的知识点"
             return q
         # 若这些未覆盖 kp 都已无题可出 (理论上只要每 kp≥2 不会触发), 则降级到 Phase2
 
@@ -285,6 +359,7 @@ def _select_question(session: AdaptiveSession) -> Optional[dict]:
     if cands:
         q = _pick_nearest_difficulty(cands, session.current_theta)
         if q is not None:
+            session.selection_reason = "补充只有一条作答证据的知识点"
             return q
 
     # 最后: 全题库未答范围 Fisher 信息量最大 (纯 IRT 精修)
@@ -293,7 +368,10 @@ def _select_question(session: AdaptiveSession) -> Optional[dict]:
         for q in session.bank_by_kp.get(kp, []):
             if q["question_id"] not in session.answered_qids:
                 remaining.append(q)
-    return _pick_max_fisher(remaining, session.current_theta)
+    q = _pick_max_fisher(remaining, session.current_theta)
+    if q is not None:
+        session.selection_reason = "选择在当前能力附近信息量最高的题目，以降低标准误"
+    return q
 
 
 # ============================================================
@@ -309,8 +387,17 @@ def _check_stop_condition(session: AdaptiveSession) -> Optional[str]:
     if n >= session.max_questions:
         return f"达到总题数上限 {session.max_questions} 题 (已覆盖 {covered}/{len(session.all_kp_ids)} kp)"
 
-    # 条件 (a) 覆盖 + 题数达标
+    # 条件 (a) 覆盖 + 题数达标；若配置了标准误，再优先给出收敛原因。
     if covered >= min(session.min_kp_coverage, len(session.all_kp_ids)) and n >= session.min_questions:
+        if (
+            session.standard_error_threshold is not None
+            and session.standard_error is not None
+            and session.standard_error <= session.standard_error_threshold
+        ):
+            return (
+                f"标准误 {session.standard_error:.4f} ≤ {session.standard_error_threshold:.4f}, "
+                f"且已覆盖 {covered} 个知识点并完成 {n} 题"
+            )
         return (
             f"已覆盖 {covered} 个知识点 ≥ {min(session.min_kp_coverage, len(session.all_kp_ids))}, "
             f"且答题 {n} 题 ≥ {session.min_questions}"
@@ -331,6 +418,17 @@ def _estimate_final_theta(
     answers: List[dict],
     prior_theta: float = 0.0,
 ) -> tuple:
+    try:
+        theta, standard_error, method = _cat_estimate(answers, prior_theta)
+        return round(theta, 4), {
+            "n_responses": len(answers),
+            "prior_weight": "bayesian",
+            "method": method,
+            "standard_error": round(standard_error, 4),
+        }
+    except Exception:
+        pass
+
     responses = [
         (
             a.get("discrimination", 1.0),
@@ -356,6 +454,7 @@ def _estimate_final_theta(
         "n_responses": n,
         "prior_weight": prior_weight,
         "method": "IRT-MLE",
+        "standard_error": None,
     }
     return round(float(theta), 4), info
 
@@ -524,6 +623,7 @@ def start_session(
         max_questions=config["max_questions"],
         min_questions=config["min_questions"],
         min_kp_coverage=config["min_kp_coverage"],
+        standard_error_threshold=config.get("standard_error_threshold"),
     )
     _sessions[sid] = session
 
@@ -575,6 +675,10 @@ def start_session(
             f"Phase1 覆盖 {min(session.min_kp_coverage, len(session.all_kp_ids))}/"
             f"{len(session.all_kp_ids)} kp, 上限 {session.max_questions} 题"
         ),
+        "standard_error": None,
+        "estimator_method": session.estimator_method,
+        "item_calibration_status": session.item_calibration_status,
+        "selection_reason": session.selection_reason,
     }
 
 
@@ -668,6 +772,10 @@ def submit_answer(
             "domain_results": session.domain_results,
             "final_theta": final_theta,
             "theta_info": theta_info,
+            "standard_error": session.standard_error,
+            "estimator_method": session.estimator_method,
+            "item_calibration_status": session.item_calibration_status,
+            "selection_reason": session.selection_reason,
             "answers": session.answers,
             "last_correct": is_correct,
             "total_kp": len(session.all_kp_ids),
@@ -698,6 +806,10 @@ def submit_answer(
             "domain_results": session.domain_results,
             "final_theta": final_theta,
             "theta_info": theta_info,
+            "standard_error": session.standard_error,
+            "estimator_method": session.estimator_method,
+            "item_calibration_status": session.item_calibration_status,
+            "selection_reason": session.selection_reason,
             "answers": session.answers,
             "last_correct": is_correct,
             "total_kp": len(session.all_kp_ids),
@@ -743,6 +855,10 @@ def submit_answer(
         "total_kp": len(session.all_kp_ids),
         "covered_kp": len(session.covered_kp_ids),
         "current_theta": round(session.current_theta, 4),
+        "standard_error": session.standard_error,
+        "estimator_method": session.estimator_method,
+        "item_calibration_status": session.item_calibration_status,
+        "selection_reason": session.selection_reason,
     }
 
 
@@ -786,6 +902,10 @@ def get_session(session_id: str) -> Optional[dict]:
         "kp_mastery": kp_mastery,
         "kp_coverage_report": kp_mastery,
         "current_theta": round(s.current_theta, 4),
+        "standard_error": s.standard_error,
+        "estimator_method": s.estimator_method,
+        "item_calibration_status": s.item_calibration_status,
+        "selection_reason": s.selection_reason,
     }
 
 
@@ -865,6 +985,15 @@ def build_config(data: Optional[dict] = None) -> dict:
     convergence_threshold = require_finite_number("convergence_threshold", 0.15)
     if convergence_threshold < 0:
         raise ValueError("停止条件不能为负数")
+    standard_error_threshold = data.get("standard_error_threshold")
+    if standard_error_threshold is not None:
+        if (
+            isinstance(standard_error_threshold, bool)
+            or not isinstance(standard_error_threshold, (int, float))
+            or not math.isfinite(standard_error_threshold)
+            or standard_error_threshold < 0
+        ):
+            raise ValueError("standard_error_threshold 必须是非负有限数值")
 
     return {
         "domains": domains,
@@ -880,6 +1009,10 @@ def build_config(data: Optional[dict] = None) -> dict:
         "min_questions": int(min_questions),
         "max_questions": int(max_questions),
         "convergence_threshold": convergence_threshold,
+        "standard_error_threshold": (
+            float(standard_error_threshold)
+            if standard_error_threshold is not None else None
+        ),
     }
 
 
@@ -895,4 +1028,5 @@ def default_config_payload() -> dict:
         "target_kp_coverage": TARGET_KP_COVERAGE,
         "min_questions": MIN_QUESTIONS,
         "max_questions": MAX_QUESTIONS,
+        "standard_error_threshold": None,
     }

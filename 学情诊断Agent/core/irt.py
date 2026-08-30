@@ -7,9 +7,24 @@
 """
 
 from __future__ import annotations
+import math
+import warnings
 import numpy as np
 from scipy.optimize import minimize_scalar
-from typing import List, Tuple
+from typing import List, Optional, Tuple
+
+
+# adaptivetesting 1.2.1 imports ``warnings.deprecated``, introduced in
+# Python 3.13. The project currently runs on Python 3.12.
+if not hasattr(warnings, "deprecated"):
+    def _deprecated(_message="", **_kwargs):
+        return lambda func: func
+    warnings.deprecated = _deprecated  # type: ignore[attr-defined]
+
+try:
+    import adaptivetesting as _cat
+except Exception:  # pragma: no cover - optional dependency fallback
+    _cat = None
 
 
 # 学历 -> 能力先验 θ
@@ -99,6 +114,64 @@ def estimate_theta(
         method="bounded",
     )
     return _clamp_theta(result.x)
+
+
+def estimate_eap_theta(
+    responses: List[Tuple[float, float, bool]],
+    prior_theta: float = 0.0,
+    prior_std: float = 1.0,
+    use_library: bool = True,
+) -> Tuple[float, Optional[float], str]:
+    """Estimate ability with the same Bayesian EAP model used by CAT.
+
+    Returns theta, posterior standard error and the method that produced the
+    result. MLE remains a controlled fallback only when the optional CAT
+    dependency is unavailable.
+    """
+    if not responses:
+        return _clamp_theta(prior_theta), None, "prior-only"
+
+    if use_library and _cat is not None:
+        try:
+            items = []
+            pattern = []
+            for index, (a, b, correct) in enumerate(responses):
+                item = _cat.TestItem()
+                item.id = f"response-{index}"
+                item.a = float(a)
+                item.b = float(b)
+                item.c = 0.0
+                item.d = 1.0
+                items.append(item)
+                pattern.append(1 if correct else 0)
+            estimator = _cat.ExpectedAPosteriori(
+                pattern,
+                items,
+                _cat.NormalPrior(float(prior_theta), float(prior_std)),
+                optimization_interval=(-4, 4),
+            )
+            theta = float(estimator.get_estimation())
+            standard_error = float(estimator.get_standard_error(theta))
+            if math.isfinite(theta) and math.isfinite(standard_error):
+                return _clamp_theta(theta), standard_error, "adaptivetesting-EAP"
+        except Exception:
+            # Fall through to the existing deterministic implementation.
+            pass
+
+    # For per-knowledge-point estimates, many small posteriors must be built
+    # together. A fixed quadrature grid is mathematically the same EAP
+    # integral, but avoids repeatedly invoking the third-party optimiser.
+    theta_grid = np.linspace(-4.0, 4.0, 321)
+    log_posterior = -0.5 * ((theta_grid - prior_theta) / prior_std) ** 2
+    for a, b, correct in responses:
+        p = np.array([probability(float(theta), float(a), float(b)) for theta in theta_grid])
+        log_posterior += np.log(np.clip(p if correct else 1.0 - p, 1e-12, 1.0))
+    log_posterior -= float(np.max(log_posterior))
+    weights = np.exp(log_posterior)
+    weights /= float(np.sum(weights))
+    theta = float(np.sum(theta_grid * weights))
+    variance = float(np.sum(((theta_grid - theta) ** 2) * weights))
+    return _clamp_theta(theta), math.sqrt(max(variance, 0.0)), "grid-EAP"
 
 
 def mastery_from_theta(theta: float, difficulty: float) -> float:

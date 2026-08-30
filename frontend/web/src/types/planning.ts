@@ -14,6 +14,7 @@ export interface PathNode {
 export interface PlatformRun {
   run_id: string;
   profile_id: string;
+  profile?: LearnerSnapshot | null;
   status: string;
   planning?: {
     path?: { nodes: PathNode[]; profile_id?: string };
@@ -27,3 +28,4 @@ export interface PlatformRun {
   failure?: { code: string; message: string; retryable?: boolean };
   steps?: Array<{ stage: string; status: string; failure?: unknown }>;
 }
+import type { LearnerSnapshot } from "./learner";

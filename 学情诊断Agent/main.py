@@ -66,6 +66,7 @@ app = FastAPI(
 
 if WEB_DIST.is_dir():
     app.mount("/static", StaticFiles(directory=str(WEB_DIST)), name="static")
+    app.mount("/assets", StaticFiles(directory=str(WEB_DIST / "assets")), name="assets")
 
 
 @app.exception_handler(ValidationError)
@@ -498,7 +499,8 @@ async def start_adaptive_test(learner_id: str, payload: Optional[dict] = Body(de
       "knowledge_point_ids": ["kp_012", "kp_014"],  // 按知识点过滤
       "difficulty_stages": [{"label":"易","low":-3,"high":-0.2,"promote_accuracy":0.7,"min_questions":2}, ...],
       "max_questions": 30, "min_questions": 8,
-      "consecutive_wrong_stop": 3, "convergence_threshold": 0.15
+      "consecutive_wrong_stop": 3, "convergence_threshold": 0.15,
+      "standard_error_threshold": 0.45
     }
     """
     learner = _learners.get(learner_id)

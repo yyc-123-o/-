@@ -54,6 +54,9 @@ class StubPlatformService:
     def submit_assessment(self, run_id: str, submission) -> PlatformRunResult:
         raise ValueError("stub service does not support assessment updates")
 
+    def refresh_current_resources(self, run_id: str) -> PlatformRunResult:
+        raise ValueError("stub service does not support resource refresh")
+
     def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
         raise ValueError("stub service does not support learning node selection")
 

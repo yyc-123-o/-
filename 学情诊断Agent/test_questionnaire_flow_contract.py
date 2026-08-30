@@ -1,21 +1,21 @@
 from pathlib import Path
 
 
-def test_diagnosis_console_hands_off_final_profile_to_platform() -> None:
-    root = (
-        Path(__file__).resolve().parent.parent / "frontend" / "diagnosis" / "index.html"
-    ).read_text(encoding="utf-8")
-    script = (
-        Path(__file__).resolve().parent.parent
-        / "frontend"
-        / "diagnosis"
-        / "assets"
-        / "scripts"
-        / "app.js"
-    ).read_text(encoding="utf-8")
-    html = root + script
+FRONTEND_ROOT = Path(__file__).resolve().parent.parent / "frontend" / "web" / "src"
 
-    assert "skillforge.pendingProfile.v1" in html
-    assert "/api/learner/" in html and "/profile" in html
-    assert "/platform?from=diagnosis" in html
-    assert "created_at:Date.now()" in html
+
+def test_diagnosis_flow_uses_current_api_and_routes_to_profile() -> None:
+    api_client = (FRONTEND_ROOT / "api" / "diagnosis.ts").read_text(encoding="utf-8")
+    assessment = (FRONTEND_ROOT / "views" / "DiagnosisAssessmentView.vue").read_text(
+        encoding="utf-8"
+    )
+    basic = (FRONTEND_ROOT / "views" / "DiagnosisBasicView.vue").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"/api/learner/upload"' in api_client
+    assert '"/diagnosis/api' not in api_client
+    assert "/api/adaptive-test/apply/" in api_client
+    assert "await diagnosis.finishAdaptive(); router.push(\"/profile\")" in assessment
+    assert 'value: "基本了解"' in basic
+    assert '@click="selectLevel(group.domain, item, level.value)"' in basic

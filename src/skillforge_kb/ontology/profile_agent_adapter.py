@@ -304,8 +304,18 @@ class LearnerProfileAgentAdapter:
         result: dict[str, AbilityScore] = {}
         for name, raw_value in raw_dimensions.items():
             item = _mapping(raw_value, f"ability_level.sub_dimensions.{name}")
+            score = _optional_score(
+                item.get("score"),
+                f"ability_level.sub_dimensions.{name}.score",
+            )
+            # The diagnosis Agent now reports unavailable dimensions as null
+            # when it has no evidence. Preserve that distinction by omitting
+            # the dimension from the canonical snapshot instead of inventing
+            # a zero score.
+            if score is None:
+                continue
             result[name] = AbilityScore(
-                score=_score(item.get("score", 0.0), f"ability_level.sub_dimensions.{name}.score"),
+                score=score,
                 confidence=_score(
                     item.get("confidence", 0.0),
                     f"ability_level.sub_dimensions.{name}.confidence",
