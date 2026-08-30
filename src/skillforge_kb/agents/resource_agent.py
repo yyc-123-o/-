@@ -201,7 +201,9 @@ def _select_candidate_evidence(
     selected: dict[ContentKind, RetrievedEvidence] = {}
     for kind in handoff.evidence_filters.content_kinds:
         matching = [
-            item for item in retrieval.candidate_evidence if item.content_kind is kind
+            item
+            for item in retrieval.candidate_evidence
+            if item.content_kind is kind and _candidate_matches_topic(item, handoff)
         ]
         if not matching:
             continue
@@ -210,6 +212,24 @@ def _select_candidate_evidence(
             key=lambda item: (-item.score, item.evidence_key),
         )
     return selected
+
+
+def _candidate_matches_topic(
+    item: RetrievedEvidence,
+    handoff: ResourceHandoffContract,
+) -> bool:
+    """Keep adjacent-topic retrieval hits out of student-facing lesson prose."""
+    text = " ".join((item.source_title, *item.heading_path, item.excerpt)).casefold()
+    if handoff.concept_id.startswith("dl.cnn."):
+        distractors = (
+            "gan", "dcgan", "生成对抗", "textcnn", "lstm", "n-gram", "注意力",
+        )
+        if any(marker in text for marker in distractors):
+            cnn_markers = (
+                "conv2d", "padding", "stride", "输出尺寸", "互相关",
+            )
+            return any(marker in text for marker in cnn_markers)
+    return True
 
 
 def _preview_policy(
@@ -317,7 +337,7 @@ def _preview_draft(
     code_text, code_id = _evidence_text(code, handoff, ContentKind.CODE)
     exercise_text, _ = _evidence_text(exercise, handoff, ContentKind.EXERCISE)
     topic = _concept_label(handoff.concept_id)
-    outcome = handoff.learning_outcomes[0]
+    outcome = _clean_outcome(handoff.learning_outcomes[0])
     lecture_claim = TechnicalClaim(
         claim_id="preview-lecture-claim",
         text=definition_text,
@@ -343,14 +363,12 @@ def _preview_draft(
         chain.from_iterable(repeat(kind, count) for kind, count in policy.quiz_structure)
     )
     questions = tuple(
-        StudentQuizItem(
-            question_id=f"preview-question-{index}",
+        _preview_quiz_item(
+            topic=topic,
             kind=kind,
+            index=index,
             difficulty=difficulty_levels[index - 1],
-            prompt=_quiz_prompt(topic, outcome, kind, index),
-            hints=(),
-            choices=_quiz_choices(topic, kind, index),
-            correct_choice=0,
+            facts=(definition_text, code_text, exercise_text, outcome),
         )
         for index, kind in enumerate(kinds, start=1)
     )
@@ -376,9 +394,11 @@ def _preview_draft(
             title=f"{topic}：实操指南",
             learning_steps=_practical_steps(topic, outcome, code_text),
             claims=(practical_claim,),
-            notebook_tasks=(code_text,),
+            notebook_tasks=_notebook_tasks(topic, outcome, code_text),
+            experiment_protocol=_experiment_protocol(topic),
             debug_hint_depth=policy.personalization.debugging_emphasis,
             exercise=_practice_exercise(topic, outcome),
+            project_exercise=_project_exercise(topic, outcome),
         ),
         student_quiz=StudentQuizDraft(
             instructions="Complete each item using the supplied learning resources.",
@@ -442,13 +462,25 @@ def _concept_label(concept_id: str) -> str:
     return _CONCEPT_LABELS.get(slug, slug.replace("-", " "))
 
 
+def _clean_outcome(value: str) -> str:
+    """Normalize generated prose so outcome text does not create doubled punctuation."""
+    return str(value).strip().rstrip("。.!！?？")
+
+
 def _lecture_sections(topic: str, outcome: str, definition_text: str) -> tuple[str, ...]:
     explanation = _CONCEPT_EXPLANATIONS.get(topic, f"{topic}是本节需要掌握的核心概念。")
+    derivation, example, pitfall = _lesson_details(topic)
+    enrichment = _lesson_enrichment(topic)
+    code_examples = _lesson_code_examples(topic)
     return (
-        f"学习目标：{outcome}",
-        f"核心概念：{explanation}",
-        f"证据导读：{definition_text}",
-        f"自检：不用看资料，说明“{topic}”与相邻前置知识的一个区别。",
+        f"学习目标：{outcome}。完成本节后，你应能从输入约束出发解释“{topic}”，手算一个最小例子，"
+        "并用代码或实验结果验证推导，而不是只复述术语。",
+        f"核心概念：{explanation}。先区分对象的表示、允许的操作和输出含义，再决定使用哪条公式或 API。",
+        f"证据导读：{definition_text}。阅读证据时圈出定义中的输入、变换和边界条件，后续实验必须覆盖它们。",
+        f"推导骨架：{derivation} 将推导拆成可检查的小步，每一步都保留中间量，便于定位形状或数值错误。",
+        f"工作示例：{example} 先写预测，再运行代码；若结果不一致，优先检查维度、参数顺序和边界处理。",
+        f"易错边界：{pitfall} 这个反例提醒我们，名称相近的操作可能有不同语义，必须用输入输出对照确认。",
+        f"自检与迁移：不用看资料，说明“{topic}”与相邻前置知识的一个区别；再修改一个参数，预测结果如何变化并验证。",
     )
 
 
@@ -458,6 +490,8 @@ def _lesson_blocks(topic: str, outcome: str, definition_text: str) -> tuple[Less
         topic, f"{topic}是本节点的核心概念，必须先明确输入、变换规则和输出。"
     )
     derivation, example, pitfall = _lesson_details(topic)
+    enrichment = _lesson_enrichment(topic)
+    code_examples = _lesson_code_examples(topic)
     return (
         LessonBlock(
             kind="objective",
@@ -484,7 +518,20 @@ def _lesson_blocks(topic: str, outcome: str, definition_text: str) -> tuple[Less
             ),
         ),
         LessonBlock(kind="derivation", title="按步骤推导", body=derivation),
-        LessonBlock(kind="example", title="带着数值或代码走一遍", body=example),
+        LessonBlock(
+            kind="example",
+            title="带着数值或代码走一遍",
+            body=example,
+            code=code_examples[0],
+        ),
+        LessonBlock(kind="definition", title="公式与不变量", body=enrichment[0]),
+        LessonBlock(
+            kind="example",
+            title="代码观察与对照",
+            body=enrichment[1],
+            code=code_examples[1],
+        ),
+        LessonBlock(kind="example", title="实验前先预测", body=enrichment[2]),
         LessonBlock(kind="pitfall", title="最容易出错的地方", body=pitfall),
         LessonBlock(
             kind="summary",
@@ -500,11 +547,12 @@ def _lesson_blocks(topic: str, outcome: str, definition_text: str) -> tuple[Less
 def _lesson_details(topic: str) -> tuple[str, str, str]:
     details = {
         "标量": (
-            "标量只有一个数值，因此加、减、乘、除都围绕这个单值进行。标量与向量相乘时，"
-            "向量的每个分量都乘同一个数；符号会改变方向，绝对值会改变长度。",
-            "设 s = -2.5，v = [3, 0, -1]。逐项计算 s × v，得到 [-7.5, -0.0, 2.5]。"
-            "这里没有维度扩展：一个标量只是作用到向量的每个位置。",
-            "不要把标量乘法和矩阵乘法混淆。标量乘法不要求形状匹配；它只把同一个数应用到每个元素。",
+            "标量只有一个数值，不携带方向或坐标。它与向量相乘时会广播到每个分量："
+            "v' = s·v；s 的符号决定是否反向，|s| 决定缩放倍数，s=0 时所有分量都归零。",
+            "设 s=-2.5、v=[3,0,-1]。逐项计算得到 [-7.5,-0.0,2.5]；长度缩放比例为 |s|=2.5，"
+            "方向因 s<0 发生反转。再用 s=1、0、0.5 三个对照值，可以检查单位元、零元和缩放关系。",
+            "不要把标量乘法和矩阵乘法混淆：前者只需把同一个数应用到每个元素，不要求两个矩阵满足内维相等。"
+            "还要注意 Python 列表不能直接做数值缩放，需显式遍历或转换为 NumPy 数组。",
         ),
         "向量": (
             "把向量写成按顺序排列的分量，例如 v = [v1, v2, v3]。相加时对应位置相加；"
@@ -554,24 +602,39 @@ def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
     exercises = {
         "标量": PracticeExercise(
             task=(
-                "完成标量与向量相乘：用标量 s 逐项缩放向量 v，打印结果并验证结果仍有 3 个元素。"
-                f"完成后，用一句注释说明这段代码如何帮助你达成“{outcome}”。"
+                "完成一个标量缩放实验：用标量 s 逐项缩放向量 v，验证输出长度、方向和长度比例。"
+                "再将 s 改为 1、0、-1 和 0.5 做四组对照，打印结果并用断言验证单位元、零元和反向缩放。"
+                f"最后用一句注释说明实验如何支持“{outcome}”。"
             ),
             starter_code=(
                 "s = -2.5\n"
                 "v = [3, 0, -1]\n\n"
-                "# TODO: 将 s 乘到 v 的每个元素上\n"
-                "scaled = []\n\n"
-                "print(scaled)\n"
+                "def scale_vector(scalar, vector):\n"
+                "    # TODO 1: 将 scalar 乘到 vector 的每个元素上\n"
+                "    return []\n\n"
+                "scaled = scale_vector(s, v)\n"
+                "print('baseline:', scaled)\n"
                 "assert len(scaled) == 3\n"
+                "assert scaled[0] == -7.5\n\n"
+                "# TODO 2: 完成四组标量的对照实验\n"
+                "scalars = [1, 0, -1, 0.5]\n"
+                "report = [(value, scale_vector(value, v)) for value in scalars]\n"
+                "print('comparison:', report)\n"
+                "assert scale_vector(1, v) == v\n"
+                "assert scale_vector(0, v) == [0, 0, 0]\n"
+                "assert scale_vector(-1, v) == [-3, 0, 1]\n"
             ),
-            expected_output="[-7.5, -0.0, 2.5]",
+            expected_output=(
+                "baseline: [-7.5, -0.0, 2.5]；comparison 应显示 s=1 保持原向量、s=0 全部归零、"
+                "s=-1 反向、s=0.5 缩短一半。"
+            ),
             checks=(
-                "结果包含 3 个元素",
-                "每个元素都由 s 与对应 v 元素相乘得到",
-                "保留 assert 验证",
+                "scale_vector 逐元素计算且结果包含 3 个元素",
+                "基线输出为 [-7.5, -0.0, 2.5]，并验证长度不变",
+                "完成 s=1、0、-1、0.5 四组对照并打印 report",
+                "保留 assert 验证单位元、零元和反向缩放",
             ),
-            required_tokens=("s", "v", "scaled", "print"),
+            required_tokens=("scale_vector", "scalar", "vector", "scaled", "report", "print"),
         ),
         "矩阵": PracticeExercise(
             task=(
@@ -598,21 +661,75 @@ def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
         ),
         "卷积运算": PracticeExercise(
             task=(
-                "补全一个 3×3 输入与 2×2 卷积核的单位置互相关计算。先逐元素相乘，再求和，"
-                "最后打印输出值。该练习对应深度学习框架中 Conv2d 的核心局部计算。"
+                "完成一个可复现实验：先补全 3×3 输入与 2×2 卷积核的单位置互相关，"
+                "再实现输出尺寸公式并比较 stride=1/2、padding=0/1 四组参数。"
+                "最后用断言验证手算结果，说明该实验如何对应深度学习框架中的 Conv2d。"
             ),
             starter_code=(
                 "import numpy as np\n\n"
                 "image = np.array([[1, 2, 0], [0, 1, 3], [2, 2, 1]])\n"
                 "kernel = np.array([[1, 0], [0, -1]])\n"
                 "window = image[:2, :2]\n\n"
-                "# TODO: 计算 window 与 kernel 的逐元素乘积之和\n"
-                "output = None\n"
-                "print(output)\n"
+                "# TODO 1: 计算 window 与 kernel 的逐元素乘积之和\n"
+                "output = None\n\n"
+                "def output_size(size, kernel_size, padding, stride):\n"
+                "    # TODO 2: 补全输出尺寸公式\n"
+                "    return None\n\n"
+                "# TODO 3: 完成四组参数的对照实验\n"
+                "cases = [(5, 3, 1, 1), (5, 3, 1, 2), (5, 3, 0, 1), (5, 3, 0, 2)]\n"
+                "shape_report = []\n"
+                "for size, k, p, s in cases:\n"
+                "    shape_report.append((s, p, output_size(size, k, p, s)))\n\n"
+                "print('single_position:', output)\n"
+                "print('shape_report:', shape_report)\n"
+                "assert output == 0\n"
+                "assert len(shape_report) == 4\n"
             ),
-            expected_output="输出值为 0；请写出窗口、卷积核和逐元素乘积如何得到该结果。",
-            checks=("保留 image、kernel 与 window", "使用逐元素乘法后求和", "打印 output"),
-            required_tokens=("image", "kernel", "window", "output", "print"),
+            expected_output=(
+                "single_position: 0；shape_report 应包含 (stride, padding, output_size) 四组记录，"
+                "其中 (1,1) 输出尺寸为 5、(2,1) 为 3、(1,0) 为 3、(2,0) 为 2。"
+            ),
+            checks=(
+                "保留 image、kernel 与 window，并使用逐元素乘法后求和",
+                "output_size 使用 floor((size + 2*padding - kernel_size) / stride) + 1",
+                "四组参数都生成 shape_report，且 stride=2 的输出更小",
+                "保留 assert 验证单位置结果和实验记录数量",
+            ),
+            required_tokens=(
+                "image", "kernel", "window", "output", "output_size", "shape_report", "print"
+            ),
+        ),
+        "互相关": PracticeExercise(
+            task=(
+                "用一个非对称 2×2 kernel 对输入窗口分别执行互相关和 kernel 翻转后的数学卷积。"
+                "打印两种结果，再用一个对称 kernel 做对照，解释为什么 Conv2d 通常实现的是互相关。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "window = np.array([[2, 1], [0, 3]])\n"
+                "kernel = np.array([[1, 2], [3, 4]])\n\n"
+                "# TODO 1: 保持 kernel 原方向，计算互相关\n"
+                "cross_correlation = None\n"
+                "# TODO 2: 上下、左右翻转 kernel，再计算数学卷积\n"
+                "convolution = None\n"
+                "symmetric = np.array([[1, 0], [0, 1]])\n"
+                "# TODO 3: 验证对称 kernel 翻转前后结果\n"
+                "symmetric_check = None\n\n"
+                "print('cross_correlation:', cross_correlation)\n"
+                "print('convolution:', convolution)\n"
+                "print('symmetric_check:', symmetric_check)\n"
+            ),
+            expected_output=(
+                "互相关为 16，翻转 kernel 后的数学卷积为 14；对称 kernel 的翻转前后结果相同。"
+            ),
+            checks=(
+                "保留 window 与非对称 kernel，并完成逐元素乘加",
+                "convolution 使用 np.flip(kernel) 后再计算",
+                "打印三组结果并说明互相关与数学卷积的差异",
+            ),
+            required_tokens=(
+                "window", "kernel", "cross_correlation", "convolution", "np.flip", "print"
+            ),
         ),
     }
     return exercises.get(
@@ -636,72 +753,420 @@ def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
 
 def _practical_steps(topic: str, outcome: str, code_text: str) -> tuple[str, ...]:
     return (
-        f"准备：把“{topic}”的输入、输出和关键参数写成一行，确认它们的类型或形状。",
-        f"实现：围绕“{topic}”完成一个最小可运行示例，并记录运行结果。",
-        f"验证：用一个边界值或反例检查实现是否满足“{outcome}”。",
-        f"参考代码/证据：{code_text}",
+        f"问题定义：把“{topic}”要解释的现象写成一个可验证问题，并明确本次要支持的学习目标“{outcome}”。",
+        f"输入检查：记录输入的类型、形状、取值范围和关键参数；先预测输出，再开始编码。",
+        f"基线实现：围绕“{topic}”完成一个最小可运行示例，打印输入、中间值和最终结果。",
+        "结果核对：把运行结果与手工计算或公式逐项对照，标记第一个出现差异的位置。",
+        "单变量实验：一次只修改一个参数，保留其他输入不变，比较输出形状、数值和计算成本。",
+        "边界实验：使用最小尺寸、全零输入或不满足约束的输入，记录程序行为并解释原因。",
+        f"迁移验证：把实现改写到一个稍有变化的场景，确认规则仍能支持“{outcome}”。",
+        f"结论记录：用三句话写清输入、变换规则、输出变化，并保留可复现的参数表。参考证据：{code_text}",
     )
 
 
-def _quiz_prompt(topic: str, outcome: str, kind: object, index: int) -> str:
+def _lesson_code_examples(topic: str) -> tuple[str, str]:
+    """Provide runnable teaching snippets before the separate TODO exercises."""
+    examples = {
+        "标量": (
+            "s = -2.5\nv = [3, 0, -1]\nscaled = [s * value for value in v]\nprint(scaled)",
+            "for s in (1, 0, -1, 0.5):\n    result = [s * value for value in v]\n    print(f's={s}: {result}')",
+        ),
+        "向量": (
+            "a = [1, 2, 3]\nb = [4, 0, -1]\nsum_vector = [x + y for x, y in zip(a, b)]\ndot = sum(x * y for x, y in zip(a, b))\nprint(sum_vector, dot)",
+            "import numpy as np\na = np.array([1, 2, 3])\nb = np.array([4, 0, -1])\nprint('dot:', a @ b)\nprint('norms:', np.linalg.norm(a), np.linalg.norm(b))",
+        ),
+        "矩阵": (
+            "import numpy as np\nA = np.array([[1, 2], [3, 4]])\nB = np.array([[5, 6], [7, 8]])\nprint('elementwise:', A * B)\nprint('matmul:', A @ B)",
+            "import numpy as np\nX = np.array([[1., 2.], [3., 4.]])\nW = np.array([[1., 0., -1.], [0.5, 2., 1.]])\nY = X @ W\nprint('X shape:', X.shape, 'W shape:', W.shape, 'Y shape:', Y.shape)",
+        ),
+        "张量": (
+            "import numpy as np\nimage = np.zeros((32, 32, 3))\nbatch = image[None, ...]\nprint('NHWC:', batch.shape)",
+            "import numpy as np\nnhwc = np.zeros((8, 32, 32, 3))\nnchw = np.transpose(nhwc, (0, 3, 1, 2))\nprint('NHWC -> NCHW:', nhwc.shape, '->', nchw.shape)",
+        ),
+        "卷积运算": (
+            "import numpy as np\nwindow = np.array([[1., 2.], [3., 4.]])\nkernel = np.array([[1., 0.], [0., -1.]])\nvalue = float((window * kernel).sum())\nprint('single output:', value)",
+            "import torch\nfor stride, padding in ((1, 0), (2, 0), (1, 1)):\n    layer = torch.nn.Conv2d(1, 2, kernel_size=3, stride=stride, padding=padding)\n    y = layer(torch.zeros(1, 1, 5, 5))\n    print({'stride': stride, 'padding': padding, 'shape': tuple(y.shape)})",
+        ),
+        "互相关": (
+            "import numpy as np\nwindow = np.array([[2., 1.], [0., 3.]])\nkernel = np.array([[1., 2.], [3., 4.]])\nprint('cross-correlation:', float((window * kernel).sum()))",
+            "import numpy as np\nwindow = np.array([[2., 1.], [0., 3.]])\nkernel = np.array([[1., 2.], [3., 4.]])\nprint('cross:', (window * kernel).sum())\nprint('convolution:', (window * np.flip(kernel)).sum())",
+        ),
+    }
+    return examples.get(
+        topic,
+        (
+            "values = [1, 2, 3]\nresult = values\nprint('input:', values)\nprint('result:', result)",
+            "values = [1, 2, 3]\nfor variant in (values, list(reversed(values))):\n    print('variant:', variant)",
+        ),
+    )
+
+
+def _project_exercise(topic: str, outcome: str) -> PracticeExercise:
+    """Build a second, project-shaped exercise for every concept in the course graph."""
+    exercises = {
+        "标量": PracticeExercise(
+            task=(
+                "项目任务：实现一个批量特征缩放器。输入多条样本和缩放配置，输出缩放后的数据、"
+                "每条样本的 L2 长度以及异常输入报告；要求用函数封装并通过汇总指标验证结果。"
+                f"最终在 README 中说明它如何支撑“{outcome}”。"
+            ),
+            starter_code=(
+                "records = [[3, 0, -1], [1, 2, 2], [0, 0, 0]]\n"
+                "scales = [1, 0.5, -1]\n\n"
+                "def scale_batch(records, scales):\n"
+                "    # TODO: 校验长度并返回逐样本缩放结果\n"
+                "    return []\n\n"
+                "def l2_norm(vector):\n"
+                "    # TODO: 计算向量的 L2 长度\n"
+                "    return 0\n\n"
+                "scaled = scale_batch(records, scales)\n"
+                "norms = [l2_norm(row) for row in scaled]\n"
+                "print('scaled:', scaled)\n"
+                "print('norms:', norms)\n"
+                "assert len(scaled) == len(records)\n"
+                "assert all(len(row) == 3 for row in scaled)\n"
+            ),
+            expected_output="scaled 保留 3 条样本且每条长度为 3；norms 能反映缩放绝对值对向量长度的影响。",
+            checks=("实现 scale_batch 并逐样本使用对应 scalar", "实现 l2_norm 并输出 norms", "处理 records/scales 长度不一致", "保留结果数量与形状断言"),
+            required_tokens=("records", "scales", "scale_batch", "l2_norm", "scaled", "norms", "assert"),
+        ),
+        "向量": PracticeExercise(
+            task=(
+                "项目任务：实现一个小型向量检索器。给定候选向量和查询向量，计算点积与余弦相似度，"
+                "返回 Top-K 结果并解释排序依据。"
+                f"在结论中连接学习目标“{outcome}”。"
+            ),
+            starter_code=(
+                "import math\n\n"
+                "query = [1, 2, 0]\n"
+                "candidates = {'doc-a': [1, 1, 0], 'doc-b': [0, 2, 2], 'doc-c': [2, 4, 0]}\n\n"
+                "def dot(a, b):\n"
+                "    # TODO: 计算点积并校验维度\n"
+                "    return 0\n\n"
+                "def cosine(a, b):\n"
+                "    # TODO: 用 dot 和向量长度计算余弦相似度\n"
+                "    return 0\n\n"
+                "scores = sorted(((name, cosine(query, vector)) for name, vector in candidates.items()), key=lambda item: item[1], reverse=True)\n"
+                "print('ranking:', scores)\n"
+                "assert scores[0][0] == 'doc-c'\n"
+            ),
+            expected_output="ranking 按余弦相似度降序排列，方向相同但长度不同的 doc-c 应排在前面。",
+            checks=("实现 dot 的维度检查", "实现 cosine 并处理零向量", "返回排序后的 name/score", "保留 Top-1 断言"),
+            required_tokens=("query", "candidates", "dot", "cosine", "ranking", "sorted", "assert"),
+        ),
+        "矩阵": PracticeExercise(
+            task=(
+                "项目任务：搭建一个两层线性变换流水线。对一批输入先执行矩阵乘法，再加偏置，"
+                "输出预测并比较交换层顺序后的差异；要求检查矩阵形状并记录每层中间结果。"
+                f"说明这对“{outcome}”的工程意义。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "x = np.array([[1., 2.], [3., 4.], [5., 6.]])\n"
+                "w1 = np.array([[1., 0., -1.], [0.5, 2., 1.]])\n"
+                "w2 = np.array([[1.], [-1.], [0.5]])\n"
+                "bias = np.array([0.25])\n\n"
+                "def linear(x, weight, bias=None):\n"
+                "    # TODO: 检查内维并完成 x @ weight + bias\n"
+                "    return None\n\n"
+                "hidden = linear(x, w1)\n"
+                "prediction = linear(hidden, w2, bias)\n"
+                "swapped = linear(linear(x, w2), w1) if False else None\n"
+                "print('hidden_shape:', hidden.shape)\n"
+                "print('prediction:', prediction)\n"
+                "assert prediction.shape == (3, 1)\n"
+            ),
+            expected_output="hidden_shape 为 (3, 3)，prediction 为 (3, 1)；交换层顺序不能随意替代原流水线。",
+            checks=("linear 使用 @ 并检查 shape", "保留 hidden 中间结果", "输出 prediction 与形状", "解释层顺序和偏置的作用"),
+            required_tokens=("np.array", "linear", "hidden", "prediction", "shape", "assert"),
+        ),
+        "张量": PracticeExercise(
+            task=(
+                "项目任务：实现一个批量图像张量预处理器。输入 NHWC 图像批次，转换为 NCHW，"
+                "完成按通道标准化并输出每个通道的统计量；要求显式记录轴语义，避免静默转置错误。"
+                f"用结果解释“{outcome}”。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "images = np.arange(2 * 4 * 4 * 3, dtype=float).reshape(2, 4, 4, 3)\n\n"
+                "def to_nchw(batch):\n"
+                "    # TODO: 将 NHWC 转为 NCHW 并检查 batch/channel 轴\n"
+                "    return None\n\n"
+                "def normalize_channels(batch):\n"
+                "    # TODO: 按 NCHW 的空间维计算均值和标准差\n"
+                "    return None, None, None\n\n"
+                "nchw = to_nchw(images)\n"
+                "normalized, mean, std = normalize_channels(nchw)\n"
+                "print('shape:', nchw.shape)\n"
+                "print('mean:', mean)\n"
+                "print('std:', std)\n"
+                "assert nchw.shape == (2, 3, 4, 4)\n"
+            ),
+            expected_output="shape 为 (2, 3, 4, 4)，mean/std 各有 3 个通道统计值，normalized 保持同一形状。",
+            checks=("实现 NHWC 到 NCHW 的轴变换", "统计量只沿空间维计算", "输出 normalized/mean/std", "保留轴形状断言"),
+            required_tokens=("images", "to_nchw", "normalize_channels", "normalized", "mean", "std", "shape"),
+        ),
+        "卷积运算": PracticeExercise(
+            task=(
+                "项目任务：实现一个可测试的二维卷积层原型。支持 padding/stride，返回输出特征图，"
+                "并对多组参数生成 shape 报告；要求用单元断言验证边界尺寸和一个已知数值。"
+                f"将实现限制与“{outcome}”关联起来。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "image = np.arange(25, dtype=float).reshape(5, 5)\n"
+                "kernel = np.array([[1., 0., -1.], [1., 0., -1.], [1., 0., -1.]])\n\n"
+                "def conv2d(image, kernel, padding=0, stride=1):\n"
+                "    # TODO: padding 后按 stride 滑窗并完成逐元素乘加\n"
+                "    return None\n\n"
+                "def shape_report(image, kernel):\n"
+                "    # TODO: 记录四组 padding/stride 的输出 shape\n"
+                "    return {}\n\n"
+                "output = conv2d(image, kernel, padding=1, stride=1)\n"
+                "report = shape_report(image, kernel)\n"
+                "print('output_shape:', output.shape)\n"
+                "print('report:', report)\n"
+                "assert output.shape == (5, 5)\n"
+            ),
+            expected_output="output_shape 为 (5, 5)，report 至少包含 (padding, stride) 四组输出尺寸。",
+            checks=("实现 padding/stride 滑窗", "使用 kernel 与窗口逐元素乘加", "生成 report 并覆盖四组参数", "保留输出 shape 断言"),
+            required_tokens=("image", "kernel", "conv2d", "padding", "stride", "shape_report", "report"),
+        ),
+        "互相关": PracticeExercise(
+            task=(
+                "项目任务：实现一个模板匹配器。对二维特征图滑动非对称模板，返回响应图、最高响应坐标，"
+                "并对比翻转模板后的数学卷积结果；要求输出可解释的排序/定位结果。"
+                f"最后说明它如何验证“{outcome}”。"
+            ),
+            starter_code=(
+                "import numpy as np\n\n"
+                "feature_map = np.array([[1., 2., 0., 1.], [0., 3., 1., 0.], [2., 1., 4., 2.], [0., 1., 2., 3.]])\n"
+                "template = np.array([[1., 2.], [0., -1.]])\n\n"
+                "def response_map(feature_map, template):\n"
+                "    # TODO: 滑窗计算互相关响应图\n"
+                "    return None\n\n"
+                "cross = response_map(feature_map, template)\n"
+                "convolution = response_map(feature_map, np.flip(template))\n"
+                "best = np.unravel_index(np.argmax(cross), cross.shape)\n"
+                "print('cross_shape:', cross.shape)\n"
+                "print('best_match:', best, cross[best])\n"
+                "print('convolution_max:', convolution.max())\n"
+                "assert cross.shape == (3, 3)\n"
+            ),
+            expected_output="cross_shape 为 (3, 3)，best_match 给出响应最高的窗口坐标，并可与翻转模板结果比较。",
+            checks=("实现滑窗 response_map", "使用 np.flip 生成数学卷积对照", "输出 best_match 坐标和响应", "保留响应图形状断言"),
+            required_tokens=("feature_map", "template", "response_map", "cross", "convolution", "np.flip", "argmax"),
+        ),
+    }
+    return exercises.get(
+        topic,
+        PracticeExercise(
+            task=(
+                f"项目任务：围绕“{topic}”实现一个可复用的小型数据处理流水线，包含输入校验、核心变换、"
+                f"结果指标和边界报告，并用项目日志说明它如何支撑“{outcome}”。"
+            ),
+            starter_code=(
+                "records = []\n\n"
+                "def validate_records(records):\n"
+                "    # TODO: 校验输入记录并报告问题\n"
+                "    return True\n\n"
+                "def transform(records):\n"
+                "    # TODO: 完成当前知识点的核心变换\n"
+                "    return []\n\n"
+                "assert validate_records(records)\n"
+                "result = transform(records)\n"
+                "print('result:', result)\n"
+            ),
+            expected_output="输出包含经过校验的 result，以及对边界输入的可解释处理结果。",
+            checks=("实现 validate_records", "实现 transform", "记录输入问题或边界情况", "打印 result 并解释指标"),
+            required_tokens=("records", "validate_records", "transform", "result", "assert", "print"),
+        ),
+    )
+
+
+def _lesson_enrichment(topic: str) -> tuple[str, str, str]:
+    details = {
+        "标量": (
+            "标量缩放的核心公式是 v' = s·v。三个不变量可以用来快速验算：输出长度与输入相同；"
+            "s=1 时输出不变；s=0 时输出全为零。若 s<0，向量方向反转但各分量绝对值按 |s| 缩放。",
+            "在 Python 中列表需要显式遍历；在 NumPy 中可直接写 s * np.array(v)。请同时打印原向量、"
+            "缩放结果和 np.linalg.norm 的长度比例，确认代码结果与公式一致，而不是只看一个元素。",
+            "实验前写下四个预测：s=1、0、-1、0.5 分别会发生什么。运行后把预测、实际输出、"
+            "方向变化和长度比例整理成表格，再用一句话说明哪条规律被验证或推翻。",
+        ),
+        "向量": (
+            "向量加法满足逐分量规则，点积满足 a·b = Σai·bi。点积为零表示正交，交换两个向量不改变结果；"
+            "但逐元素除法与点积不是同一个操作，必须先明确目标输出是标量还是向量。",
+            "用 NumPy 分别打印 a+b、a*b 和 a@b，并标注每个结果的 shape。通过同一组输入观察："
+            "逐元素运算保留形状，点积会把对应分量乘积求和成一个标量。",
+            "实验前预测 b 改成全零、与 a 平行或与 a 垂直时点积的变化，再用三组输入验证几何解释。",
+        ),
+        "矩阵": (
+            "矩阵乘法的形状规则是 (m,n) @ (n,k) -> (m,k)，每个输出元素是左矩阵一行与右矩阵一列的内积。"
+            "逐元素乘法不改变形状，不能用 * 代替 @。",
+            "为同一对矩阵分别计算 A*B 与 A@B，逐项解释左上角元素的来源，并用 shape 检查维度约束。"
+            "再交换 A、B，观察结果是否相同，以验证矩阵乘法通常不满足交换律。",
+            "实验前预测转置、交换顺序和单位矩阵会如何影响结果；运行后保留中间乘积，定位任何不一致的步骤。",
+        ),
+        "张量": (
+            "张量的每个轴都有语义。图像常用 NCHW 表示 (batch, channel, height, width)，改变轴顺序不会改变元素总数，"
+            "但会改变算子的解释。卷积层还要求输入 channel 与 in_channels 对齐。",
+            "构造一个 (2,3,4,4) 的张量，分别沿 batch、channel 和空间轴求均值并打印 shape，观察每一步保留的语义。"
+            "再用 permute 交换轴，比较同一层接收前后的 shape。",
+            "实验前预测 NCHW 与 NHWC 互换后哪一维会触发错误；用断言和异常信息记录框架真正检查的是哪个约束。",
+        ),
+        "卷积运算": (
+            "二维卷积输出尺寸为 floor((H+2P-K)/S)+1，通道和空间尺寸是两套独立约束。参数量为"
+            " K_h·K_w·C_in·C_out（若有 bias 再加 C_out），不能只根据输出高宽判断模型大小。",
+            "用同一输入依次改变 stride、padding 和 out_channels，分别打印输出 shape 与参数量。"
+            "将手算公式、框架结果和参数量放在一行对照，确认空间下采样与通道扩展是不同现象。",
+            "实验前预测 stride=2、padding=0 和 kernel 变大时的输出尺寸；运行后解释每个差异来自公式中的哪一项。",
+        ),
+    }
+    return details.get(topic, (
+        f"为“{topic}”写出输入、核心规则、输出和至少一个不变量；不变量应能在代码中用断言验证。",
+        f"用最小输入实现“{topic}”，同时打印输入、关键中间量、输出和 shape，比较手算结果与代码结果。",
+        f"实验前预测一个参数变化对“{topic}”的影响，再用基线、对照和边界三组结果验证预测。",
+    ))
+
+
+def _notebook_tasks(topic: str, outcome: str, code_text: str) -> tuple[str, ...]:
+    return (
+        f"Notebook 0 · 基线：实现 {topic} 的最小例子，先写下预测输出，再运行并保存实际输出。",
+        "Notebook 1 · 参数扫描：固定输入，只改变一个核心参数，至少记录三组参数与对应结果。",
+        "Notebook 2 · 边界与反例：测试全零、最小尺寸或不匹配形状，解释报错或退化输出。",
+        "Notebook 3 · 对照表：将手算结果、代码结果和差异原因整理成三列表格。",
+        f"Notebook 4 · 迁移：把实验结论连接回学习目标“{outcome}”，补充一个真实应用场景。",
+        f"参考代码片段（候选证据）：{code_text}",
+    )
+
+
+def _experiment_protocol(topic: str) -> tuple[str, ...]:
+    specific = {
+        "标量": (
+            "基线：固定向量 [3, 0, -1] 与标量 -2.5，预测每个分量和长度比例。",
+            "单位元：将标量改为 1，验证输出与原向量逐项相同。",
+            "零元与反向：分别使用 0、-1、0.5，记录归零、反向和长度缩放现象。",
+            "边界：测试空向量、长度不一致的输入和 Python 列表与 NumPy 数组的差异。",
+            "结论：用一张表说明标量的符号、绝对值如何影响向量的方向与长度。",
+        ),
+        "卷积运算": (
+            "基线：输入 5×5，kernel=3，padding=1，stride=1；手算并记录输出尺寸。",
+            "变量一：只将 stride 改为 2，比较空间尺寸变化，解释下采样来源。",
+            "变量二：只将 padding 改为 0，观察边界信息减少后的输出差异。",
+            "边界：使用 kernel 大于输入的组合，记录框架报错并说明约束。",
+            "结论：用输出 shape 和公式逐项验证 Conv2d 的参数含义。",
+        ),
+        "互相关": (
+            "基线：用非对称 2×2 kernel 完成一次滑窗逐元素乘加。",
+            "变量：将 kernel 上下、左右翻转，分别记录互相关与数学卷积结果。",
+            "对照：使用对称 kernel，确认翻转后结果可能相同的条件。",
+            "边界：改变 stride，说明采样位置减少如何影响输出覆盖范围。",
+            "结论：用一个具体数值例子说明深度学习 Conv2d 为什么称为互相关。",
+        ),
+    }
+    return specific.get(topic, (
+        f"基线：为 {topic} 选择最小输入，写下预期输出与判断依据。",
+        "单变量：只修改一个参数或输入维度，记录输出变化。",
+        "边界：使用最小、最大或不满足约束的输入，记录异常行为。",
+        "对照：把手工推导、代码结果和证据片段放在同一张表中。",
+        f"结论：用实验结果回答 {topic} 在什么条件下成立，以及它如何服务于本节目标。",
+    ))
+
+
+_PREVIEW_QUIZ_BANK: dict[str, tuple[tuple[str, tuple[str, ...], int], ...]] = {
+    "标量": (
+        ("下列哪一项是标量？", ("图像的高和宽", "模型训练中的学习率 0.01", "二维坐标 (2, 3)"), 1),
+        ("标量与向量的主要区别是什么？", ("标量只有一个数值，不携带方向或多个分量", "标量一定比向量大", "标量只能是正数"), 0),
+        ("向量 v = [2, -1] 乘以标量 3，结果是？", ("[6, -3]", "[5, 2]", "[2, -1, 3]"), 0),
+        ("向量 v = [2, -1] 乘以标量 0，结果是？", ("[2, -1]", "[0, 0]", "[-2, 1]"), 1),
+        ("NumPy 中 `np.array([1, 2]) * 4` 的结果是？", ("[1, 2, 1, 2, 1, 2, 1, 2]", "[4, 8]", "6"), 1),
+        ("训练代码中 `loss.item()` 通常用于得到什么？", ("一个可记录的标量损失值", "损失函数的完整代码", "一个新的特征向量"), 0),
+        ("若 `scale = [0.5]`，却想用它缩放向量 `v`，更合适的写法是？", ("把 `scale` 转成一个数值标量后再与 `v` 相乘", "把 `v` 转成字符串", "删除 `v` 的所有元素"), 0),
+        ("下列哪个任务最适合用标量表示？", ("记录一次预测的置信度", "表示一张 RGB 图像", "保存一批样本的特征矩阵"), 0),
+    ),
+    "向量": (
+        ("二维向量 v = [3, 4] 最恰当的解释是？", ("它表示两个有顺序的分量，可描述位移或两个特征", "它是一个只有大小、没有分量的数", "它是一张二维表格"), 0),
+        ("点 (2, 1) 与向量 [2, 1] 的区别是？", ("二者完全等价，任何场景都可替换", "点表示位置，向量表示位移或方向和大小", "向量只能有一个分量"), 1),
+        ("a = [1, 2, 3]，b = [4, 5, 6]，a + b 的结果是？", ("[5, 7, 9]", "[4, 10, 18]", "[1, 2, 3, 4, 5, 6]"), 0),
+        ("长度为 3 的向量与长度为 2 的向量能直接逐元素相加吗？", ("能，短向量会自动补零", "不能，逐元素加法要求对应分量数量一致", "能，结果一定是长度为 5 的向量"), 1),
+        ("NumPy 中 `np.array([1, 2]) * 3` 的结果是？", ("[1, 2, 1, 2, 1, 2]", "[3, 6]", "5"), 1),
+        ("`np.dot([1, 2], [3, 4])` 的结果是？", ("[3, 8]", "[4, 6]", "11"), 2),
+        ("Python 列表 `a = [1, 2]` 与 `b = [3, 4]` 直接执行 `a + b`，为什么不是向量加法？", ("列表的 `+` 会拼接，应用 NumPy 数组再做逐元素加法", "Python 会自动计算内积", "因为向量不能包含整数"), 0),
+        ("下列哪个场景最适合用向量表示？", ("用一个数记录当前学习率", "用 [身高, 体重, 年龄] 表示一个样本的三个特征", "用行和列组织整批样本"), 1),
+    ),
+}
+
+
+def _preview_quiz_item(
+    *,
+    topic: str,
+    kind: object,
+    index: int,
+    difficulty: int,
+    facts: tuple[str, ...] = (),
+) -> StudentQuizItem:
+    prompt, choices, correct_choice = _preview_quiz_content(topic, kind, index, facts)
+    return StudentQuizItem(
+        question_id=f"preview-question-{index}",
+        kind=kind,
+        difficulty=difficulty,
+        prompt=prompt,
+        hints=(),
+        choices=choices,
+        correct_choice=correct_choice,
+    )
+
+
+def _preview_quiz_content(
+    topic: str,
+    kind: object,
+    index: int,
+    facts: tuple[str, ...] = (),
+) -> tuple[str, tuple[str, ...], int]:
+    """Return a closed, answerable item; previews must not disguise open prompts as MCQs."""
+    bank = _PREVIEW_QUIZ_BANK.get(topic)
+    if bank is not None:
+        return bank[index - 1]
+
     kind_value = getattr(kind, "value", str(kind))
     label = _QUIZ_KIND_LABELS.get(kind_value, kind_value)
-    prompts = {
-        "concept": (
-            f"[{label}] 用自己的话定义“{topic}”，并说明它解决的核心问题。"
-            if index % 2
-            else f"[{label}] 从一个实际例子出发，解释“{topic}”的输入、输出和作用。"
-        ),
-        "calculation": f"[{label}] 为“{topic}”设计一个最小数值例子，写出计算步骤和最终结果。",
-        "shape_reasoning": (
-            f"[{label}] 给定输入和关键参数后，推导“{topic}”的输出形状，并解释每一步变化。"
-            if index % 2
-            else f"[{label}] 修改一个关键参数，重新计算“{topic}”的输出形状并说明影响。"
-        ),
-        "code": (
-            f"[{label}] 用 Python 或 PyTorch 写出“{topic}”的最小实现，标注输入和输出。"
-            if index % 2
-            else f"[{label}] 在“{topic}”示例中加入一次参数变化，打印并解释新的输出。"
-        ),
-        "debugging": f"[{label}] 找出“{topic}”实现中一个可能的错误，说明错误原因和修复方法。",
-        "synthesis": f"[{label}] 将“{topic}”与一个前置知识联系起来，说明何时应该使用它。",
-        "analysis": f"[{label}] 分析“{topic}”的适用边界，并给出一个不适合使用它的场景。",
-    }
-    fallback = f"[{label}] 围绕“{topic}”完成一次解释、验证或迁移。"
-    return prompts.get(kind_value, fallback) + f"（第 {index} 题）"
-
-
-def _quiz_choices(topic: str, kind: object, index: int) -> tuple[str, ...]:
-    kind_value = getattr(kind, "value", str(kind))
-    if kind_value == "concept":
-        return (
-            f"准确说明{topic}的输入、规则和输出",
-            "只记住名词，不说明输入输出",
-            "把它与任意相似术语混用",
-        )
-    if kind_value == "shape_reasoning":
-        return (
-            "先检查输入形状，再代入参数公式",
-            "只看通道数，不看空间尺寸",
-            "忽略 padding 和 stride",
-        )
-    if kind_value == "code":
-        return (
-            "写出最小实现并打印输入输出",
-            "只复制代码，不验证结果",
-            "用随机结果代替计算",
-        )
-    if kind_value == "debugging":
-        return (
-            "定位输入、类型或形状约束并修正",
-            "直接删除报错代码",
-            "只增加随机打印",
-        )
-    return (
-        f"把{topic}与前置知识联系起来并解释边界",
-        "只背诵定义，不分析条件",
-        "认为任何输入都适用",
+    evidence_facts = tuple(
+        statement
+        for value in facts
+        if (statement := _quiz_statement(value)) is not None
     )
+    explanation = _CONCEPT_EXPLANATIONS.get(
+        topic,
+        evidence_facts[0] if evidence_facts else f"{topic}是本节学习的核心概念。",
+    )
+    focus = evidence_facts[(index - 1) % len(evidence_facts)] if evidence_facts else explanation
+    correct_position = (index - 1) % 3
+    alternatives = [
+        focus,
+        f"{topic}只需记住名称，无需核对输入、操作或结果。",
+        f"{topic}对所有输入都适用，不需要验证边界或约束。",
+    ]
+    correct = alternatives.pop(0)
+    alternatives.insert(correct_position, correct)
+    return (
+        f"[{label}] 根据本节的“{topic}”学习材料，下列哪项表述有证据支持？",
+        tuple(alternatives),
+        correct_position,
+    )
+
+
+def _quiz_statement(value: str) -> str | None:
+    """Keep fallback questions tied to the current node's evidence, not a global script."""
+    normalized = " ".join(str(value).split()).strip()
+    if not normalized or normalized.startswith("未检索到已审核"):
+        return None
+    for separator in ("。", ". ", "！", "？"):
+        head = normalized.split(separator, 1)[0].strip()
+        if head:
+            normalized = head
+            break
+    return normalized[:180]
 
 
 def _evidence_gap(

@@ -53,7 +53,7 @@ const weak = computed(() => learner.weakPoints.slice(0, 3));
       <section class="panel">
         <div class="panel-heading"><div><span class="eyebrow">MASTERY</span><h2>当前掌握度</h2></div><RouterLink to="/profile" class="text-link">查看完整画像 <ChevronRight :size="15" /></RouterLink></div>
         <div v-if="Object.keys(domainSummary).length" class="domain-list">
-          <div v-for="(item, name) in domainSummary" :key="name" class="domain-row"><span>{{ name }}</span><div class="progress-track"><span :style="{ width: `${item.mean_mastery * 100}%` }" /></div><b>{{ Math.round(item.mean_mastery * 100) }}%</b></div>
+          <div v-for="(item, name) in domainSummary" :key="name" class="domain-row"><span>{{ name }}</span><div class="progress-track"><span :style="{ width: `${(item.mean_mastery || 0) * 100}%` }" /></div><b>{{ typeof item.mean_mastery === 'number' ? `${Math.round(item.mean_mastery * 100)}%` : '—' }}</b></div>
         </div>
         <StateBlocks v-else message="选择学习者或完成诊断后，这里会显示你的掌握度分布。" />
       </section>

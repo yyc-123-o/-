@@ -55,11 +55,11 @@ STATUS_RANGES = {
 def _estimate_global_theta(
     test_records: List[TestRecord],
     prior_theta: float = 0.0,
-) -> float:
+) -> tuple[float, Optional[float], str]:
     if not test_records:
-        return prior_theta
+        return prior_theta, None, "prior-only"
     responses = [(t.discrimination, t.difficulty, t.is_correct) for t in test_records]
-    return irt.estimate_theta(responses, prior_theta=prior_theta)
+    return irt.estimate_eap_theta(responses, prior_theta=prior_theta)
 
 
 def _ability_level_str(theta: float) -> str:
@@ -232,7 +232,10 @@ def _build_knowledge_mastery(
     test_count_map: Dict[str, int],
     confidence_map: Dict[str, float],
     status_map: Dict[str, str],
+    standard_error_map: Dict[str, Optional[float]],
     global_theta: float,
+    standard_error: Optional[float],
+    estimation_method: str,
     overall_accuracy: float,
     kp_priors: Optional[Dict[str, dict]] = None,
 ) -> KnowledgeMastery:
@@ -241,27 +244,6 @@ def _build_knowledge_mastery(
     用于未测评节点（test_count=0）时输出自评推断值而不是 None，提升画像信息量。
     """
     kp_priors = kp_priors or {}
-
-    # 分领域汇总
-    domain_summary: Dict[str, DomainSummaryItem] = {}
-    domain_scores: Dict[str, List[float]] = {}
-    domain_counts: Dict[str, int] = {}
-    for kp in kg.points:
-        # 计算每个 kp 的展示用 mastery（IRT结果 or 自评先验 or 0）
-        tc = test_count_map.get(kp.id, 0)
-        if tc > 0:
-            show_m = mastery_map.get(kp.id, 0.0)
-        elif kp.id in kp_priors:
-            show_m = kp_priors[kp.id]["mastery"]
-        else:
-            show_m = mastery_map.get(kp.id, 0.0)
-        domain_scores.setdefault(kp.domain, []).append(show_m)
-        domain_counts[kp.domain] = domain_counts.get(kp.domain, 0) + 1
-    for domain, scores in domain_scores.items():
-        domain_summary[domain] = DomainSummaryItem(
-            mean_mastery=round(sum(scores) / len(scores), 3) if scores else 0.0,
-            kps_covered=domain_counts.get(domain, 0),
-        )
 
     # 各知识点
     points: Dict[str, KpMasteryPoint] = {}
@@ -295,6 +277,8 @@ def _build_knowledge_mastery(
                 theta_kp=approx_theta,
                 test_count=0,
                 confidence=p_conf,
+                standard_error=None,
+                evidence_level="self_report",
             )
         elif tc == 0:
             # P0-5: 完全未测评节点（无自评）输出 mastery=None, status="unexplored"
@@ -306,8 +290,16 @@ def _build_knowledge_mastery(
                 theta_kp=round(theta_map.get(kp.id, 0.0), 2),
                 test_count=0,
                 confidence=confidence_map.get(kp.id, 0.20),
+                standard_error=None,
+                evidence_level="none",
             )
         else:
+            point_se = standard_error_map.get(kp.id)
+            evidence_level = (
+                "preliminary" if tc == 1
+                else "stable" if point_se is not None and point_se <= 0.7
+                else "limited"
+            )
             points[kp.id] = KpMasteryPoint(
                 name=kp.name,
                 domain=kp.domain,
@@ -316,15 +308,74 @@ def _build_knowledge_mastery(
                 theta_kp=round(theta_map.get(kp.id, 0.0), 2),
                 test_count=tc,
                 confidence=confidence_map.get(kp.id, 0.0),
+                standard_error=round(point_se, 3) if point_se is not None else None,
+                evidence_level=evidence_level,
             )
+
+    # 只让有测试或逐点自评的知识点进入总体和领域计算。未探索节点保持可见，
+    # 但不能以学历先验或题目难度替代真实诊断证据。
+    domain_entries: Dict[str, List[tuple[float, float, float]]] = {}
+    all_entries: List[tuple[float, float, float]] = []
+    tested_kps = 0
+    for kp in kg.points:
+        point = points[kp.id]
+        if point.mastery is None:
+            continue
+        if point.test_count > 0:
+            tested_kps += 1
+        importance = 1.0 + 0.25 * len(kp.prerequisites)
+        # 低置信度自评保留为补充信号，但其对均值的影响小于实际作答。
+        evidence_weight = importance * max(point.confidence, 0.05)
+        entry = (float(point.mastery), evidence_weight, float(point.confidence))
+        domain_entries.setdefault(kp.domain, []).append(entry)
+        all_entries.append(entry)
+
+    domain_summary: Dict[str, DomainSummaryItem] = {}
+    for domain in kg.domains():
+        entries = domain_entries.get(domain, [])
+        total_kps = len(kg.domain_kp_ids(domain))
+        weight_total = sum(entry[1] for entry in entries)
+        mean = sum(entry[0] * entry[1] for entry in entries) / weight_total if weight_total else None
+        confidence = (
+            sum(entry[2] * entry[1] for entry in entries) / weight_total
+            if weight_total else 0.0
+        )
+        domain_summary[domain] = DomainSummaryItem(
+            mean_mastery=round(mean, 3) if mean is not None else None,
+            kps_covered=len(entries),
+            total_kps=total_kps,
+            tested_kps=sum(1 for kp_id in kg.domain_kp_ids(domain) if points[kp_id].test_count > 0),
+            evidence_confidence=round(confidence, 3),
+        )
+
+    overall_weight = sum(entry[1] for entry in all_entries)
+    overall_mastery = (
+        sum(entry[0] * entry[1] for entry in all_entries) / overall_weight
+        if overall_weight else None
+    )
+    overall_confidence = (
+        sum(entry[2] * entry[1] for entry in all_entries) / overall_weight
+        if overall_weight else 0.0
+    )
+    total_kps = len(kg.points)
+    coverage_ratio = len(all_entries) / total_kps if total_kps else 0.0
 
     return KnowledgeMastery(
         global_theta=round(global_theta, 2),
+        standard_error=round(standard_error, 3) if standard_error is not None else None,
+        estimation_method=estimation_method,
+        item_calibration_status="provisional",
         ability_level=_ability_level_str(global_theta),
         overall_accuracy=round(overall_accuracy, 3),
+        overall_mastery=round(overall_mastery, 3) if overall_mastery is not None else None,
+        overall_confidence=round(overall_confidence, 3),
+        tested_kps=tested_kps,
+        total_kps=total_kps,
+        coverage_ratio=round(coverage_ratio, 3),
         confidence_note=(
-            f"全局θ基于{sum(test_count_map.values())}题MLE估计，学历先验已纳入，L2正则λ=0.5。"
-            + (f"模式1自评先验覆盖{len(kp_priors)}个知识点（test_count=0节点以自评显示，置信度0.35~0.65）。" if kp_priors else "")
+            f"全局θ基于{sum(test_count_map.values())}题{estimation_method}估计；题目参数当前为专家设定、待真实作答数据标定。"
+            f"已获得{len(all_entries)}/{total_kps}个知识点的直接证据（其中测试覆盖{tested_kps}个）。"
+            + (f"逐点自评补充{len(kp_priors)}个未测知识点，置信度0.35~0.65。" if kp_priors else "")
         ),
         domain_summary=domain_summary,
         points=points,
@@ -334,44 +385,45 @@ def _build_knowledge_mastery(
 
 def _build_ability_level(
     global_theta: float,
-    mastery_map: Dict[str, float],
-    domain_mastery: Dict[str, float],
+    knowledge_mastery: KnowledgeMastery,
 ) -> AbilityLevel:
-    """构建能力等级"""
-    dl_mean = domain_mastery.get("深度学习", 0.0)
-    ml_mean = (domain_mastery.get("数学基础", 0.0) + domain_mastery.get("机器学习基础", 0.0)) / 2
+    """Construct dimensions only from the evidence carried by their KP set."""
+    points = knowledge_mastery.points
 
-    rationale = (
-        f"ML基础{'扎实' if ml_mean > 0.55 else '一般' if ml_mean > 0.35 else '薄弱'}（数学+ML均值{ml_mean:.2f}），"
-        f"但深度学习{'刚入门' if dl_mean < 0.3 else '有一定基础' if dl_mean < 0.5 else '基础较好'}（DL均值{dl_mean:.2f}），"
-        f"整体{'介于初级与中级之间' if global_theta < 0.5 else '达到中级水平' if global_theta < 0.8 else '达到高级水平'}"
-    )
+    def level_for(score: float) -> str:
+        if score < 0.4:
+            return "beginner"
+        if score < 0.7:
+            return "intermediate"
+        return "advanced"
+
+    def from_kps(kp_ids: List[str]) -> SubDimension:
+        entries = [points[kp_id] for kp_id in kp_ids if kp_id in points and points[kp_id].mastery is not None]
+        if not entries:
+            return SubDimension(score=None, level="insufficient_evidence", confidence=0.0)
+        weight_total = sum(max(point.confidence, 0.05) for point in entries)
+        score = sum(float(point.mastery) * max(point.confidence, 0.05) for point in entries) / weight_total
+        # Dimension confidence reflects both signal quality and coverage of its KP definition.
+        confidence = (sum(point.confidence for point in entries) / len(entries)) * (len(entries) / len(kp_ids))
+        return SubDimension(
+            score=round(score, 3),
+            level=level_for(score),
+            confidence=round(confidence, 3),
+        )
 
     sub_dims = {
-        "theoretical_understanding": SubDimension(
-            score=round(mastery_map.get("kp_008", 0.0) * 0.7 + mastery_map.get("kp_015", 0.0) * 0.3, 2),
-            level="intermediate",
-            confidence=0.80,
-        ),
-        "coding_ability": SubDimension(
-            score=0.70,
-            level="intermediate",
-            confidence=0.72,
-        ),
-        "mathematical_foundation": SubDimension(
-            score=round(
-                (mastery_map.get("kp_001", 0.0) + mastery_map.get("kp_002", 0.0) +
-                 mastery_map.get("kp_003", 0.0) + mastery_map.get("kp_005", 0.0)) / 4, 2
-            ),
-            level="intermediate",
-            confidence=0.85,
-        ),
-        "problem_solving": SubDimension(
-            score=round(mastery_map.get("kp_009", 0.0) * 0.5 + mastery_map.get("kp_025", 0.0) * 0.5 + 0.2, 2),
-            level="intermediate",
-            confidence=0.75,
-        ),
+        "theoretical_understanding": from_kps(["kp_008", "kp_012", "kp_015"]),
+        # Existing assessment contains no executable coding task or reviewed code evidence.
+        "coding_ability": SubDimension(score=None, level="insufficient_evidence", confidence=0.0),
+        "mathematical_foundation": from_kps(["kp_001", "kp_002", "kp_003", "kp_004", "kp_005"]),
+        "problem_solving": from_kps(["kp_009", "kp_025"]),
     }
+
+    evidence_count = sum(1 for item in sub_dims.values() if item.score is not None)
+    rationale = (
+        f"能力维度仅汇总已测试或逐点自评的知识点证据；当前有{evidence_count}/4个维度可估计。"
+        "代码能力需要代码练习、项目提交或人工评阅后才会给出分数。"
+    )
 
     return AbilityLevel(
         overall=_ability_level_str(global_theta),
@@ -728,6 +780,8 @@ def _build_prior_chapters(
 
 def _build_evidence(
     global_theta: float,
+    standard_error: Optional[float],
+    estimation_method: str,
     mastery_map: Dict[str, float],
     error_patterns: ErrorPatterns,
     gaps: List[KnowledgeGap],
@@ -749,8 +803,12 @@ def _build_evidence(
     evidence.append(EvidenceRecord(
         claim=f"全局能力θ={global_theta:.2f}, ability_level={_ability_level_str(global_theta)}",
         source="irt_estimation",
-        detail=f"累计{total_tests}道题(覆盖{tested_kps}个知识点)的IRT-MLE跨知识点估计，学历先验θ={prior_theta_val}({learner.education.level})，L2正则λ=0.5",
-        confidence=0.90 if total_tests >= 5 else 0.70,
+        detail=(
+            f"累计{total_tests}道题(覆盖{tested_kps}个知识点)的{estimation_method}跨知识点估计，"
+            f"学历先验θ={prior_theta_val}({learner.education.level})"
+            + (f"，后验标准误={standard_error:.3f}" if standard_error is not None else "。")
+        ),
+        confidence=min(0.95, 1.0 / (1.0 + standard_error)) if standard_error is not None else (0.70 if total_tests else 0.0),
     ))
 
     # 0825 新增：模式1 知识点细化自评先验覆盖说明
@@ -898,7 +956,11 @@ def _build_diagnosis_summary(
         f"{sa_sentence}"
     )
 
-    profile_confidence = f"中等。IRT估计基于{sum(1 for t in learner.test_records) if learner.test_records else 0}条测试记录，自填问卷部分0.70-0.75。建议完成当前章节学习后重新诊断。"
+    test_count = len(learner.test_records) if learner.test_records else 0
+    profile_confidence = (
+        f"当前基于{test_count}条测试记录和逐点自评补充生成；"
+        "未覆盖的知识点不会计入总体或领域掌握度。建议完成更多跨知识点测评后重新诊断。"
+    )
 
     return DiagnosisSummary(short=short, full=full, profile_confidence=profile_confidence)
 
@@ -932,58 +994,53 @@ def build_profile(
     kp_priors = _self_assessed_kp_priors(sa)
 
     # 2. 计算所有知识点掌握度 (v2.1: 五路输出含 confidence + status)
-    mastery_map, theta_map, test_count_map, confidence_map, status_map = mastery.compute_all_mastery(
+    mastery_map, theta_map, test_count_map, confidence_map, status_map, standard_error_map = mastery.compute_all_mastery_with_uncertainty(
         kg, learner.test_records, learner.interaction_records, prior_theta=prior_theta,
     )
 
-    # 3. 全局能力θ
-    global_theta = _estimate_global_theta(learner.test_records, prior_theta)
+    # 3. 全局能力θ：与 CAT 使用同一 EAP 估计器及相同先验。
+    global_theta, standard_error, estimation_method = _estimate_global_theta(
+        learner.test_records, prior_theta
+    )
 
     # 4. 总正确率
     total_tests = len(learner.test_records)
     total_correct = sum(1 for t in learner.test_records if t.is_correct) if total_tests else 0
     overall_accuracy = total_correct / total_tests if total_tests > 0 else 0.0
 
-    # 5. 分领域掌握度（0825更新：对test_count=0但有kp_priors覆盖的节点取自评mastery参与领域均值）
-    domain_mastery: Dict[str, float] = {}
-    for domain in kg.domains():
-        kp_ids = kg.domain_kp_ids(domain)
-        domain_scores = []
-        for kid in kp_ids:
-            tc = test_count_map.get(kid, 0)
-            if tc > 0:
-                domain_scores.append(mastery_map.get(kid, 0.0))
-            elif kid in kp_priors:
-                domain_scores.append(kp_priors[kid]["mastery"])
-            else:
-                domain_scores.append(mastery_map.get(kid, 0.0))
-        domain_mastery[domain] = round(sum(domain_scores) / len(domain_scores), 3) if domain_scores else 0.0
-
-    # 6. 知识盲区分析
+    # 5. 知识盲区分析
     gaps = gap_analyzer.analyze_gaps(
         kg, mastery_map, learner.test_records, learner.interaction_records, test_count_map,
     )
 
-    # 7. 错误模式分类
+    # 6. 错误模式分类
     error_patterns = gap_analyzer.classify_error_patterns(
         learner.test_records, mastery_map,
     )
 
-    # 8. 子模块构建 (0825更新：kp_priors 传递给 knowledge_mastery + evidence)
+    # 7. 子模块构建。领域值和总体值只由有证据的知识点计算。
     depth_labels = _build_depth_labels(kg, mastery_map, test_count_map)
     learning_scope = _build_learning_scope(kg, current_chapter_id, mastery_map)
     knowledge_mastery = _build_knowledge_mastery(
-        kg, mastery_map, theta_map, test_count_map, confidence_map, status_map,
-        global_theta, overall_accuracy,
+        kg, mastery_map, theta_map, test_count_map, confidence_map, status_map, standard_error_map,
+        global_theta, standard_error, estimation_method, overall_accuracy,
         kp_priors=kp_priors,
     )
-    ability_level = _build_ability_level(global_theta, mastery_map, domain_mastery)
+    domain_mastery = {
+        domain: item.mean_mastery
+        for domain, item in knowledge_mastery.domain_summary.items()
+        if item.mean_mastery is not None
+    }
+    ability_level = _build_ability_level(global_theta, knowledge_mastery)
     learning_preferences = _build_learning_preferences(
         learner.test_records, learner.interaction_records, learner.self_assessment
     )
     resource_hints = _build_resource_hints(kg, learning_scope, depth_labels, error_patterns, mastery_map, gaps)
     prior_chapters = _build_prior_chapters(learner, kg, current_chapter_id)
-    evidence = _build_evidence(global_theta, mastery_map, error_patterns, gaps, learner, kp_priors=kp_priors)
+    evidence = _build_evidence(
+        global_theta, standard_error, estimation_method, mastery_map,
+        error_patterns, gaps, learner, kp_priors=kp_priors,
+    )
     diagnosis_summary = _build_diagnosis_summary(
         learner, global_theta, _ability_level_str(global_theta), domain_mastery, gaps, error_patterns,
     )

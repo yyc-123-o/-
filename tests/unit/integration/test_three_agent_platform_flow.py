@@ -177,7 +177,15 @@ def test_completing_current_node_advances_the_existing_learning_run() -> None:
         initial.run_id,
         {
             "concept_id": "math.linear-algebra.scalar",
-            "source": "s = 1\nv = 1\nscaled = 1\nresult = 1\nprint(result)",
+            "source": (
+                "scalar = -2.5\n"
+                "vector = [3, 0, -1]\n"
+                "def scale_vector(value, values):\n"
+                "    return [value * item for item in values]\n"
+                "scaled = scale_vector(scalar, vector)\n"
+                "report = [(value, scale_vector(value, vector)) for value in [1, 0, -1, 0.5]]\n"
+                "print(scaled, report)\n"
+            ),
         },
     )
     updated = service.submit_assessment(

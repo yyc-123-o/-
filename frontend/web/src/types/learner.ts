@@ -67,20 +67,36 @@ export interface DiagnosisProfile {
   };
   knowledge_mastery?: {
     global_theta?: number;
+    standard_error?: number | null;
+    estimation_method?: string;
     overall_accuracy?: number;
+    overall_mastery?: number | null;
+    overall_confidence?: number;
+    tested_kps?: number;
+    total_kps?: number;
+    coverage_ratio?: number;
     points?: Record<string, {
       name: string;
       domain: string;
-      mastery: number;
+      mastery: number | null;
       status: string;
+      test_count?: number;
       confidence: number;
+      standard_error?: number | null;
+      evidence_level?: "none" | "self_report" | "preliminary" | "limited" | "stable";
     }>;
-    domain_summary?: Record<string, { mean_mastery: number; kps_covered: number }>;
+    domain_summary?: Record<string, {
+      mean_mastery: number | null;
+      kps_covered: number;
+      total_kps?: number;
+      tested_kps?: number;
+      evidence_confidence?: number;
+    }>;
   };
   ability_level?: {
     overall?: string;
     global_theta?: number;
-    sub_dimensions?: Record<string, { score: number; level: string; confidence: number }>;
+    sub_dimensions?: Record<string, { score: number | null; level: string; confidence: number }>;
   };
   knowledge_gaps?: Array<{
     kp_id: string;

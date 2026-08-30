@@ -97,6 +97,19 @@ def test_adapter_does_not_copy_downstream_resource_decisions(catalog) -> None:
     assert not hasattr(adapted.snapshot, "resource_generation_hints")
 
 
+def test_omits_ability_dimension_without_evidence(catalog) -> None:
+    raw = _raw_profile()
+    raw["ability_level"]["sub_dimensions"]["coding_ability"]["score"] = None
+
+    adapted = LearnerProfileAgentAdapter(
+        catalog,
+        mappings={"kp_012": "dl.cnn.convolution"},
+    ).adapt(raw)
+
+    assert "coding_ability" not in adapted.snapshot.abilities
+    assert adapted.snapshot.abilities["mathematical_foundation"].score == 0.6
+
+
 def test_rejects_profile_graph_version_mismatch(catalog) -> None:
     raw = _raw_profile()
     raw["graph_version"] = "ai-course-v2"

@@ -41,6 +41,8 @@ class PlatformApplicationService(Protocol):
         submission: AssessmentSubmission | dict[str, object],
     ) -> PlatformRunResult: ...
 
+    def refresh_current_resources(self, run_id: str) -> PlatformRunResult: ...
+
     def record_lecture_progress(
         self,
         run_id: str,
@@ -286,12 +288,25 @@ def create_app(
     ) -> PlatformRunResult:
         try:
             return service.record_lecture_progress(run_id, submission)
+
         except KeyError as exc:
             raise _run_not_found(run_id) from exc
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "invalid_lecture_progress", "message": str(exc)},
+            ) from exc
+
+    @app.post("/api/v1/runs/{run_id}/refresh-resources", response_model=PlatformRunResult)
+    def refresh_resources(run_id: str) -> PlatformRunResult:
+        try:
+            return service.refresh_current_resources(run_id)
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_resource_refresh", "message": str(exc)},
             ) from exc
 
     @app.post(

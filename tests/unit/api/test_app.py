@@ -137,6 +137,17 @@ def test_assessment_requires_learning_progress_service(
     assert response.json()["detail"]["code"] == "invalid_assessment"
 
 
+def test_refresh_resources_requires_learning_progress_service(
+    client: TestClient,
+    profile_payload: dict[str, object],
+) -> None:
+    created = client.post("/api/v1/runs", json=_request(profile_payload)).json()
+    response = client.post(f"/api/v1/runs/{created['run_id']}/refresh-resources")
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "invalid_resource_refresh"
+
+
 def test_missing_run_returns_404(client: TestClient) -> None:
     response = client.get(f"/api/v1/runs/run_{'0' * 64}")
 

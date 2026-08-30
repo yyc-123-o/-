@@ -18,7 +18,9 @@ function readState(): LearnerPersistedState {
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) || "") as Partial<LearnerPersistedState>;
     return {
-      profile: parsed.profile ?? null,
+      // A previous frontend version may have persisted a partial profile.
+      // Do not treat it as a current learner until its identity is complete.
+      profile: parsed.profile?.learner ? parsed.profile : null,
       snapshot: parsed.snapshot ?? null,
       source: parsed.source ?? "empty",
       baselineProfileId: parsed.baselineProfileId ?? "",
@@ -43,14 +45,15 @@ export const useLearnerStore = defineStore("learner", () => {
   const loading = ref(false);
   const error = ref("");
 
-  const learnerName = computed(() => profile.value?.learner.name || "学习者");
+  const learnerName = computed(() => profile.value?.learner?.name || "学习者");
   const mastery = computed(() => {
-    const points = profile.value?.knowledge_mastery?.points || {};
-    const values = Object.values(points).map((point) => point.mastery).filter((value) => typeof value === "number");
-    return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    const value = profile.value?.knowledge_mastery?.overall_mastery;
+    return typeof value === "number" ? value : 0;
   });
   const weakPoints = computed(() =>
-    Object.values(profile.value?.knowledge_mastery?.points || {}).filter((point) => point.mastery < 0.6),
+    Object.values(profile.value?.knowledge_mastery?.points || {}).filter(
+      (point) => typeof point.mastery === "number" && point.mastery < 0.6,
+    ),
   );
 
   function persist() {
@@ -70,6 +73,25 @@ export const useLearnerStore = defineStore("learner", () => {
     error.value = "";
     try {
       learners.value = (await diagnosisApi.learners()).learners;
+      // Persisted profiles may use an older diagnostic schema. Refresh the
+      // selected learner on app start so legacy local storage cannot keep
+      // presenting obsolete, hard-coded-looking results.
+      if (profile.value?.learner_id) {
+        try {
+          profile.value = await diagnosisApi.profile(profile.value.learner_id);
+          selectedLearnerId.value = profile.value.learner_id;
+          source.value = "real";
+          persist();
+        } catch {
+          // The backend was restarted or the learner was deleted. Do not keep
+          // rendering its stale local result as though it were current data.
+          profile.value = null;
+          snapshot.value = null;
+          source.value = "empty";
+          selectedLearnerId.value = "";
+          persist();
+        }
+      }
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : "学习者列表加载失败";
     } finally {

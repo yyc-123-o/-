@@ -386,11 +386,16 @@ class KpMasteryPoint(BaseModel):
     theta_kp: float = 0.0
     test_count: int = 0
     confidence: float = 0.0
+    standard_error: Optional[float] = None
+    evidence_level: str = "none"
 
 
 class DomainSummaryItem(BaseModel):
-    mean_mastery: float = 0.0
+    mean_mastery: Optional[float] = None
     kps_covered: int = 0
+    total_kps: int = 0
+    tested_kps: int = 0
+    evidence_confidence: float = 0.0
 
 
 class StatusDistributionItem(BaseModel):
@@ -401,8 +406,16 @@ class StatusDistributionItem(BaseModel):
 class KnowledgeMastery(BaseModel):
     """知识点掌握度矩阵"""
     global_theta: float = 0.0
+    standard_error: Optional[float] = None
+    estimation_method: str = "prior-only"
+    item_calibration_status: str = "provisional"
     ability_level: str = "beginner"
     overall_accuracy: float = 0.0
+    overall_mastery: Optional[float] = None
+    overall_confidence: float = 0.0
+    tested_kps: int = 0
+    total_kps: int = 0
+    coverage_ratio: float = 0.0
     confidence_note: str = ""
     domain_summary: Dict[str, DomainSummaryItem] = Field(default_factory=dict)
     points: Dict[str, KpMasteryPoint] = Field(default_factory=dict)
@@ -412,8 +425,8 @@ class KnowledgeMastery(BaseModel):
 # --- 能力等级 ---
 
 class SubDimension(BaseModel):
-    score: float = 0.0
-    level: str = "beginner"
+    score: Optional[float] = None
+    level: str = "insufficient_evidence"
     confidence: float = 0.0
 
 

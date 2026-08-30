@@ -108,6 +108,7 @@ class PracticeReviewSubmission(BaseModel):
 
     concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
     source: str = Field(min_length=1, max_length=12_000)
+    exercise_kind: str = Field(default="basic", pattern="^(basic|project)$")
 
 
 class LectureProgressSubmission(BaseModel):
@@ -208,6 +209,7 @@ class PlatformRunResult(BaseModel):
     run_id: str = Field(pattern=r"^run_[0-9a-f]{64}$")
     request_digest: str = Field(pattern=r"^request_[0-9a-f]{64}$")
     profile_id: str = Field(min_length=1)
+    profile: LearnerProfileSnapshot | None = None
     status: PlatformRunStatus
     planning: CoursePlanningAgentResult | None = None
     retrieval: DomainRetrievalResult | None = None
@@ -245,6 +247,8 @@ class PlatformRunResult(BaseModel):
         return self
 
     def _validate_identity(self) -> None:
+        if self.profile is not None and self.profile.profile_id != self.profile_id:
+            raise ValueError("run profile does not match profile_id")
         if (
             self.planning is not None
             and self.planning.path is not None

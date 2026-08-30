@@ -2,6 +2,7 @@ from skillforge_kb.agents.resource_agent import (
     ResourceGenerationAgent,
     ResourceGenerationMode,
     _preview_policy,
+    _preview_quiz_content,
 )
 from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalRequest,
@@ -178,9 +179,44 @@ def test_preview_materials_are_specific_to_node_and_question_kind(resource_case)
     assert len({item.prompt for item in draft.student_quiz.items}) == len(
         draft.student_quiz.items
     )
-    assert any("概念" in item.prompt for item in draft.student_quiz.items)
-    assert any("形状" in item.prompt for item in draft.student_quiz.items)
-    assert any("代码" in item.prompt for item in draft.student_quiz.items)
+    assert {item.kind.value for item in draft.student_quiz.items} >= {
+        "concept", "shape_reasoning", "code"
+    }
+    assert {item.correct_choice for item in draft.student_quiz.items} == {0, 1}
+    assert all(len(set(item.choices)) == len(item.choices) for item in draft.student_quiz.items)
+    assert all("用自己的话定义" not in item.prompt for item in draft.student_quiz.items)
+
+
+def test_vector_preview_quiz_is_answerable_and_content_specific() -> None:
+    first_prompt, first_choices, first_answer = _preview_quiz_content(
+        "向量", "concept", 1
+    )
+    dot_prompt, dot_choices, dot_answer = _preview_quiz_content("向量", "code", 6)
+
+    assert "v = [3, 4]" in first_prompt
+    assert first_choices[first_answer].startswith("它表示两个有顺序的分量")
+    assert "np.dot" in dot_prompt
+    assert dot_choices[dot_answer] == "11"
+    assert {
+        _preview_quiz_content("向量", "concept", index)[2]
+        for index in range(1, 9)
+    } == {0, 1, 2}
+
+
+def test_generic_preview_quiz_uses_current_node_evidence() -> None:
+    facts = (
+        "Embedding 将离散词索引映射为稠密向量表示。",
+        "代码示例使用 embedding_layer(token_ids) 得到每个词的向量。",
+        "练习要求比较相似词与无关词的余弦相似度。",
+        "能够解释嵌入表示如何支持语义检索。",
+    )
+    prompt, choices, answer = _preview_quiz_content(
+        "嵌入表示", "concept", 2, facts
+    )
+
+    assert "嵌入表示" in prompt
+    assert choices[answer].startswith("代码示例使用")
+    assert "只需记住名称" not in choices[answer]
 
 
 def test_preview_contains_readable_lesson_and_editable_practice(resource_case) -> None:
