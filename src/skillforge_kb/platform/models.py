@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from hashlib import sha256
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
 from skillforge_kb.agents.planning_agent_models import CoursePlanningAgentResult
 from skillforge_kb.agents.resource_agent import ResourceAgentResult
@@ -14,6 +14,8 @@ from skillforge_kb.agents.retrieval_agent_models import (
 from skillforge_kb.assessment import AssessmentErrorKind
 from skillforge_kb.ontology.models import CONCEPT_ID_PATTERN, LearnerProfileSnapshot
 from skillforge_kb.resources.handoff import ResourceHandoffContract
+
+ASSESSMENT_PASSING_SCORE = 0.60
 
 
 class ExecutionMode(StrEnum):
@@ -77,7 +79,13 @@ class AssessmentSubmission(BaseModel):
     attempt_count: int = Field(strict=True, ge=1)
     error_kind: AssessmentErrorKind | None = None
     evidence_refs: tuple[str, ...] = ()
-    passing_score: float = Field(default=0.60, ge=0, le=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_client_passing_score(cls, value: object) -> object:
+        if isinstance(value, dict) and "passing_score" in value:
+            raise ValueError("passing score is controlled by the server")
+        return value
 
     @model_validator(mode="after")
     def validate_error_kind(self) -> "AssessmentSubmission":
@@ -86,7 +94,7 @@ class AssessmentSubmission(BaseModel):
         if (
             self.score is not None
             and not self.responses
-            and self.score >= self.passing_score
+            and self.score >= ASSESSMENT_PASSING_SCORE
             and self.error_kind is not None
         ):
             raise ValueError("passing assessment cannot include an error kind")
@@ -101,6 +109,66 @@ class PracticeReviewSubmission(BaseModel):
     concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
     source: str = Field(min_length=1, max_length=12_000)
     exercise_kind: str = Field(default="basic", pattern="^(basic|project)$")
+
+
+class LectureProgressSubmission(BaseModel):
+    """Learner-reported progress through the current generated lecture."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    progress: float = Field(ge=0, le=1)
+
+
+class LearningProgress(BaseModel):
+    """Auditable completion gates for one concept in one platform run."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    lecture_progress: float = Field(default=0.0, ge=0, le=1)
+    lecture_completed: bool = False
+    practice_completed: bool = False
+    assessment_passed: bool = False
+    assessment_attempts: int = Field(default=0, ge=0)
+    failed_attempts: int = Field(default=0, ge=0)
+    remediation_required: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def discard_derived_fields(cls, value: object) -> object:
+        if isinstance(value, dict) and "can_complete" in value:
+            value = dict(value)
+            value.pop("can_complete", None)
+        return value
+
+    @model_validator(mode="after")
+    def validate_assessment_state(self) -> "LearningProgress":
+        if self.lecture_completed and self.lecture_progress < 0.80:
+            object.__setattr__(self, "lecture_progress", 0.80)
+        if self.lecture_progress >= 0.80 and not self.lecture_completed:
+            object.__setattr__(self, "lecture_completed", True)
+        if self.assessment_passed and self.assessment_attempts < 1:
+            raise ValueError("assessment_passed requires at least one assessment attempt")
+        if self.failed_attempts > self.assessment_attempts:
+            raise ValueError("failed assessment attempts cannot exceed total attempts")
+        if self.assessment_passed and self.failed_attempts >= self.assessment_attempts:
+            raise ValueError("assessment_passed requires a passing assessment attempt")
+        return self
+
+    @computed_field
+    @property
+    def can_complete(self) -> bool:
+        return (
+            self.lecture_completed
+            and self.practice_completed
+            and self.assessment_passed
+            and not self.remediation_required
+        )
+
+    @property
+    def max_next_lecture_progress(self) -> float:
+        return min(1.0, self.lecture_progress + 0.25)
 
 
 class PlatformFailure(BaseModel):
@@ -150,6 +218,7 @@ class PlatformRunResult(BaseModel):
     evidence_gap: EvidenceGap | None = None
     failure: PlatformFailure | None = None
     steps: tuple[PlatformStepRecord, ...] = ()
+    learning_progress: LearningProgress | None = None
 
     @model_validator(mode="after")
     def validate_terminal_status(self) -> "PlatformRunResult":
@@ -195,6 +264,12 @@ class PlatformRunResult(BaseModel):
             raise ValueError("retrieval profile does not match platform run")
         if self.resources is not None and self.resources.profile_id != self.profile_id:
             raise ValueError("resource profile does not match platform run")
+        if (
+            self.learning_progress is not None
+            and self.handoff is not None
+            and self.learning_progress.concept_id != self.handoff.concept_id
+        ):
+            raise ValueError("learning progress concept does not match platform handoff")
         if self.handoff is None:
             return
         identity = (

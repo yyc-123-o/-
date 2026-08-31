@@ -30,6 +30,16 @@ def test_adaptive_answer_rejects_negative_time_without_mutating_session(client: 
     assert session["question_count"] == 0
 
 
+def test_restored_unfinished_session_includes_current_question(client: TestClient) -> None:
+    started = client.post("/api/adaptive-test/start/learner_001").json()
+
+    restored = client.get(f"/api/adaptive-test/session/{started['session_id']}").json()
+
+    assert restored["finished"] is False
+    assert restored["next_question"]["question_id"] == started["next_question"]["question_id"]
+    assert "correct_answer" not in restored["next_question"]
+
+
 def test_adaptive_start_rejects_malformed_stage_without_server_error(client: TestClient) -> None:
     response = client.post(
         "/api/adaptive-test/start/learner_001",

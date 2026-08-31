@@ -58,6 +58,7 @@ class UpdateCoursePlanInput(BaseModel):
     existing: PathDecision
     profile: LearnerProfileSnapshot
     completed_concept_ids: tuple[str, ...]
+    allow_skips: bool = False
 
     @field_validator("completed_concept_ids")
     @classmethod
@@ -213,16 +214,19 @@ def update_course_plan_tool(
         existing: PathDecision,
         profile: LearnerProfileSnapshot,
         completed_concept_ids: tuple[str, ...],
+        allow_skips: bool = False,
     ) -> dict[str, object]:
         request = UpdateCoursePlanInput(
             existing=existing,
             profile=profile,
             completed_concept_ids=completed_concept_ids,
+            allow_skips=allow_skips,
         )
         path = updater.update(
             request.existing,
             request.profile,
             set(request.completed_concept_ids),
+            allow_skips=request.allow_skips,
         )
         return _build_result(
             PlanningOperation.UPDATE,
@@ -316,6 +320,7 @@ def build_update_course_plan_node(
                 existing=PathDecision.model_validate(existing),
                 profile=LearnerProfileSnapshot.model_validate(raw_profile),
                 completed_concept_ids=state.get("completed_concept_ids", ()),
+                allow_skips=state.get("allow_skips", False),
             )
         except ValidationError as exc:
             return _node_failure(

@@ -23,6 +23,8 @@ class DepthUpdater:
         existing: PathDecision,
         profile: LearnerProfileSnapshot,
         completed_concept_ids: set[str],
+        *,
+        allow_skips: bool = False,
     ) -> PathDecision:
         self._validate_identity(existing, profile)
         existing_ids = [node.concept_id for node in existing.nodes]
@@ -42,7 +44,7 @@ class DepthUpdater:
         fresh = self._planner.plan(
             profile,
             all_completed,
-            allow_skips=False,
+            allow_skips=allow_skips,
             target_concept_id=existing.target_concept_id,
         )
         if [node.concept_id for node in fresh.nodes] != existing_ids:

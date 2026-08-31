@@ -7,8 +7,18 @@ export interface BasicForm {
 
 export interface DomainAssessment {
   domain: string;
-  courses: Array<{ name: string; level: string; note?: string; kp_id?: string }>;
+  mode?: "knowledge_points" | "guided_questions" | "legacy";
+  courses: Array<{ name: string; level: string; note?: string; kp_id?: string; _synthetic?: boolean }>;
   note?: string;
+  guided_answers?: Record<string, string>;
+}
+
+export interface ProjectExperience {
+  name: string;
+  role: string;
+  description: string;
+  tech_stack?: string[];
+  duration_months?: number;
 }
 
 export interface AdaptiveSession {

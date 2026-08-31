@@ -1,12 +1,13 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { diagnosisApi } from "@/api/diagnosis";
-import type { BasicForm, DomainAssessment, AdaptiveSession } from "@/types/diagnosis";
+import type { BasicForm, DomainAssessment, AdaptiveSession, ProjectExperience } from "@/types/diagnosis";
 import type { DiagnosisProfile } from "@/types/learner";
 import { useLearnerStore } from "./learner";
 
 const FORM_KEY = "zhijing.diagnosis.form.v1";
 const DOMAINS_KEY = "zhijing.diagnosis.domains.v1";
+const PROJECTS_KEY = "zhijing.diagnosis.projects.v1";
 const SESSION_KEY = "zhijing.diagnosis.adaptive-session.v1";
 const defaultForm: BasicForm = {
   name: "",
@@ -41,9 +42,19 @@ function loadSessionId(): string {
   }
 }
 
+function loadProjects(): ProjectExperience[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROJECTS_KEY) || "");
+    return Array.isArray(saved) ? saved as ProjectExperience[] : [];
+  } catch {
+    return [];
+  }
+}
+
 export const useDiagnosisStore = defineStore("diagnosis", () => {
   const form = ref<BasicForm>(loadForm());
   const domains = ref<DomainAssessment[]>(loadDomains());
+  const projects = ref<ProjectExperience[]>(loadProjects());
   const learnersLoading = ref(false);
   const submitting = ref(false);
   const error = ref("");
@@ -65,6 +76,7 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
   function saveForm() {
     localStorage.setItem(FORM_KEY, JSON.stringify(form.value));
     localStorage.setItem(DOMAINS_KEY, JSON.stringify(domains.value));
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects.value));
     status.value = "草稿已保存";
   }
 
@@ -87,7 +99,7 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
     submitting.value = true;
     error.value = "";
     try {
-      const result = await diagnosisApi.upload(form.value, domains.value);
+      const result = await diagnosisApi.upload(form.value, domains.value, projects.value);
       await learner.loadLearners();
       await learner.selectLearner(result.learner_id);
       session.value = null;
@@ -175,7 +187,7 @@ export const useDiagnosisStore = defineStore("diagnosis", () => {
   }
 
   return {
-    form, domains, learnersLoading, submitting, error, status, session, adaptiveAnswers, activeStage,
+    form, domains, projects, learnersLoading, submitting, error, status, session, adaptiveAnswers, activeStage,
     completedStages, saveForm, loadLearners, submitBasic, runDiagnosis, startAdaptive, answer, finishAdaptive, resumeAdaptive,
   };
 });

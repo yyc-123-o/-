@@ -160,9 +160,44 @@ def test_completing_current_node_advances_the_existing_learning_run() -> None:
         )
     )
 
-    updated = service.complete_current_node(
+    with pytest.raises(ValueError, match="completion gate"):
+        service.complete_current_node(initial.run_id, "math.linear-algebra.scalar")
+    capped = service.record_lecture_progress(
         initial.run_id,
-        "math.linear-algebra.scalar",
+        {"concept_id": "math.linear-algebra.scalar", "progress": 0.80},
+    )
+    assert capped.learning_progress is not None
+    assert capped.learning_progress.lecture_progress == 0.25
+    for progress in (0.50, 0.75, 0.80):
+        service.record_lecture_progress(
+            initial.run_id,
+            {"concept_id": "math.linear-algebra.scalar", "progress": progress},
+        )
+    service.review_practice(
+        initial.run_id,
+        {
+            "concept_id": "math.linear-algebra.scalar",
+            "source": (
+                "scalar = -2.5\n"
+                "vector = [3, 0, -1]\n"
+                "def scale_vector(value, values):\n"
+                "    return [value * item for item in values]\n"
+                "scaled = scale_vector(scalar, vector)\n"
+                "report = [(value, scale_vector(value, vector)) for value in [1, 0, -1, 0.5]]\n"
+                "print(scaled, report)\n"
+            ),
+        },
+    )
+    updated = service.submit_assessment(
+        initial.run_id,
+        {
+            "assessment_id": "learning-progress-complete",
+            "concept_id": "math.linear-algebra.scalar",
+            "score": 1.0,
+            "response_time_ms": 1000,
+            "hint_count": 0,
+            "attempt_count": 1,
+        },
     )
 
     assert updated.status is PlatformRunStatus.COMPLETED
@@ -213,9 +248,9 @@ def test_assessment_updates_profile_and_replans_depth_before_advancing() -> None
 
     assert updated.planning is not None
     assert updated.planning.current_node is not None
-    assert updated.planning.current_node.concept_id == "math.linear-algebra.vector"
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.scalar"
     assert updated.handoff is not None
-    assert updated.handoff.concept_id == "math.linear-algebra.vector"
+    assert updated.handoff.concept_id == "math.linear-algebra.scalar"
     assert updated.handoff.path_id == initial.handoff.path_id
 
 
@@ -255,7 +290,9 @@ def test_bkt_assessment_updates_profile_and_replans() -> None:
     assert replay == updated
     assert updated.planning is not None
     assert updated.planning.current_node is not None
-    assert updated.planning.current_node.concept_id != concept_id
+    assert updated.planning.current_node.concept_id == concept_id
+    assert updated.learning_progress is not None
+    assert updated.learning_progress.practice_completed is False
     assert saved_request is not None
     mastery = next(
         item for item in saved_request.profile.knowledge_mastery
@@ -341,7 +378,7 @@ def test_correct_candidate_quiz_choices_advance_the_learning_node() -> None:
 
     assert updated.planning is not None
     assert updated.planning.current_node is not None
-    assert updated.planning.current_node.concept_id == "math.linear-algebra.vector"
+    assert updated.planning.current_node.concept_id == "math.linear-algebra.scalar"
 
 
 def test_incorrect_candidate_quiz_choices_keep_the_learning_node_open() -> None:

@@ -11,6 +11,7 @@ from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
 from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.platform.models import (
     AssessmentSubmission,
+    LectureProgressSubmission,
     PlatformRunRequest,
     PlatformRunResult,
     PlatformStepRecord,
@@ -38,6 +39,14 @@ class PlatformApplicationService(Protocol):
         self,
         run_id: str,
         submission: AssessmentSubmission | dict[str, object],
+    ) -> PlatformRunResult: ...
+
+    def refresh_current_resources(self, run_id: str) -> PlatformRunResult: ...
+
+    def record_lecture_progress(
+        self,
+        run_id: str,
+        submission: LectureProgressSubmission | dict[str, object],
     ) -> PlatformRunResult: ...
 
     def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult: ...
@@ -270,6 +279,22 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "invalid_assessment", "message": str(exc)},
+            ) from exc
+
+    @app.post("/api/v1/runs/{run_id}/lecture-progress", response_model=PlatformRunResult)
+    def record_lecture_progress(
+        run_id: str,
+        submission: LectureProgressSubmission,
+    ) -> PlatformRunResult:
+        try:
+            return service.record_lecture_progress(run_id, submission)
+
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_lecture_progress", "message": str(exc)},
             ) from exc
 
     @app.post("/api/v1/runs/{run_id}/refresh-resources", response_model=PlatformRunResult)

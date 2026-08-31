@@ -1,6 +1,8 @@
 from .graph import PlatformGraphDependencies, PlatformService, build_platform_graph
 from .models import (
     ExecutionMode,
+    LearningProgress,
+    LectureProgressSubmission,
     PlatformFailure,
     PlatformRunRequest,
     PlatformRunResult,
@@ -12,7 +14,11 @@ from .models import (
     build_request_digest,
     build_run_id,
 )
-from .repository import IdempotencyConflict, InMemoryPlatformRunRepository, SqlitePlatformRunRepository
+from .repository import (
+    IdempotencyConflict,
+    InMemoryPlatformRunRepository,
+    SqlitePlatformRunRepository,
+)
 from .runtime import (
     DefaultPlatformPaths,
     ResourceHandoffFactory,
@@ -23,6 +29,8 @@ from .runtime import (
 
 __all__ = [
     "ExecutionMode",
+    "LearningProgress",
+    "LectureProgressSubmission",
     "DefaultPlatformPaths",
     "IdempotencyConflict",
     "InMemoryPlatformRunRepository",
