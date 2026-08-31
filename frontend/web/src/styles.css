@@ -608,6 +608,9 @@ p { color: var(--muted); line-height: 1.75; }
 .outcome-hint { margin-top: 14px; padding: 12px 14px; color: var(--muted); background: var(--surface-soft); border: 1px dashed var(--line); border-radius: 11px; font-size: 11px; }
 .markdown-content pre { overflow-x: auto; margin: 16px 0; padding: 16px 18px; color: #f8fafc; background: #182b45; border: 1px solid #284568; border-radius: 10px; line-height: 1.65; }
 .markdown-content pre code { display: block; min-width: max-content; padding: 0; color: #f8fafc; background: transparent; border-radius: 0; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; white-space: pre; }
+.markdown-content .katex-display { max-width: 100%; margin: 1.1em 0; overflow-x: auto; overflow-y: hidden; padding: 0.15em 0; }
+.markdown-content .katex { line-height: 1.35; }
+.markdown-content .katex-display > .katex { white-space: nowrap; }
 .quiz-reader { min-height: 250px; padding: 20px 4px 6px; }
 .quiz-reader h2 { margin: 4px 0 8px; font-size: 21px; }
 .quiz-reader > div > p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -630,6 +633,10 @@ p { color: var(--muted); line-height: 1.75; }
 .learning-profile-summary strong, .learning-profile-summary span { display: block; }.learning-profile-summary strong { color: var(--green); font-size: 20px; }.learning-profile-summary span { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .learning-profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; }
 .learning-ability-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }.learning-ability-list span { padding: 6px 9px; color: var(--blue); background: var(--blue-soft); border-radius: 99px; font-size: 10px; font-weight: 800; }
+.answer-history { display: flex; flex-direction: column; height: 330px; min-height: 330px; }
+.answer-history .panel-heading { flex: 0 0 auto; }
+.answer-history .history-items { display: grid; flex: 1 1 auto; min-height: 0; gap: 8px; overflow-y: auto; padding-right: 6px; scrollbar-gutter: stable; }
+.answer-history .history-items > div { min-height: 34px; }
 @media (max-width: 960px) {
   .outcome-metrics, .outcome-columns, .outcome-gaps { grid-template-columns: 1fr; }
   .learning-profile-summary, .learning-profile-grid { grid-template-columns: 1fr; }

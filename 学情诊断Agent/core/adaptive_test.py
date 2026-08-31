@@ -866,6 +866,17 @@ def get_session(session_id: str) -> Optional[dict]:
     s = _sessions.get(session_id)
     if not s:
         return None
+    current_question = None
+    if not s.finished and s.current_question_id:
+        current_question = next(
+            (
+                question
+                for bucket in s.bank_by_kp.values()
+                for question in bucket
+                if question.get("question_id") == s.current_question_id
+            ),
+            None,
+        )
     if s.finished:
         if s.final_theta is None:
             final_theta, theta_info = _estimate_final_theta(
@@ -885,6 +896,7 @@ def get_session(session_id: str) -> Optional[dict]:
         "finished": s.finished,
         "stop_reason": s.stop_reason,
         "current_question_id": s.current_question_id,
+        "next_question": public_question(current_question) if current_question else None,
         "question_count": s.question_count,
         "current_domain": s.current_domain,
         "domain_index": min(
