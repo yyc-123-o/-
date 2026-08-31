@@ -96,6 +96,7 @@ class PathNode(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    title: str | None = None
     chapter_id: str = Field(pattern=GRAPH_ID_PATTERN)
     section_id: str = Field(pattern=GRAPH_ID_PATTERN)
     sequence: int = Field(ge=1)

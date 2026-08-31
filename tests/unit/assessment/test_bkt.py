@@ -73,6 +73,8 @@ def test_bkt_event_updates_mastery_and_is_idempotent(catalog, ledger) -> None:
     assert first.applied is True
     assert first.mastery_before == ((event.concept_ids[0], 0.2),)
     assert first.mastery_after[0][1] == pytest.approx(0.5764705882)
+    assert first.ledger.profile.generated_at == event.timestamp
+    assert first.ledger.profile.knowledge_mastery[0].confidence == pytest.approx(0.34)
     assert first.model_version == "bkt.v1"
     assert first.reason_codes == ("bkt_update_applied",)
     assert second.applied is False

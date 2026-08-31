@@ -5,6 +5,11 @@ export const api = axios.create({
   timeout: 20_000,
 });
 
+// Resource generation may include one or more model calls. Keep the default
+// timeout short for ordinary API requests and opt into this budget only for
+// operations that synchronously generate learning materials.
+export const RESOURCE_GENERATION_TIMEOUT_MS = 180_000;
+
 export async function withRetry<T>(
   request: () => Promise<T>,
   retries = 2,

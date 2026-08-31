@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import { useDiagnosisStore } from "@/stores/diagnosis";
 import { useLearnerStore } from "@/stores/learner";
 import StateBlocks from "@/components/StateBlocks.vue";
+import { renderInlineMath } from "@/utils/math";
 
 const router = useRouter();
 const diagnosis = useDiagnosisStore();
@@ -64,7 +65,7 @@ async function finish() {
           <div class="panel-heading"><div><span class="eyebrow">CURRENT QUESTION</span><h2>{{ question ? "当前题目" : "准备开始" }}</h2></div><span class="status-pill">{{ diagnosis.session?.current_domain || "等待测试" }}</span></div>
           <div v-if="!diagnosis.session" class="start-test-block"><CircleHelp :size="32" /><h3>开始一次自适应测试</h3><p>大约需要 5 到 8 分钟，可以随时停下，之后继续。</p><button class="button button-primary" :disabled="diagnosis.submitting" @click="start">开始自适应测试 <ArrowRight :size="17" /></button></div>
           <div v-else-if="diagnosis.session.finished" class="finish-block"><CheckCircle2 :size="36" class="text-success" /><h3>测试已完成</h3><p>{{ diagnosis.session.stop_reason || "已经收集到足够的答题信号。" }}</p><button class="button button-primary" @click="finish">生成学习画像 <ArrowRight :size="17" /></button></div>
-          <div v-else-if="question" class="question-card"><div class="question-meta">第 {{ diagnosis.session.question_count + 1 }} 题 · {{ diagnosis.session.current_tier || "当前难度" }}</div><h3>{{ question.question_text || "请根据你的理解选择答案" }}</h3><p v-if="diagnosis.session.selection_reason" class="question-selection-reason">本题原因：{{ diagnosis.session.selection_reason }}</p><div class="option-list"><label v-for="(option, index) in question.options || []" :key="option" class="option-item" :class="{ selected: selectedAnswer === index }"><input v-model="selectedAnswer" type="radio" :value="index" /><span class="option-key">{{ String.fromCharCode(65 + index) }}</span><span>{{ option }}</span></label></div><button class="button button-primary button-full" :disabled="selectedAnswer === null" @click="answer">提交答案 <ArrowRight :size="17" /></button></div>
+          <div v-else-if="question" class="question-card"><div class="question-meta">第 {{ diagnosis.session.question_count + 1 }} 题 · {{ diagnosis.session.current_tier || "当前难度" }}</div><h3 v-html="renderInlineMath(question.question_text || '请根据你的理解选择答案')" /><p v-if="diagnosis.session.selection_reason" class="question-selection-reason" v-html="renderInlineMath(diagnosis.session.selection_reason)" /><div class="option-list"><label v-for="(option, index) in question.options || []" :key="option" class="option-item" :class="{ selected: selectedAnswer === index }"><input v-model="selectedAnswer" type="radio" :value="index" /><span class="option-key">{{ String.fromCharCode(65 + index) }}</span><span v-html="renderInlineMath(option)" /></label></div><button class="button button-primary button-full" :disabled="selectedAnswer === null" @click="answer">提交答案 <ArrowRight :size="17" /></button></div>
           <StateBlocks v-else type="loading" message="正在准备下一道题目。" />
         </section>
         <aside class="page-stack">

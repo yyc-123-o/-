@@ -82,6 +82,14 @@ def test_zero_data_profile_gets_complete_conservative_path(catalog) -> None:
     assert sum(node.status is PathStatus.AVAILABLE for node in decision.nodes) == 1
 
 
+def test_planned_node_exposes_chinese_concept_title(catalog) -> None:
+    decision = CoursePlanner(catalog).plan(make_profile(catalog))
+
+    node = node_for(decision, "math.linear-algebra.scalar")
+
+    assert node.title == catalog.get_concept(node.concept_id).names.zh
+
+
 def test_high_confidence_mastery_keeps_node_as_skipped(catalog) -> None:
     profile = make_profile(
         catalog,

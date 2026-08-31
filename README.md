@@ -72,8 +72,14 @@ from correctly typed candidate material. Platform run records, assessment
 idempotency records, knowledge-tracing observations, and LangGraph planning
 checkpoints are persisted in the SQLite file configured by
 `SKILLFORGE_PLATFORM_STATE_DB` (default: `.skillforge/platform.sqlite3`), so a
-service restart can resume an existing learning path. Real model calls and
-authentication remain outside this release.
+service restart can resume an existing learning path. The resource preview
+writer uses an OpenAI-compatible model when `SKILLFORGE_LLM_ENABLED=true`,
+`SKILLFORGE_LLM_BASE_URL`, `SKILLFORGE_LLM_MODEL`, and
+`SKILLFORGE_LLM_API_KEY` are set in the local `.env`. The model receives only
+the immutable learner context, planning policy, and retrieved evidence. Its
+structured lecture, practical guide, and assessment output is audited before
+display; malformed or unavailable model responses fall back to the deterministic
+preview writer.
 
 The console also accepts an optional target concept ID, for example
 `dl.cnn.convolution`. The target is recorded as the learner's focus while the
