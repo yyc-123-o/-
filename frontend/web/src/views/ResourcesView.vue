@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
-import MarkdownIt from "markdown-it";
-import markdownItKatex from "markdown-it-katex";
-import "katex/dist/katex.min.css";
+import { renderMarkdown, renderInlineMath } from "@/utils/math";
 import { BookOpen, CheckCircle2, Code2, Dumbbell, FileCheck2, MessageCircle, RefreshCw, Sparkles } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import ResourceCard from "@/components/ResourceCard.vue";
@@ -14,28 +12,7 @@ import { useLearningPathStore } from "@/stores/learningPath";
 const router = useRouter();
 const path = useLearningPathStore();
 const active = ref("lecture");
-const md = new MarkdownIt({ html: false, breaks: true }).use(markdownItKatex);
-
-function normalizeMath(value: string): string {
-  const protectedParts: string[] = [];
-  const protectedText = String(value).replace(
-    /```[\s\S]*?```|`[^`\n]*`|\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$/g,
-    (part) => {
-      const index = protectedParts.push(part) - 1;
-      return `\uE000${index}\uE001`;
-    },
-  );
-  let normalized = protectedText
-    .replace(/\bfloor\(\(([^)\n]+)\)\s*\/\s*([^)]+)\)\s*\+\s*1\b/g, (_, numerator, denominator) =>
-      `$\\left\\lfloor\\frac{${numerator}}{${denominator}}\\right\\rfloor+1$`,
-    )
-    .replace(/\b(\d+(?:\.\d+)?(?:\s*[×x]\s*\d+){1,3})\b/g, (_, dimensions) => `$${dimensions.replaceAll("×", "\\times")}$`)
-    .replace(/\b([A-Za-z][A-Za-z0-9_']*)\s*(=|<|>)\s*(-?\d+(?:\.\d+)?)\b/g, (_, name, operator, number) => `$${name}${operator}${number}$`)
-    .replace(/\b([A-Za-z][A-Za-z0-9_']*)\s*([·Σ×])\s*([A-Za-z][A-Za-z0-9_]*)\b/g, (_, left, operator, right) =>
-      `$${left}${operator === "Σ" ? "\\sum" : "\\cdot"}${right}$`,
-    );
-  return normalized.replace(/\uE000(\d+)\uE001/g, (_, index) => protectedParts[Number(index)]);
-}
+const md = { render: renderMarkdown, renderInline: renderInlineMath };
 const resources = computed(() => path.run?.resources as Record<string, any> | null);
 const currentConceptTitle = computed(() => {
   const pathTitle = path.currentNode?.title || path.currentNode?.name;
@@ -200,7 +177,7 @@ onMounted(() => {
       <section class="resource-context"><div class="resource-context-icon"><Code2 :size="22" /></div><div><span class="eyebrow">CURRENT NODE</span><h2>{{ currentConceptTitle }}</h2><p>{{ path.currentNode?.summary || "围绕当前推荐节点完成一次讲解、练习和测评。" }}</p></div><span class="status-pill" :class="{ 'status-pill-success': resourceStatus === '正式资源' }">{{ resourceStatus }}</span><button class="button button-secondary compact-button" :disabled="quizRefreshing" @click="refreshLesson"><RefreshCw :size="15" /> {{ quizRefreshing ? "正在生成…" : "按最新画像生成教案" }}</button></section>
       <p v-if="learningNotice" class="learning-notice">{{ learningNotice }}</p>
       <div class="resource-card-grid"><ResourceCard v-for="item in resourceCards" :key="item.key" :title="item.title" :description="item.description" :kind="item.kind" :status="resourceStatus" @open="active = item.key" /></div>
-  <div class="content-grid content-grid-main"><section class="panel learning-reader"><div class="reader-tabs"><button v-for="item in resourceCards" :key="item.key" :class="{ active: active === item.key }" @click="active = item.key">{{ item.title }}</button></div><article v-if="active !== 'quiz'" class="markdown-content" v-html="md.render(normalizeMath(content))" /><section v-else class="quiz-reader"><div><span class="eyebrow">KNOWLEDGE CHECK</span><h2>小测验</h2><p v-html="md.renderInline(normalizeMath(draft?.student_quiz?.instructions || '完成所有题目后提交，结果会更新当前知识点掌握度。'))" /></div><div v-if="!quizItems.length" class="state-block"><strong>测验准备中</strong><p>当前资源包未包含可作答的小测验。</p></div><form v-else class="quiz-form" @submit.prevent="submitQuiz"><fieldset v-for="(question, questionIndex) in quizItems" :key="question.question_id" class="quiz-question" :disabled="quizSubmitting || quizSubmitted || quizRefreshing"><legend>第 {{ questionIndex + 1 }} 题</legend><p v-html="md.renderInline(normalizeMath(question.prompt || ''))" /><label v-for="(choice, choiceIndex) in question.choices" :key="choiceIndex" class="quiz-option" :class="{ selected: quizResponses[question.question_id] === choiceIndex }"><input v-model="quizResponses[question.question_id]" type="radio" :name="question.question_id" :value="choiceIndex" /><span>{{ String.fromCharCode(65 + choiceIndex) }}</span><b v-html="md.renderInline(normalizeMath(choice))" /></label></fieldset><p v-if="quizError" class="inline-error">{{ quizError }}</p><p v-if="quizSubmitted" class="quiz-success">答案已提交，学习路径已按测验结果更新。</p><div class="quiz-actions"><button class="button button-primary" type="submit" :disabled="!quizReady || quizSubmitting || quizSubmitted || quizRefreshing">{{ quizSubmitting ? "正在评分…" : quizSubmitted ? "已提交" : `提交 ${quizItems.length} 题并更新路径` }}</button><button class="button button-secondary" type="button" :disabled="quizSubmitting || quizRefreshing" @click="refreshQuiz"><RefreshCw :size="16" /> {{ quizRefreshing ? "正在重新生成…" : "重新生成本节小测" }}</button></div></form></section><div class="reader-actions"><button class="button button-secondary" @click="router.push('/assessment')"><FileCheck2 :size="16" /> 去完成测评</button><button class="button button-primary" @click="path.completeNode"><CheckCircle2 :size="16" /> 标记已完成</button></div></section><aside class="page-stack"><AICoachPanel @send="ask" /><section class="panel source-panel"><div class="panel-heading"><div><span class="eyebrow">EVIDENCE MANIFEST</span><h3>知识来源</h3></div><BookOpen :size="18" class="icon-muted" /></div><p>资源生成会区分正式依据和 candidate preview，当前结果以服务端返回的状态为准。</p><div class="source-status"><span class="online-dot" /> 已连接知识检索服务</div></section></aside></div>
+      <div class="content-grid content-grid-main"><section class="panel learning-reader"><div class="reader-tabs"><button v-for="item in resourceCards" :key="item.key" :class="{ active: active === item.key }" @click="active = item.key">{{ item.title }}</button></div><article v-if="active !== 'quiz'" class="markdown-content" v-html="md.render(content)" /><section v-else class="quiz-reader"><div><span class="eyebrow">KNOWLEDGE CHECK</span><h2>小测验</h2><p v-html="md.renderInline(draft?.student_quiz?.instructions || '完成所有题目后提交，结果会更新当前知识点掌握度。')" /></div><div v-if="!quizItems.length" class="state-block"><strong>测验准备中</strong><p>当前资源包未包含可作答的小测验。</p></div><form v-else class="quiz-form" @submit.prevent="submitQuiz"><fieldset v-for="(question, questionIndex) in quizItems" :key="question.question_id" class="quiz-question" :disabled="quizSubmitting || quizSubmitted || quizRefreshing"><legend>第 {{ questionIndex + 1 }} 题</legend><p v-html="md.renderInline(question.prompt || '')" /><label v-for="(choice, choiceIndex) in question.choices" :key="choiceIndex" class="quiz-option" :class="{ selected: quizResponses[question.question_id] === choiceIndex }"><input v-model="quizResponses[question.question_id]" type="radio" :name="question.question_id" :value="choiceIndex" /><span>{{ String.fromCharCode(65 + choiceIndex) }}</span><b v-html="md.renderInline(choice)" /></label></fieldset><p v-if="quizError" class="inline-error">{{ quizError }}</p><p v-if="quizSubmitted" class="quiz-success">答案已提交，学习路径已按测验结果更新。</p><div class="quiz-actions"><button class="button button-primary" type="submit" :disabled="!quizReady || quizSubmitting || quizSubmitted || quizRefreshing">{{ quizSubmitting ? "正在评分…" : quizSubmitted ? "已提交" : `提交 ${quizItems.length} 题并更新路径` }}</button><button class="button button-secondary" type="button" :disabled="quizSubmitting || quizRefreshing" @click="refreshQuiz"><RefreshCw :size="16" /> {{ quizRefreshing ? "正在重新生成…" : "重新生成本节小测" }}</button></div></form></section><div class="reader-actions"><button class="button button-secondary" @click="router.push('/assessment')"><FileCheck2 :size="16" /> 去完成测评</button><button class="button button-primary" @click="path.completeNode"><CheckCircle2 :size="16" /> 标记已完成</button></div></section><aside class="page-stack"><AICoachPanel @send="ask" /><section class="panel source-panel"><div class="panel-heading"><div><span class="eyebrow">EVIDENCE MANIFEST</span><h3>知识来源</h3></div><BookOpen :size="18" class="icon-muted" /></div><p>资源生成会区分正式依据和 candidate preview，当前结果以服务端返回的状态为准。</p><div class="source-status"><span class="online-dot" /> 已连接知识检索服务</div></section></aside></div>
     </template>
   </div>
 </template>

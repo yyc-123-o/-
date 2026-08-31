@@ -649,4 +649,5 @@ p { color: var(--muted); line-height: 1.75; }
   .learning-change-strip { grid-template-columns: repeat(3, 1fr); }.learning-change-strip p { grid-column: 1 / -1; }.next-action-card { grid-template-columns: 40px minmax(0, 1fr); }.next-action-card .button { grid-column: 1 / -1; width: 100%; justify-content: center; }
 }
 @media (max-width: 620px) { .learning-change-strip { grid-template-columns: 1fr; }.learning-change-strip p { grid-column: auto; }.learning-toolbar { align-items: flex-start; flex-direction: column; }.weekly-plan { grid-template-columns: 1fr; }.weekly-plan p { grid-column: auto; } }
-.markdown-content .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+.markdown-content .katex-display { display: block; clear: both; overflow-x: auto; overflow-y: hidden; min-height: 1.2em; margin: 1.25em 0; padding: 4px 0; line-height: 1.2; }
+.markdown-content .katex-display > .katex { display: inline-block; line-height: 1.2; }
