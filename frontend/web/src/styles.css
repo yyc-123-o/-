@@ -608,9 +608,7 @@ p { color: var(--muted); line-height: 1.75; }
 .outcome-hint { margin-top: 14px; padding: 12px 14px; color: var(--muted); background: var(--surface-soft); border: 1px dashed var(--line); border-radius: 11px; font-size: 11px; }
 .markdown-content pre { overflow-x: auto; margin: 16px 0; padding: 16px 18px; color: #f8fafc; background: #182b45; border: 1px solid #284568; border-radius: 10px; line-height: 1.65; }
 .markdown-content pre code { display: block; min-width: max-content; padding: 0; color: #f8fafc; background: transparent; border-radius: 0; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; white-space: pre; }
-.markdown-content .katex-display { max-width: 100%; margin: 1.1em 0; overflow-x: auto; overflow-y: hidden; padding: 0.15em 0; }
-.markdown-content .katex { line-height: 1.35; }
-.markdown-content .katex-display > .katex { white-space: nowrap; }
+.markdown-content .katex { line-height: 1.2; }
 .quiz-reader { min-height: 250px; padding: 20px 4px 6px; }
 .quiz-reader h2 { margin: 4px 0 8px; font-size: 21px; }
 .quiz-reader > div > p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -649,5 +647,5 @@ p { color: var(--muted); line-height: 1.75; }
   .learning-change-strip { grid-template-columns: repeat(3, 1fr); }.learning-change-strip p { grid-column: 1 / -1; }.next-action-card { grid-template-columns: 40px minmax(0, 1fr); }.next-action-card .button { grid-column: 1 / -1; width: 100%; justify-content: center; }
 }
 @media (max-width: 620px) { .learning-change-strip { grid-template-columns: 1fr; }.learning-change-strip p { grid-column: auto; }.learning-toolbar { align-items: flex-start; flex-direction: column; }.weekly-plan { grid-template-columns: 1fr; }.weekly-plan p { grid-column: auto; } }
-.markdown-content .katex-display { display: block; clear: both; overflow-x: auto; overflow-y: hidden; min-height: 1.2em; margin: 1.25em 0; padding: 4px 0; line-height: 1.2; }
-.markdown-content .katex-display > .katex { display: inline-block; line-height: 1.2; }
+.markdown-content .katex-display { display: block; clear: both; max-width: 100%; overflow-x: auto; overflow-y: hidden; min-height: 1.2em; margin: 1.25em 0; padding: 4px 0; line-height: 1.2; }
+.markdown-content .katex-display > .katex { display: inline-block; white-space: nowrap; line-height: 1.2; }
