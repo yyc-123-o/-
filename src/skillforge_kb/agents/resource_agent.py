@@ -298,7 +298,7 @@ def _personalization(
         exercise_difficulty_distribution=distribution,
         review_intensity=3 if mastery < 0.30 else 2 if mastery < 0.70 else 1,
         debugging_emphasis=(
-            3 if {"logic_jump", "calculation_error"} & error_codes else 2
+            3 if {"logic_gap", "calculation_error"} & error_codes else 2
         ),
         presentation_preferences=tuple(profile.preferences.presentation),
     )
@@ -385,14 +385,14 @@ def _preview_draft(
     return StructuredResourceDraft(
         lecture=LectureDraft(
             title=f"{topic}：概念讲义",
-            sections=_lecture_sections(topic, outcome, definition_text),
+            sections=_lecture_sections(topic, outcome, definition_text, policy.personalization),
             claims=(lecture_claim,),
             explanation_order=policy.personalization.explanation_order_hint,
             blocks=_lesson_blocks(topic, outcome, definition_text),
         ),
         practical_guide=PracticalGuideDraft(
             title=f"{topic}：实操指南",
-            learning_steps=_practical_steps(topic, outcome, code_text),
+            learning_steps=_practical_steps(topic, outcome, code_text, policy.personalization),
             claims=(practical_claim,),
             notebook_tasks=_notebook_tasks(topic, outcome, code_text),
             experiment_protocol=_experiment_protocol(topic),
@@ -401,7 +401,7 @@ def _preview_draft(
             project_exercise=_project_exercise(topic, outcome),
         ),
         student_quiz=StudentQuizDraft(
-            instructions="Complete each item using the supplied learning resources.",
+            instructions=_quiz_instructions(policy.personalization),
             items=questions,
         ),
         teacher_guide=TeacherGuideDraft(
@@ -467,13 +467,14 @@ def _clean_outcome(value: str) -> str:
     return str(value).strip().rstrip("。.!！?？")
 
 
-def _lecture_sections(topic: str, outcome: str, definition_text: str) -> tuple[str, ...]:
+def _lecture_sections(topic: str, outcome: str, definition_text: str, personalization: PersonalizationPolicy | None = None) -> tuple[str, ...]:
     explanation = _CONCEPT_EXPLANATIONS.get(topic, f"{topic}是本节需要掌握的核心概念。")
     derivation, example, pitfall = _lesson_details(topic)
     enrichment = _lesson_enrichment(topic)
     code_examples = _lesson_code_examples(topic)
+    personalization_note = _personalization_note(personalization)
     return (
-        f"学习目标：{outcome}。完成本节后，你应能从输入约束出发解释“{topic}”，手算一个最小例子，"
+        f"学习目标：{outcome}。个性化起点：{personalization_note}完成本节后，你应能从输入约束出发解释“{topic}”，手算一个最小例子，"
         "并用代码或实验结果验证推导，而不是只复述术语。",
         f"核心概念：{explanation}。先区分对象的表示、允许的操作和输出含义，再决定使用哪条公式或 API。",
         f"证据导读：{definition_text}。阅读证据时圈出定义中的输入、变换和边界条件，后续实验必须覆盖它们。",
@@ -548,41 +549,42 @@ def _lesson_details(topic: str) -> tuple[str, str, str]:
     details = {
         "标量": (
             "标量只有一个数值，不携带方向或坐标。它与向量相乘时会广播到每个分量："
-            "v' = s·v；s 的符号决定是否反向，|s| 决定缩放倍数，s=0 时所有分量都归零。",
-            "设 s=-2.5、v=[3,0,-1]。逐项计算得到 [-7.5,-0.0,2.5]；长度缩放比例为 |s|=2.5，"
-            "方向因 s<0 发生反转。再用 s=1、0、0.5 三个对照值，可以检查单位元、零元和缩放关系。",
+            "$v' = s \\cdot v$；$s$ 的符号决定是否反向，$|s|$ 决定缩放倍数，$s=0$ 时所有分量都归零。",
+            "设 $s=-2.5$、$v=[3,0,-1]$。逐项计算得到 $[-7.5,-0.0,2.5]$；长度缩放比例为 $|s|=2.5$，"
+            "方向因 $s<0$ 发生反转。再用 $s=1$、$0$、$0.5$ 三个对照值，可以检查单位元、零元和缩放关系。",
             "不要把标量乘法和矩阵乘法混淆：前者只需把同一个数应用到每个元素，不要求两个矩阵满足内维相等。"
             "还要注意 Python 列表不能直接做数值缩放，需显式遍历或转换为 NumPy 数组。",
         ),
         "向量": (
-            "把向量写成按顺序排列的分量，例如 v = [v1, v2, v3]。相加时对应位置相加；"
+            "把向量写成按顺序排列的分量，例如 $v=[v_1,v_2,v_3]$。相加时对应位置相加；"
             "点积时对应位置相乘后求和，因此两个向量必须有相同长度。",
-            "令 a = [1, 2, 3]，b = [4, 0, -1]。a + b = [5, 2, 2]；"
-            "a · b = 1×4 + 2×0 + 3×(-1) = 1。",
+            "令 $a=[1,2,3]$，$b=[4,0,-1]$。$a+b=[5,2,2]$；"
+            "$a \\cdot b = 1\\times4 + 2\\times0 + 3\\times(-1) = 1$。",
             "向量的逗号顺序就是维度顺序。把行向量、列向量或不同长度的向量直接相加，会得到错误或不符合预期的广播。",
         ),
         "矩阵": (
-            "矩阵用行和列组织数据。A 的形状记为 (m, n)：m 表示行数，n 表示列数。"
+            "矩阵用行和列组织数据。$A$ 的形状记为 $(m,n)$：$m$ 表示行数，$n$ 表示列数。"
             "逐元素运算需要对应位置存在；矩阵乘法还要求左矩阵列数等于右矩阵行数。",
-            "A = [[1, 2], [3, 4]]，B = [[5, 6], [7, 8]]。A + B 逐元素相加；"
-            "A @ B 的左上角是 1×5 + 2×7 = 19。",
+            "$A=\\begin{bmatrix}1&2\\\\3&4\\end{bmatrix}$，$B=\\begin{bmatrix}5&6\\\\7&8\\end{bmatrix}$。$A+B$ 逐元素相加；"
+            "$A \\cdot B$ 的左上角是 $1\\times5 + 2\\times7 = 19$。",
             "`*` 在 NumPy 中通常表示逐元素乘法，`@` 才表示矩阵乘法。"
             "先打印 shape，再决定用哪个运算符。",
         ),
         "张量": (
             "张量把标量、向量和矩阵推广到更多维度。深度学习中一批彩色图像常写成 "
-            "(batch, channel, height, width)，"
+            "$(batch,channel,height,width)$，"
             "每个轴都表达不同含义，不能因为元素个数相同就随意交换轴。",
-            "一张 RGB 图像的形状可以是 (3, 32, 32)：3 个通道，每个通道 32×32。"
-            "加入 8 张图像的批次后，形状变为 (8, 3, 32, 32)。",
+            "一张 RGB 图像的形状可以是 $(3,32,32)$：3 个通道，每个通道 $32\\times32$。"
+            "加入 8 张图像的批次后，形状变为 $(8,3,32,32)$。",
             "最常见的错误是把 HWC 图像直接传给要求 NCHW 的 PyTorch 层。"
             "尺寸看似正确，但通道轴含义已经错位。",
         ),
         "卷积运算": (
             "二维卷积层在输入特征图上滑动一个小窗口。每个位置把窗口元素与卷积核逐项相乘并求和，"
             "得到输出特征图的一个值。padding 决定边界如何补齐，stride 决定窗口每次移动几格。",
-            "输入高度 H=5，卷积核 K=3，padding P=1，stride S=1 时，输出高度为"
-            " floor((H + 2P - K) / S) + 1 = floor((5 + 2 - 3)/1)+1 = 5。",
+            "输入高度 $H=5$，卷积核 $K=3$，padding $P=1$，stride $S=1$ 时，输出高度为 "
+            "$\\left\\lfloor\\frac{H+2P-K}{S}\\right\\rfloor+1"
+            "$=\\left\\lfloor\\frac{5+2-3}{1}\\right\\rfloor+1=5$。",
             "不要只看 Conv2d 的 `out_channels`。输出空间尺寸同时受 "
             "kernel_size、stride、padding、dilation 影响；"
             "还要确认输入的通道数与 in_channels 一致。",
@@ -661,7 +663,7 @@ def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
         ),
         "卷积运算": PracticeExercise(
             task=(
-                "完成一个可复现实验：先补全 3×3 输入与 2×2 卷积核的单位置互相关，"
+                "完成一个可复现实验：先补全 $3\\times3$ 输入与 $2\\times2$ 卷积核的单位置互相关，"
                 "再实现输出尺寸公式并比较 stride=1/2、padding=0/1 四组参数。"
                 "最后用断言验证手算结果，说明该实验如何对应深度学习框架中的 Conv2d。"
             ),
@@ -691,7 +693,7 @@ def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
             ),
             checks=(
                 "保留 image、kernel 与 window，并使用逐元素乘法后求和",
-                "output_size 使用 floor((size + 2*padding - kernel_size) / stride) + 1",
+                "output_size 使用 $\\left\\lfloor\\frac{size+2\\cdot padding-kernel\\_size}{stride}\\right\\rfloor+1$",
                 "四组参数都生成 shape_report，且 stride=2 的输出更小",
                 "保留 assert 验证单位置结果和实验记录数量",
             ),
@@ -751,8 +753,9 @@ def _practice_exercise(topic: str, outcome: str) -> PracticeExercise:
     )
 
 
-def _practical_steps(topic: str, outcome: str, code_text: str) -> tuple[str, ...]:
-    return (
+def _practical_steps(topic: str, outcome: str, code_text: str, personalization: PersonalizationPolicy | None = None) -> tuple[str, ...]:
+    policy_note = _personalization_note(personalization)
+    steps = (
         f"问题定义：把“{topic}”要解释的现象写成一个可验证问题，并明确本次要支持的学习目标“{outcome}”。",
         f"输入检查：记录输入的类型、形状、取值范围和关键参数；先预测输出，再开始编码。",
         f"基线实现：围绕“{topic}”完成一个最小可运行示例，打印输入、中间值和最终结果。",
@@ -761,6 +764,35 @@ def _practical_steps(topic: str, outcome: str, code_text: str) -> tuple[str, ...
         "边界实验：使用最小尺寸、全零输入或不满足约束的输入，记录程序行为并解释原因。",
         f"迁移验证：把实现改写到一个稍有变化的场景，确认规则仍能支持“{outcome}”。",
         f"结论记录：用三句话写清输入、变换规则、输出变化，并保留可复现的参数表。参考证据：{code_text}",
+    )
+    if policy_note:
+        steps = (f"个性化起点：{policy_note}", *steps)
+    if personalization is not None and personalization.review_intensity >= 3:
+        steps = (*steps, "间隔复习：完成练习后，隔一天不看讲义重做基线题，再用错题原因表复盘。")
+    return steps
+
+
+def _personalization_note(personalization: PersonalizationPolicy | None) -> str:
+    if personalization is None:
+        return ""
+    order_labels = {"intuition": "直觉", "formula": "公式", "code": "代码", "diagram": "图示", "debug": "调试"}
+    order = " → ".join(order_labels.get(item, item) for item in personalization.explanation_order_hint)
+    if personalization.scaffolding_level >= 3:
+        level = "你当前需要更细的分步支架，先完成小例子再进入综合题。"
+    elif personalization.scaffolding_level == 2:
+        level = "你已有部分基础，本节采用示例与公式交替推进。"
+    else:
+        level = "你对相关知识已有较好掌握，本节压缩基础讲解，增加迁移挑战。"
+    presentation = "、".join(personalization.presentation_preferences) or "分步讲解"
+    debug = "重点检查概念混淆和计算过程。" if personalization.debugging_emphasis >= 3 else "遇到错误时记录输入、规则和输出的第一个差异。"
+    return f"{level}讲解顺序为 {order}，呈现方式偏好：{presentation}。{debug}"
+
+
+def _quiz_instructions(personalization: PersonalizationPolicy) -> str:
+    difficulty = personalization.exercise_difficulty_distribution
+    return (
+        f"本次小测按你的学习证据安排：基础题 {difficulty[0]} 道、进阶题 {difficulty[1]} 道、挑战题 {difficulty[2]} 道。"
+        f"请按“{' → '.join(personalization.explanation_order_hint)}”回想解题过程；答错后先记录原因，再进行第 {personalization.review_intensity} 轮复习。"
     )
 
 
@@ -987,37 +1019,37 @@ def _project_exercise(topic: str, outcome: str) -> PracticeExercise:
 def _lesson_enrichment(topic: str) -> tuple[str, str, str]:
     details = {
         "标量": (
-            "标量缩放的核心公式是 v' = s·v。三个不变量可以用来快速验算：输出长度与输入相同；"
-            "s=1 时输出不变；s=0 时输出全为零。若 s<0，向量方向反转但各分量绝对值按 |s| 缩放。",
-            "在 Python 中列表需要显式遍历；在 NumPy 中可直接写 s * np.array(v)。请同时打印原向量、"
-            "缩放结果和 np.linalg.norm 的长度比例，确认代码结果与公式一致，而不是只看一个元素。",
-            "实验前写下四个预测：s=1、0、-1、0.5 分别会发生什么。运行后把预测、实际输出、"
+            "标量缩放的核心公式是 $v'=s\\cdot v$。三个不变量可以用来快速验算：输出长度与输入相同；"
+            "$s=1$ 时输出不变；$s=0$ 时输出全为零。若 $s<0$，向量方向反转但各分量绝对值按 $|s|$ 缩放。",
+            "在 Python 中列表需要显式遍历；在 NumPy 中可直接写 `s * np.array(v)`。请同时打印原向量、"
+            "缩放结果和 `np.linalg.norm` 的长度比例，确认代码结果与公式一致，而不是只看一个元素。",
+            "实验前写下四个预测：$s=1$、$s=0$、$s=-1$、$s=0.5$ 分别会发生什么。运行后把预测、实际输出、"
             "方向变化和长度比例整理成表格，再用一句话说明哪条规律被验证或推翻。",
         ),
         "向量": (
-            "向量加法满足逐分量规则，点积满足 a·b = Σai·bi。点积为零表示正交，交换两个向量不改变结果；"
+            "向量加法满足逐分量规则，点积满足 $a\\cdot b=\\sum_i a_i b_i$。点积为零表示正交，交换两个向量不改变结果；"
             "但逐元素除法与点积不是同一个操作，必须先明确目标输出是标量还是向量。",
-            "用 NumPy 分别打印 a+b、a*b 和 a@b，并标注每个结果的 shape。通过同一组输入观察："
+            "用 NumPy 分别打印 `a + b`、`a * b` 和 `a @ b`，并标注每个结果的 shape。通过同一组输入观察："
             "逐元素运算保留形状，点积会把对应分量乘积求和成一个标量。",
             "实验前预测 b 改成全零、与 a 平行或与 a 垂直时点积的变化，再用三组输入验证几何解释。",
         ),
         "矩阵": (
-            "矩阵乘法的形状规则是 (m,n) @ (n,k) -> (m,k)，每个输出元素是左矩阵一行与右矩阵一列的内积。"
+            "矩阵乘法的形状规则是 $(m,n) \\cdot (n,k) \\rightarrow (m,k)$，每个输出元素是左矩阵一行与右矩阵一列的内积。"
             "逐元素乘法不改变形状，不能用 * 代替 @。",
-            "为同一对矩阵分别计算 A*B 与 A@B，逐项解释左上角元素的来源，并用 shape 检查维度约束。"
+            "为同一对矩阵分别计算 `A * B` 与 `A @ B`，逐项解释左上角元素的来源，并用 shape 检查维度约束。"
             "再交换 A、B，观察结果是否相同，以验证矩阵乘法通常不满足交换律。",
             "实验前预测转置、交换顺序和单位矩阵会如何影响结果；运行后保留中间乘积，定位任何不一致的步骤。",
         ),
         "张量": (
-            "张量的每个轴都有语义。图像常用 NCHW 表示 (batch, channel, height, width)，改变轴顺序不会改变元素总数，"
+            "张量的每个轴都有语义。图像常用 NCHW 表示 $(batch, channel, height, width)$，改变轴顺序不会改变元素总数，"
             "但会改变算子的解释。卷积层还要求输入 channel 与 in_channels 对齐。",
-            "构造一个 (2,3,4,4) 的张量，分别沿 batch、channel 和空间轴求均值并打印 shape，观察每一步保留的语义。"
+            "构造一个 $(2,3,4,4)$ 的张量，分别沿 batch、channel 和空间轴求均值并打印 shape，观察每一步保留的语义。"
             "再用 permute 交换轴，比较同一层接收前后的 shape。",
             "实验前预测 NCHW 与 NHWC 互换后哪一维会触发错误；用断言和异常信息记录框架真正检查的是哪个约束。",
         ),
         "卷积运算": (
-            "二维卷积输出尺寸为 floor((H+2P-K)/S)+1，通道和空间尺寸是两套独立约束。参数量为"
-            " K_h·K_w·C_in·C_out（若有 bias 再加 C_out），不能只根据输出高宽判断模型大小。",
+            "二维卷积输出尺寸为 $\\left\\lfloor\\frac{H+2P-K}{S}\\right\\rfloor+1$，通道和空间尺寸是两套独立约束。参数量为"
+            "$K_h\\cdot K_w\\cdot C_{in}\\cdot C_{out}$（若有 bias 再加 $C_{out}$），不能只根据输出高宽判断模型大小。",
             "用同一输入依次改变 stride、padding 和 out_channels，分别打印输出 shape 与参数量。"
             "将手算公式、框架结果和参数量放在一行对照，确认空间下采样与通道扩展是不同现象。",
             "实验前预测 stride=2、padding=0 和 kernel 变大时的输出尺寸；运行后解释每个差异来自公式中的哪一项。",
@@ -1051,14 +1083,14 @@ def _experiment_protocol(topic: str) -> tuple[str, ...]:
             "结论：用一张表说明标量的符号、绝对值如何影响向量的方向与长度。",
         ),
         "卷积运算": (
-            "基线：输入 5×5，kernel=3，padding=1，stride=1；手算并记录输出尺寸。",
+            "基线：输入 $5\\times5$，`kernel=3`、`padding=1`、`stride=1`；手算并记录输出尺寸。",
             "变量一：只将 stride 改为 2，比较空间尺寸变化，解释下采样来源。",
             "变量二：只将 padding 改为 0，观察边界信息减少后的输出差异。",
             "边界：使用 kernel 大于输入的组合，记录框架报错并说明约束。",
             "结论：用输出 shape 和公式逐项验证 Conv2d 的参数含义。",
         ),
         "互相关": (
-            "基线：用非对称 2×2 kernel 完成一次滑窗逐元素乘加。",
+            "基线：用非对称 $2\\times2$ kernel 完成一次滑窗逐元素乘加。",
             "变量：将 kernel 上下、左右翻转，分别记录互相关与数学卷积结果。",
             "对照：使用对称 kernel，确认翻转后结果可能相同的条件。",
             "边界：改变 stride，说明采样位置减少如何影响输出覆盖范围。",
@@ -1076,19 +1108,19 @@ def _experiment_protocol(topic: str) -> tuple[str, ...]:
 
 _PREVIEW_QUIZ_BANK: dict[str, tuple[tuple[str, tuple[str, ...], int], ...]] = {
     "标量": (
-        ("下列哪一项是标量？", ("图像的高和宽", "模型训练中的学习率 0.01", "二维坐标 (2, 3)"), 1),
+        ("下列哪一项是标量？", ("图像的高和宽", "模型训练中的学习率 $0.01$", "二维坐标 $(2,3)$"), 1),
         ("标量与向量的主要区别是什么？", ("标量只有一个数值，不携带方向或多个分量", "标量一定比向量大", "标量只能是正数"), 0),
-        ("向量 v = [2, -1] 乘以标量 3，结果是？", ("[6, -3]", "[5, 2]", "[2, -1, 3]"), 0),
-        ("向量 v = [2, -1] 乘以标量 0，结果是？", ("[2, -1]", "[0, 0]", "[-2, 1]"), 1),
+        ("向量 $v=[2,-1]$ 乘以标量 $3$，结果是？", ("$[6,-3]$", "$[5,2]$", "$[2,-1,3]$"), 0),
+        ("向量 $v=[2,-1]$ 乘以标量 $0$，结果是？", ("$[2,-1]$", "$[0,0]$", "$[-2,1]$"), 1),
         ("NumPy 中 `np.array([1, 2]) * 4` 的结果是？", ("[1, 2, 1, 2, 1, 2, 1, 2]", "[4, 8]", "6"), 1),
         ("训练代码中 `loss.item()` 通常用于得到什么？", ("一个可记录的标量损失值", "损失函数的完整代码", "一个新的特征向量"), 0),
         ("若 `scale = [0.5]`，却想用它缩放向量 `v`，更合适的写法是？", ("把 `scale` 转成一个数值标量后再与 `v` 相乘", "把 `v` 转成字符串", "删除 `v` 的所有元素"), 0),
         ("下列哪个任务最适合用标量表示？", ("记录一次预测的置信度", "表示一张 RGB 图像", "保存一批样本的特征矩阵"), 0),
     ),
     "向量": (
-        ("二维向量 v = [3, 4] 最恰当的解释是？", ("它表示两个有顺序的分量，可描述位移或两个特征", "它是一个只有大小、没有分量的数", "它是一张二维表格"), 0),
-        ("点 (2, 1) 与向量 [2, 1] 的区别是？", ("二者完全等价，任何场景都可替换", "点表示位置，向量表示位移或方向和大小", "向量只能有一个分量"), 1),
-        ("a = [1, 2, 3]，b = [4, 5, 6]，a + b 的结果是？", ("[5, 7, 9]", "[4, 10, 18]", "[1, 2, 3, 4, 5, 6]"), 0),
+        ("二维向量 $v=[3,4]$ 最恰当的解释是？", ("它表示两个有顺序的分量，可描述位移或两个特征", "它是一个只有大小、没有分量的数", "它是一张二维表格"), 0),
+        ("点 $(2,1)$ 与向量 $[2,1]$ 的区别是？", ("二者完全等价，任何场景都可替换", "点表示位置，向量表示位移或方向和大小", "向量只能有一个分量"), 1),
+        ("$a=[1,2,3]$，$b=[4,5,6]$，$a+b$ 的结果是？", ("$[5,7,9]$", "$[4,10,18]$", "$[1,2,3,4,5,6]$"), 0),
         ("长度为 3 的向量与长度为 2 的向量能直接逐元素相加吗？", ("能，短向量会自动补零", "不能，逐元素加法要求对应分量数量一致", "能，结果一定是长度为 5 的向量"), 1),
         ("NumPy 中 `np.array([1, 2]) * 3` 的结果是？", ("[1, 2, 1, 2, 1, 2]", "[3, 6]", "5"), 1),
         ("`np.dot([1, 2], [3, 4])` 的结果是？", ("[3, 8]", "[4, 6]", "11"), 2),
