@@ -649,3 +649,4 @@ p { color: var(--muted); line-height: 1.75; }
 @media (max-width: 620px) { .learning-change-strip { grid-template-columns: 1fr; }.learning-change-strip p { grid-column: auto; }.learning-toolbar { align-items: flex-start; flex-direction: column; }.weekly-plan { grid-template-columns: 1fr; }.weekly-plan p { grid-column: auto; } }
 .markdown-content .katex-display { display: block; clear: both; max-width: 100%; overflow-x: auto; overflow-y: hidden; min-height: 1.2em; margin: 1.25em 0; padding: 4px 0; line-height: 1.2; }
 .markdown-content .katex-display > .katex { display: inline-block; white-space: nowrap; line-height: 1.2; }
+.markdown-content p:has(> .katex-display) { margin: 0; line-height: 1.2; }

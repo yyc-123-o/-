@@ -11,11 +11,11 @@ export function normalizeMath(value: string, promoteComplex = true): string {
   return segments.map((segment, index) => {
     if (index % 2 === 1) {
       const textFence = segment.match(/^(?:```|~~~)text\s*\n([\s\S]*?)\n(?:```|~~~)$/i);
-      return textFence ? `\n$$\n${normalizeLegacyMath(textFence[1])}\n$$\n` : segment;
+      return textFence ? `\n\n$$\n${normalizeLegacyMath(textFence[1])}\n$$\n\n` : segment;
     }
     const normalized = normalizeBareTex(normalizeLegacyMath(segment))
       .replace(/\\\(([^\n]*?)\\\)/g, (_match, body: string) => "$" + body + "$")
-      .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body: string) => promoteComplex ? "\n$$\n" + body + "\n$$\n" : "$" + body + "$");
+      .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body: string) => promoteComplex ? "\n\n$$\n" + body + "\n$$\n\n" : "$" + body + "$");
     return promoteComplex ? promoteComplexMath(normalized) : normalized;
   }).join("");
 }
@@ -23,13 +23,13 @@ export function normalizeMath(value: string, promoteComplex = true): string {
 /** Keep tall TeX constructs out of paragraph line boxes. */
 function promoteComplexMath(value: string): string {
   const blockSafe = value.replace(/\$\$([\s\S]*?)\$\$/g, (_match, body: string) =>
-    `\n$$\n${body.trim()}\n$$\n`,
+    `\n\n$$\n${body.trim()}\n$$\n\n`,
   );
   return blockSafe.replace(/\$(?!\$)([^$\n]*?)\$/g, (match, body: string) => {
     if (!/(?:\\begin\{|\\end\{|\\matrix|\\frac|\\sum|\\prod|\\left|\\right)/.test(body)) {
       return match;
     }
-    return `\n$$\n${body}\n$$\n`;
+    return `\n\n$$\n${body}\n$$\n\n`;
   });
 }
 
