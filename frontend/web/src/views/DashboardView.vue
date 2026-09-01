@@ -481,4 +481,3 @@ onMounted(() => {
     </section>
   </div>
 </template>
-
