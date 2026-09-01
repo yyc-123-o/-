@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, ref } from "vue";
 import { ArrowRight, BarChart3, CheckCircle2, CircleAlert, FileCheck2 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
@@ -27,7 +27,11 @@ async function submit() {
     if (feedback.value?.status) path.setRun(feedback.value);
     submitted.value = true;
   } catch (error) {
-    feedback.value = { failure: { message: error instanceof Error ? error.message : "测评提交失败" } };
+    feedback.value = {
+      failure: {
+        message: error instanceof Error ? error.message : "测评提交失败",
+      },
+    };
   }
 }
 </script>

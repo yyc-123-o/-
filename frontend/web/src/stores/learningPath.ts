@@ -12,6 +12,7 @@ export const useLearningPathStore = defineStore("learningPath", () => {
   const loading = ref(false);
   const error = ref("");
   const learner = useLearnerStore();
+
   const nodes = computed<PathNode[]>(() => run.value?.planning?.path?.nodes || []);
   const currentNode = computed(() => run.value?.planning?.current_node || nodes.value.find((node) => node.status === "available"));
   function persistRun() { localStorage.setItem(RUN_KEY, JSON.stringify(run.value)); }
