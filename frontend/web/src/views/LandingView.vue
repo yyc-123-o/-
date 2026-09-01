@@ -582,6 +582,10 @@ onBeforeUnmount(() => {
   margin: 0 auto;
 }
 
+.product-home main > section[id] {
+  scroll-margin-top: 104px;
+}
+
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1.05fr);
