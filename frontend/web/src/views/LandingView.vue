@@ -1,249 +1,1568 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
-import { ArrowRight, BookOpenText, Compass, Sparkles } from "lucide-vue-next";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
+import {
+  ArrowRight,
+  Database,
+  FileText,
+  GitBranch,
+  GraduationCap,
+  Library,
+  ChevronRight,
+  Route,
+  School,
+  ShieldCheck,
+  Sparkles,
+  Workflow,
+  BrainCircuit,
+  FileSearch,
+  Layers3,
+  MoveRight,
+  RefreshCw,
+} from "lucide-vue-next";
+import HomeNavbar from "@/components/layout/HomeNavbar.vue";
+import BrandWordmark from "@/components/layout/BrandWordmark.vue";
+import GuideFigure from "@/components/illustrations/GuideFigure.vue";
 
-const topLinks = [
-  { label: "学习方式", href: "#learn" },
-  { label: "个性化路径", href: "#path" },
-  { label: "AI 学习助手", href: "#assistant" },
-  { label: "关于知径", href: "#about" },
+type RoleKey = "builder" | "teacher" | "learner" | "institution";
+type StepKey = "materials" | "organize" | "understand" | "plan" | "generate" | "feedback";
+
+interface RoleCard {
+  key: RoleKey;
+  title: string;
+  subtitle: string;
+  description: string;
+  badge: string;
+  previewTitle: string;
+  previewItems: string[];
+  icon: typeof Library;
+}
+
+interface WorkflowStep {
+  key: StepKey;
+  title: string;
+  summary: string;
+  detail: string;
+  badge: string;
+  previewTitle: string;
+  previewLines: string[];
+  icon: typeof FileText;
+}
+
+const heroTags = ["知识库治理", "智能课程规划", "多智能体协作"];
+
+const roleCards: RoleCard[] = [
+  {
+    key: "builder",
+    title: "课程建设者",
+    subtitle: "先把课程资料整理成可信知识资产",
+    description: "管理课程资料、维护知识图谱、追踪来源与审核状态，让后续规划建立在可追溯证据上。",
+    badge: "知识库与证据",
+    previewTitle: "课程建设者看到的界面",
+    previewItems: ["课程文档切分与索引", "知识单元与先修关系", "正式证据 / 候选证据", "审核状态与引用来源"],
+    icon: Library,
+  },
+  {
+    key: "teacher",
+    title: "教师与教学管理者",
+    subtitle: "快速判断哪里该讲、哪里该补",
+    description: "通过学情诊断、知识盲区和课程建议，把教学关注点从“内容堆叠”转向“重点补救”。",
+    badge: "学情与课堂",
+    previewTitle: "教师侧重点",
+    previewItems: ["学习者画像摘要", "薄弱知识点提醒", "路径推荐与讲解建议", "练习与测评生成"],
+    icon: GraduationCap,
+  },
+  {
+    key: "learner",
+    title: "学习者",
+    subtitle: "得到真正适合自己的下一步",
+    description: "学习路径会根据掌握情况动态变化，已会的可以跳过，不会的自动进入补救队列。",
+    badge: "个性化路径",
+    previewTitle: "学习者看到的路径",
+    previewItems: ["基础知识补救", "核心概念推进", "练习与反馈闭环", "掌握度持续更新"],
+    icon: Route,
+  },
+  {
+    key: "institution",
+    title: "学校与教育机构",
+    subtitle: "统一管理课程资产和教学质量",
+    description: "从课程资产治理到运行质量追踪，平台支持规模化的智能教学服务与资源协同。",
+    badge: "规模化治理",
+    previewTitle: "机构视角",
+    previewItems: ["课程资产统一管理", "知识图谱协同维护", "Agent 运行状态", "教学效果持续追踪"],
+    icon: School,
+  },
 ];
 
-const diagnosisTags = ["基础信息", "知识水平", "学习目标"];
-const footerLinks = ["产品介绍", "使用帮助", "联系我们"];
+const workflowSteps: WorkflowStep[] = [
+  {
+    key: "materials",
+    title: "资料进入",
+    summary: "接入 PDF、HTML 和课程文档",
+    detail: "把分散的课程材料统一接入平台，形成可处理、可追溯、可再利用的知识来源。",
+    badge: "输入层",
+    previewTitle: "资料接入预览",
+    previewLines: ["PDF 教材", "HTML 教案", "课堂讲义", "资源链接"],
+    icon: FileText,
+  },
+  {
+    key: "organize",
+    title: "知识被组织",
+    summary: "清洗、切分、索引并构建知识图谱",
+    detail: "系统保留来源、定位和审核状态，让知识单元不是孤立文本，而是可治理的结构化资产。",
+    badge: "组织层",
+    previewTitle: "知识库视图",
+    previewLines: ["知识单元切分", "来源与引用", "正式证据", "候选证据"],
+    icon: Database,
+  },
+  {
+    key: "understand",
+    title: "学情被理解",
+    summary: "诊断与画像形成学习状态",
+    detail: "通过测评、学习行为和掌握度数据，系统理解当前学到哪一步、卡在哪一步。",
+    badge: "诊断层",
+    previewTitle: "学习者画像",
+    previewLines: ["掌握度趋势", "知识盲区", "学习目标", "置信度状态"],
+    icon: BrainCircuit,
+  },
+  {
+    key: "plan",
+    title: "路径被规划",
+    summary: "CoursePlanner 生成个性化课程路径",
+    detail: "先修关系和学习状态共同决定学习顺序，已掌握内容可以跳过，缺口内容自动补救。",
+    badge: "规划层",
+    previewTitle: "课程路径",
+    previewLines: ["基础知识", "核心概念", "实践应用", "综合能力"],
+    icon: Route,
+  },
+  {
+    key: "generate",
+    title: "资源被生成",
+    summary: "讲义、练习、测验与项目任务",
+    detail: "课程节点、证据和画像共同决定资源深度，让生成内容有依据，也更贴近当前需求。",
+    badge: "生成层",
+    previewTitle: "资源输出",
+    previewLines: ["讲解卡片", "练习任务", "测验题目", "项目单元"],
+    icon: Layers3,
+  },
+  {
+    key: "feedback",
+    title: "反馈推动下一次规划",
+    summary: "测评结果回流到掌握度更新",
+    detail: "学习结果不会停在一次操作里，而是继续影响下一轮路径和资源建议。",
+    badge: "闭环层",
+    previewTitle: "反馈闭环",
+    previewLines: ["测评提交", "掌握度更新", "路径重算", "下一步建议"],
+    icon: RefreshCw,
+  },
+];
 
-let observer: IntersectionObserver | null = null;
+const activeRoleKey = ref<RoleKey>("builder");
+const activeStepKey = ref<StepKey>("organize");
+const revealCleanup: Array<() => void> = [];
+
+const activeRole = computed(() => roleCards.find((item) => item.key === activeRoleKey.value) || roleCards[0]);
+const activeStep = computed(() => workflowSteps.find((item) => item.key === activeStepKey.value) || workflowSteps[0]);
+
+const agentFlow = [
+  { title: "测评完成", detail: "记录掌握度变化", tone: "done" },
+  { title: "识别盲区", detail: "定位需要补救的先修知识", tone: "review" },
+  { title: "调整路径", detail: "CoursePlanner 重算下一步", tone: "current" },
+  { title: "检索证据", detail: "Domain Retrieval Agent 查找依据", tone: "support" },
+  { title: "生成资源", detail: "Resource Generation Agent 输出内容", tone: "support" },
+  { title: "更新状态", detail: "反馈写回学习画像", tone: "done" },
+];
+
+const governanceColumns = [
+  {
+    title: "课程资料",
+    items: ["PDF 教材", "HTML 讲义", "课堂笔记", "资源链接"],
+  },
+  {
+    title: "知识图谱",
+    items: ["知识单元", "先修关系", "知识缺口", "路径约束"],
+  },
+  {
+    title: "证据状态",
+    items: ["正式证据", "候选证据", "许可证", "审核结果"],
+  },
+];
+
+const planningCards = [
+  {
+    learner: "学习者 A",
+    title: "基础已掌握，直接进入核心概念",
+    chips: ["基础知识", "核心概念", "实践任务"],
+    state: ["已掌握", "进行中", "待学习"],
+  },
+  {
+    learner: "学习者 B",
+    title: "先补先修知识，再进入主路径",
+    chips: ["补救队列", "引导练习", "核心概念", "测评反馈"],
+    state: ["待补救", "进行中", "待学习", "反馈更新"],
+  },
+];
+
+function setActiveRole(key: RoleKey) {
+  activeRoleKey.value = key;
+}
+
+function setActiveStep(key: StepKey) {
+  activeStepKey.value = key;
+}
 
 onMounted(() => {
-  const items = document.querySelectorAll<HTMLElement>("[data-reveal]");
-  observer = new IntersectionObserver(
+  if (typeof document === "undefined" || typeof IntersectionObserver === "undefined") return;
+  const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+  const observer = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("is-visible");
-          observer?.unobserve(entry.target);
-        }
+        if (entry.isIntersecting) entry.target.classList.add("is-visible");
       });
     },
-    { threshold: 0.18 },
+    { threshold: 0.14, rootMargin: "0px 0px -10% 0px" },
   );
-  items.forEach((item) => observer?.observe(item));
+  sections.forEach((section) => {
+    observer.observe(section);
+    revealCleanup.push(() => observer.unobserve(section));
+  });
+  revealCleanup.push(() => observer.disconnect());
 });
 
-onBeforeUnmount(() => observer?.disconnect());
+onBeforeUnmount(() => {
+  revealCleanup.forEach((cleanup) => cleanup());
+});
 </script>
 
 <template>
-  <div class="landing-page">
-    <header class="landing-header">
-      <RouterLink to="/" class="landing-brand" aria-label="知径首页">
-        <span class="landing-mark">知</span>
-        <span>
-          <strong>知径</strong>
-          <small>AI 个性化学习平台</small>
-        </span>
-      </RouterLink>
-      <nav class="landing-nav" aria-label="主导航">
-        <a v-for="item in topLinks" :key="item.href" :href="item.href">{{ item.label }}</a>
-      </nav>
-      <div class="landing-actions">
-        <RouterLink to="/dashboard" class="button button-quiet landing-link-button">登录</RouterLink>
-        <RouterLink to="/diagnosis" class="button button-primary">开始体验 <ArrowRight :size="16" /></RouterLink>
-      </div>
-    </header>
+  <div class="product-home">
+    <HomeNavbar />
 
-    <main class="landing-main">
-      <section class="landing-hero" data-reveal>
-        <div class="landing-copy">
-          <span class="eyebrow landing-eyebrow">AI PERSONALIZED LEARNING</span>
-          <h1>从了解自己开始，找到适合你的学习路径。</h1>
+    <main>
+      <section class="hero product-home__container">
+        <div class="hero-copy" data-reveal>
+          <span class="eyebrow"><Sparkles :size="16" /> AI 课程知识库治理与智能规划平台</span>
+          <h1>从课程知识库，到每个人的智能学习路径</h1>
           <p>
-            知径通过学情诊断、知识图谱和 AI 学习助手，帮助每一位学习者明确自己的学习状态，并持续获得下一步学习建议。
+            织知成径把课程资料、知识图谱、学习者画像和多智能体能力连接起来，
+            让课程建设、学情理解和资源生成在同一条工作链路上持续推进。
           </p>
-          <div class="landing-actions-row">
-            <RouterLink to="/diagnosis" class="button button-primary button-large">开始学习诊断 <ArrowRight :size="16" /></RouterLink>
-            <a class="button button-secondary button-large" href="#about">了解知径</a>
+          <div class="hero-actions">
+            <RouterLink to="/register" class="button button-primary">
+              开始使用 <ArrowRight :size="17" />
+            </RouterLink>
+            <a href="#workflow" class="button button-secondary">了解平台如何工作</a>
           </div>
-          <div class="landing-signals">
-            <span><BookOpenText :size="14" /> 学习起点</span>
-            <span><Compass :size="14" /> 学习路径</span>
-            <span><Sparkles :size="14" /> AI 辅导</span>
+          <div class="hero-tags">
+            <span v-for="tag in heroTags" :key="tag">{{ tag }}</span>
+          </div>
+          <div class="hero-notes">
+            <span><ShieldCheck :size="15" /> 知识库可追溯</span>
+            <span><Workflow :size="15" /> Agent 协同</span>
+            <span><FileSearch :size="15" /> 证据优先</span>
           </div>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <svg viewBox="0 0 720 560" role="img">
-            <defs>
-              <linearGradient id="heroGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#eef5ff" />
-                <stop offset="100%" stop-color="#dff6ff" />
-              </linearGradient>
-              <linearGradient id="routeBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#2f6fec" />
-                <stop offset="100%" stop-color="#0b91ac" />
-              </linearGradient>
-            </defs>
-            <circle cx="230" cy="220" r="160" fill="url(#heroGlow)" />
-            <circle cx="490" cy="112" r="18" fill="#c7eff7" class="float-slow" />
-            <circle cx="568" cy="178" r="10" fill="#d7d0ff" class="float-slower" />
-            <circle cx="132" cy="430" r="14" fill="#d7e7ff" class="float-slow" />
-            <path d="M158 385 C212 320 284 304 338 296 C416 283 486 230 542 155" fill="none" stroke="url(#routeBlue)" stroke-width="10" stroke-linecap="round" class="route-line" />
-            <path d="M318 305 C333 289 354 286 371 294" fill="none" stroke="#b7cdf8" stroke-width="6" stroke-linecap="round" />
-            <g class="node-float">
-              <circle cx="166" cy="386" r="22" fill="#fff" stroke="#2f6fec" stroke-width="4" />
-              <circle cx="166" cy="386" r="9" fill="#2f6fec" />
-            </g>
-            <g class="node-float delay-one">
-              <circle cx="314" cy="316" r="24" fill="#fff" stroke="#0b91ac" stroke-width="4" />
-              <circle cx="314" cy="316" r="10" fill="#0b91ac" />
-            </g>
-            <g class="node-float delay-two">
-              <circle cx="476" cy="232" r="24" fill="#fff" stroke="#7856d9" stroke-width="4" />
-              <circle cx="476" cy="232" r="10" fill="#7856d9" />
-            </g>
-            <g class="node-float delay-three">
-              <circle cx="556" cy="166" r="26" fill="#fff" stroke="#1da35f" stroke-width="4" />
-              <circle cx="556" cy="166" r="11" fill="#1da35f" />
-            </g>
-            <path d="M354 236 C341 248 335 266 336 288" fill="none" stroke="#d7e7ff" stroke-width="8" stroke-linecap="round" />
-            <rect x="220" y="168" rx="28" ry="28" width="158" height="118" fill="#fff" stroke="#e1ebfa" />
-            <path d="M258 236 L301 196 L344 236 L301 274 Z" fill="#f3b16f" opacity=".85" />
-            <circle cx="301" cy="226" r="21" fill="#0f243d" opacity=".92" />
-            <path d="M300 252 C286 276 269 288 251 296" fill="none" stroke="#0f243d" stroke-width="6" stroke-linecap="round" />
-            <path d="M314 252 C330 270 347 284 366 294" fill="none" stroke="#0f243d" stroke-width="6" stroke-linecap="round" />
-            <rect x="392" y="320" width="160" height="94" rx="24" fill="#fff" stroke="#dfe8f3" />
-            <rect x="416" y="345" width="56" height="14" rx="7" fill="#2f6fec" />
-            <rect x="416" y="368" width="96" height="14" rx="7" fill="#d6e6ff" />
-            <rect x="416" y="391" width="78" height="14" rx="7" fill="#e8fbf4" />
-            <path d="M590 286 h42 a14 14 0 0 1 14 14 v32 a14 14 0 0 1 -14 14 h-12 l-14 16 v-16 h-16 a14 14 0 0 1 -14 -14 v-32 a14 14 0 0 1 14 -14 z" fill="#f4d3ff" />
-            <circle cx="611" cy="311" r="8" fill="#172a43" />
-            <path d="M625 306 q10 10 0 20" fill="none" stroke="#172a43" stroke-width="4" stroke-linecap="round" />
-          </svg>
-        </div>
-      </section>
 
-      <section id="learn" class="landing-section section-split" data-reveal>
-        <div class="section-visual section-soft">
-          <svg viewBox="0 0 560 460" role="img" aria-hidden="true">
-            <rect x="118" y="100" width="250" height="176" rx="30" fill="#fff" stroke="#dae7f7" />
-            <rect x="154" y="134" width="84" height="22" rx="11" fill="#eaf1ff" />
-            <rect x="154" y="170" width="156" height="18" rx="9" fill="#dfe8f3" />
-            <rect x="154" y="200" width="132" height="18" rx="9" fill="#edf7fc" />
-            <circle cx="406" cy="158" r="84" fill="#eef5ff" />
-            <circle cx="406" cy="158" r="48" fill="none" stroke="#2f6fec" stroke-width="12" stroke-dasharray="210 40" />
-            <circle cx="406" cy="158" r="32" fill="#fff" stroke="#0b91ac" stroke-width="10" />
-            <path d="M376 172 l30 -28 l30 28" fill="none" stroke="#0b91ac" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
-            <circle cx="182" cy="320" r="18" fill="#d7e7ff" />
-            <circle cx="282" cy="320" r="18" fill="#d7d0ff" />
-            <circle cx="382" cy="320" r="18" fill="#dff6ef" />
-            <path d="M184 320 h172" stroke="#b7cdf8" stroke-width="6" stroke-linecap="round" stroke-dasharray="10 16" />
-          </svg>
-        </div>
-        <div class="section-copy">
-          <span class="section-kicker">科学诊断</span>
-          <h2>先了解你的学习状态</h2>
-          <p>
-            知径会通过基础信息、课程自评和自适应测试，识别你已经掌握的知识，以及需要重点提升的内容。
-          </p>
-          <div class="mini-tags">
-            <span v-for="item in diagnosisTags" :key="item">{{ item }}</span>
+        <div class="hero-visual" data-reveal>
+          <div class="scene-card scene-card--wide">
+            <div class="scene-card__top">
+              <span>平台正在运行的界面预览</span>
+              <strong>课程知识、路径与反馈同步工作</strong>
+            </div>
+            <div class="scene-grid">
+              <div class="scene-column scene-column--left">
+                <div class="mini-panel">
+                  <span>课程知识库</span>
+                  <strong>知识单元 / 来源 / 审核</strong>
+                </div>
+                <div class="mini-panel mini-panel--soft">
+                  <span>学习者画像</span>
+                  <strong>掌握度 72% · 重点补救 3 项</strong>
+                </div>
+              </div>
+
+              <div class="scene-core">
+                <div class="scene-core__glow" />
+                <GuideFigure :size="190" />
+                <div class="scene-core__caption">
+                  <span>课程规划智能体</span>
+                  <strong>正在连接知识、学习与证据</strong>
+                </div>
+              </div>
+
+              <div class="scene-column scene-column--right">
+                <div class="mini-panel mini-panel--accent">
+                  <span>当前 Agent</span>
+                  <strong>CoursePlanner</strong>
+                </div>
+                <div class="mini-panel">
+                  <span>证据卡片</span>
+                  <strong>正式证据 / 候选证据 / 许可证</strong>
+                </div>
+              </div>
+            </div>
+            <div class="scene-flow">
+              <span>知识</span>
+              <MoveRight :size="15" />
+              <span>图谱</span>
+              <MoveRight :size="15" />
+              <span>诊断</span>
+              <MoveRight :size="15" />
+              <span>规划</span>
+              <MoveRight :size="15" />
+              <span>资源</span>
+              <MoveRight :size="15" />
+              <span>反馈</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section id="path" class="landing-section section-split section-tinted" data-reveal>
-        <div class="section-copy">
-          <span class="section-kicker">个性化路径</span>
-          <h2>每个人，都应该有自己的学习路径</h2>
-          <p>
-            从基础知识到实践应用，知径会根据掌握度与先修关系，为你生成清晰、连续、可调整的学习路线。
-          </p>
-        </div>
-        <div class="path-art">
-          <div class="path-column">
-            <div class="path-node done">基础知识</div>
-            <div class="path-line" />
-            <div class="path-node current">核心概念</div>
-            <div class="path-line" />
-            <div class="path-node waiting">实践应用</div>
-            <div class="path-line" />
-            <div class="path-node blocked">综合能力</div>
+      <section id="capability" class="section section--soft">
+        <div class="product-home__container section-grid" data-reveal>
+          <div class="section-copy section-copy--hero">
+            <span class="eyebrow">产品核心价值</span>
+            <h2>不是普通课程管理工具，而是让课程知识真正流动起来的平台。</h2>
+            <p>
+              课程资料、知识图谱、学情诊断、多智能体协作和资源生成不再彼此割裂，而是形成一条连续的产品链路。
+            </p>
           </div>
-          <div class="path-note">
-            <strong>学习图谱</strong>
-            <p>已掌握 · 学习中 · 待学习 · 被先修知识阻塞</p>
-          </div>
-        </div>
-      </section>
 
-      <section id="assistant" class="landing-section section-split" data-reveal>
-        <div class="assistant-art">
-          <svg viewBox="0 0 480 420" role="img" aria-hidden="true">
-            <circle cx="200" cy="196" r="104" fill="#eef5ff" />
-            <circle cx="200" cy="196" r="72" fill="#fff" stroke="#dbe7f8" stroke-width="2" />
-            <circle cx="182" cy="182" r="12" fill="#2f6fec" />
-            <circle cx="218" cy="182" r="12" fill="#0b91ac" />
-            <path d="M180 216 q20 20 40 0" fill="none" stroke="#172a43" stroke-width="6" stroke-linecap="round" />
-            <circle cx="336" cy="120" r="28" fill="#f1edff" />
-            <circle cx="360" cy="264" r="18" fill="#dff6ef" />
-            <circle cx="126" cy="316" r="16" fill="#d7e7ff" />
-            <path d="M320 78 C350 100 365 130 372 160" fill="none" stroke="#b7cdf8" stroke-width="6" stroke-linecap="round" />
-            <path d="M96 280 C122 248 149 232 180 226" fill="none" stroke="#d7d0ff" stroke-width="6" stroke-linecap="round" />
-          </svg>
-        </div>
-        <div class="section-copy">
-          <span class="section-kicker">AI 学习助手</span>
-          <h2>学习过程中，随时有人帮助你</h2>
-          <p>
-            AI 学习助手可以解释难懂的知识点、根据你的水平调整讲解方式、生成练习和测验，并分析错误原因。
-          </p>
-          <div class="chat-stack">
-            <div class="chat-bubble user">我不太理解这个知识点</div>
-            <div class="chat-bubble ai">我换一种方式解释给你</div>
-            <div class="chat-bubble ai soft">建议先复习前置知识，再开始练习</div>
+          <div class="capability-grid">
+            <article class="capability-card capability-card--large">
+              <span class="capability-card__icon"><Database :size="20" /></span>
+              <h3>课程资料变成可信知识库</h3>
+              <p>把分散的文档整理成可追溯的知识资产，明确来源、定位、许可证和审核状态。</p>
+              <div class="capability-mini">
+                <b>PDF 教材</b>
+                <b>HTML 讲义</b>
+                <b>正式证据</b>
+              </div>
+            </article>
+
+            <article class="capability-card capability-card--mid">
+              <span class="capability-card__icon"><GitBranch :size="20" /></span>
+              <h3>知识图谱约束学习路径</h3>
+              <p>先修关系、知识缺口和当前掌握度一起决定下一步，而不是简单推荐内容列表。</p>
+              <div class="capability-graph">
+                <span>基础</span>
+                <i />
+                <span>核心</span>
+                <i />
+                <span>实践</span>
+              </div>
+            </article>
+
+            <article class="capability-card capability-card--mid">
+              <span class="capability-card__icon"><Workflow :size="20" /></span>
+              <h3>多个 Agent 协同完成规划</h3>
+              <p>诊断、检索、规划和生成分工明确，结果汇总到同一条闭环链路里。</p>
+              <div class="agent-strip">
+                <span>诊断</span>
+                <span>规划</span>
+                <span>检索</span>
+                <span>生成</span>
+              </div>
+            </article>
           </div>
         </div>
       </section>
 
-      <section id="about" class="landing-section landing-feedback" data-reveal>
-        <div class="section-copy">
-          <span class="section-kicker">持续反馈</span>
-          <h2>学习不是一次诊断，而是持续进步</h2>
-          <p>完成学习 → 提交测评 → 更新掌握度 → 获得新的学习建议。</p>
-        </div>
-        <div class="feedback-art">
-          <div class="feedback-track">
-            <span class="feedback-step done">完成学习</span>
-            <span class="feedback-arrow">→</span>
-            <span class="feedback-step current">提交测评</span>
-            <span class="feedback-arrow">→</span>
-            <span class="feedback-step waiting">更新掌握度</span>
-            <span class="feedback-arrow">→</span>
-            <span class="feedback-step done">新的建议</span>
+      <section id="scenarios" class="section">
+        <div class="product-home__container" data-reveal>
+          <div class="section-grid section-grid--roles">
+            <div class="section-copy">
+              <span class="eyebrow">平台服务对象</span>
+              <h2>面向课程建设者、教师、学习者和学校机构。</h2>
+              <p>同一个平台，不同角色看到的重点不同，但都围绕课程知识库、学情和规划协同工作。</p>
+            </div>
+
+            <div class="roles-layout">
+              <div class="role-tabs">
+                <button
+                  v-for="role in roleCards"
+                  :key="role.key"
+                  class="role-tab"
+                  :class="{ 'is-active': activeRoleKey === role.key }"
+                  type="button"
+                  @click="setActiveRole(role.key)"
+                >
+                  <component :is="role.icon" :size="18" />
+                  <span>{{ role.title }}</span>
+                </button>
+              </div>
+
+              <div class="role-preview">
+                <div class="role-preview__head">
+                  <span>{{ activeRole.badge }}</span>
+                  <strong>{{ activeRole.previewTitle }}</strong>
+                </div>
+                <h3>{{ activeRole.title }}</h3>
+                <p>{{ activeRole.description }}</p>
+                <div class="role-preview__list">
+                  <span v-for="item in activeRole.previewItems" :key="item">{{ item }}</span>
+                </div>
+                <RouterLink :to="activeRole.key === 'learner' ? '/diagnosis' : '/app'" class="text-link">
+                  了解更多 <ChevronRight :size="15" />
+                </RouterLink>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="landing-cta" data-reveal>
-        <div>
-          <span class="section-kicker">开始</span>
-          <h2>准备好找到适合自己的学习方式了吗？</h2>
+      <section id="workflow" class="section section--soft">
+        <div class="product-home__container" data-reveal>
+          <div class="section-copy section-copy--center">
+            <span class="eyebrow">平台如何工作</span>
+            <h2>资料进入、知识组织、学情理解、路径规划、资源生成、反馈更新。</h2>
+            <p>把复杂系统讲清楚，不靠空泛口号，而靠一条用户能看懂的连续工作流。</p>
+          </div>
+
+          <div class="workflow-layout">
+            <div class="workflow-track">
+              <button
+                v-for="step in workflowSteps"
+                :key="step.key"
+                class="workflow-step"
+                :class="{ 'is-active': activeStepKey === step.key }"
+                type="button"
+                @click="setActiveStep(step.key)"
+              >
+                <span class="workflow-step__badge">{{ step.badge }}</span>
+                <strong>{{ step.title }}</strong>
+                <small>{{ step.summary }}</small>
+              </button>
+            </div>
+
+            <div class="workflow-preview">
+              <div class="workflow-preview__main">
+                <span class="eyebrow">{{ activeStep.badge }}</span>
+                <h3>{{ activeStep.previewTitle }}</h3>
+                <p>{{ activeStep.detail }}</p>
+                <div class="workflow-preview__chips">
+                  <span v-for="line in activeStep.previewLines" :key="line">{{ line }}</span>
+                </div>
+              </div>
+              <div class="workflow-preview__aside">
+                <div>
+                  <span>当前节点</span>
+                  <strong>{{ activeStep.title }}</strong>
+                </div>
+                <div>
+                  <span>动作</span>
+                  <strong>{{ activeStep.summary }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <RouterLink to="/diagnosis" class="button button-primary button-large">开始我的学习诊断 <ArrowRight :size="16" /></RouterLink>
       </section>
 
-      <footer class="landing-footer">
-        <div class="landing-brand landing-brand-footer">
-          <span class="landing-mark">知</span>
-          <span>
-            <strong>知径</strong>
-            <small>AI 个性化学习平台</small>
-          </span>
+      <section id="agents" class="section">
+        <div class="product-home__container" data-reveal>
+          <div class="section-grid section-grid--agents">
+            <div class="section-copy">
+              <span class="eyebrow">多智能体协作</span>
+              <h2>学情一变化，平台就自动触发新的课程规划链路。</h2>
+              <p>这不是架构图，而是一段真实可理解的产品过程：测评结果会推动诊断、规划、检索、生成和反馈更新。</p>
+            </div>
+
+            <div class="agents-story">
+              <div class="agents-story__left">
+                <GuideFigure :size="126" />
+                <div class="agents-story__bubble">
+                  <strong>当前学习反馈</strong>
+                  <p>发现“先修概念”还有两个空缺，建议先补补再进入新路径。</p>
+                </div>
+              </div>
+
+              <div class="agents-story__right">
+                <div v-for="(item, index) in agentFlow" :key="item.title" class="agent-flow-item" :class="item.tone">
+                  <span class="agent-flow-item__index">{{ String(index + 1).padStart(2, "0") }}</span>
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <p>{{ item.detail }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <nav class="footer-links" aria-label="页脚链接">
-          <a v-for="item in footerLinks" :key="item" href="#top">{{ item }}</a>
-        </nav>
-      </footer>
+      </section>
+
+      <section id="governance" class="section section--soft">
+        <div class="product-home__container" data-reveal>
+          <div class="section-grid section-grid--governance">
+            <div class="section-copy">
+              <span class="eyebrow">知识库与证据治理</span>
+              <h2>每一份课程资源，都有可追溯的知识依据。</h2>
+              <p>平台不是简单生成内容，而是先管理来源、审核状态、证据定位和知识关系，再进入资源生成。</p>
+            </div>
+
+            <div class="governance-board">
+              <div v-for="column in governanceColumns" :key="column.title" class="governance-board__column">
+                <strong>{{ column.title }}</strong>
+                <span v-for="item in column.items" :key="item">{{ item }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="planning" class="section">
+        <div class="product-home__container" data-reveal>
+          <div class="section-grid section-grid--planning">
+            <div class="section-copy">
+              <span class="eyebrow">个性化课程规划</span>
+              <h2>同一门课程，不同学习者应该得到不同路径。</h2>
+              <p>已掌握内容可以跳过，缺失先修会进入补救队列，反馈结果会继续影响下一次规划。</p>
+              <RouterLink to="/learning-path" class="text-link">
+                查看课程规划 <ChevronRight :size="15" />
+              </RouterLink>
+            </div>
+
+            <div class="planning-grid">
+              <article v-for="card in planningCards" :key="card.learner" class="planning-card">
+                <span>{{ card.learner }}</span>
+                <h3>{{ card.title }}</h3>
+                <div class="planning-path">
+                  <b v-for="(chip, index) in card.chips" :key="chip" :class="`state-${card.state[index] || 'neutral'}`">
+                    {{ chip }}
+                  </b>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="cta-section">
+        <div class="product-home__container cta-section__inner" data-reveal>
+          <div>
+            <span class="eyebrow">开始体验</span>
+            <h2>让课程内容真正连接起来，让每一次学习都成为下一次规划的依据。</h2>
+          </div>
+          <div class="cta-section__actions">
+            <RouterLink to="/register" class="button button-primary">
+              开始使用 <ArrowRight :size="17" />
+            </RouterLink>
+            <RouterLink to="/login" class="button button-secondary">登录</RouterLink>
+          </div>
+        </div>
+      </section>
     </main>
+
+    <footer class="footer">
+      <div class="product-home__container footer__inner">
+        <BrandWordmark compact />
+        <nav aria-label="页脚导航">
+          <a href="#capability">产品能力</a>
+          <a href="#workflow">工作流程</a>
+          <a href="#agents">多智能体</a>
+          <RouterLink to="/login">登录</RouterLink>
+        </nav>
+      </div>
+    </footer>
   </div>
 </template>
+
+<style scoped>
+.product-home {
+  min-height: 100vh;
+  color: #172b4d;
+  background:
+    radial-gradient(circle at 12% 2%, rgba(53, 106, 230, 0.08), transparent 20%),
+    radial-gradient(circle at 88% 8%, rgba(24, 167, 160, 0.08), transparent 18%),
+    linear-gradient(180deg, #f8fbff 0%, #f7f9fc 28%, #f6f8fc 100%);
+}
+
+.product-home__container {
+  width: min(1240px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1.05fr);
+  gap: 56px;
+  align-items: center;
+  min-height: 760px;
+  padding: 72px 0 72px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #356ae6;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.hero-copy h1,
+.section-copy h2,
+.cta-section h2 {
+  margin: 16px 0 12px;
+  letter-spacing: 0;
+}
+
+.hero-copy h1 {
+  max-width: 10ch;
+  font-size: clamp(48px, 5vw, 68px);
+  line-height: 1.03;
+  color: #12223c;
+  text-wrap: balance;
+}
+
+.hero-copy p,
+.section-copy p {
+  max-width: 640px;
+  margin: 0;
+  color: #5f718a;
+  font-size: 16px;
+  line-height: 1.82;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 850;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.button-primary {
+  color: #fff;
+  background: #356ae6;
+  box-shadow: 0 12px 24px rgba(53, 106, 230, 0.18);
+}
+
+.button-primary:hover {
+  background: #285acb;
+  box-shadow: 0 16px 30px rgba(53, 106, 230, 0.24);
+}
+
+.button-secondary {
+  color: #172b4d;
+  background: #fff;
+  border-color: #dfe8f3;
+}
+
+.button-secondary:hover {
+  color: #356ae6;
+  background: #edf4ff;
+  border-color: #c5d7f7;
+}
+
+.hero-tags,
+.hero-notes,
+.capability-mini,
+.capability-graph,
+.agent-strip,
+.workflow-preview__chips,
+.role-preview__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hero-tags {
+  margin-top: 22px;
+}
+
+.hero-tags span,
+.hero-notes span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  color: #4f6480;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.hero-notes {
+  margin-top: 18px;
+  color: #6c7f98;
+}
+
+.hero-notes svg {
+  color: #1da35f;
+}
+
+.hero-visual {
+  position: relative;
+  padding-top: 14px;
+}
+
+.hero-visual::before {
+  position: absolute;
+  inset: 28px 20px 12px 18px;
+  content: "";
+  background:
+    radial-gradient(circle at 22% 28%, rgba(53, 106, 230, 0.14), transparent 20%),
+    radial-gradient(circle at 80% 20%, rgba(24, 167, 160, 0.12), transparent 18%),
+    radial-gradient(circle at 60% 78%, rgba(120, 86, 217, 0.09), transparent 22%);
+  filter: blur(14px);
+  opacity: 0.9;
+}
+
+.hero-visual::after {
+  position: absolute;
+  inset: 48px 0 0 0;
+  content: "";
+  border-radius: 34px;
+  border: 1px solid rgba(223, 232, 243, 0.5);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.08));
+}
+
+.hero-visual > * {
+  position: relative;
+  z-index: 1;
+}
+
+.scene-card--wide {
+  position: relative;
+  padding: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 26% 18%, rgba(53, 106, 230, 0.12), transparent 28%),
+    radial-gradient(circle at 76% 22%, rgba(24, 167, 160, 0.12), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(242, 247, 255, 0.98));
+  border: 1px solid #d5e0ee;
+  border-radius: 32px;
+  box-shadow: 0 30px 70px rgba(39, 72, 112, 0.16);
+}
+
+.scene-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5edf7;
+}
+
+.scene-card__top span,
+.scene-card__top strong {
+  display: block;
+}
+
+.scene-card__top span {
+  color: #6d7f96;
+  font-size: 11px;
+}
+
+.scene-card__top strong {
+  color: #172b4d;
+  font-size: 14px;
+}
+
+.scene-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.44fr) minmax(280px, 1fr) minmax(0, 0.44fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.scene-column {
+  display: grid;
+  gap: 14px;
+}
+
+.mini-panel {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #dde6f2;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(39, 72, 112, 0.08);
+}
+
+.mini-panel span {
+  display: block;
+  color: #6d7f96;
+  font-size: 11px;
+}
+
+.mini-panel strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mini-panel--soft {
+  background: linear-gradient(180deg, #f4f8ff, #edf3ff);
+}
+
+.mini-panel--accent {
+  background: linear-gradient(180deg, #edf4ff, #e5efff);
+  border-color: #c8dbff;
+}
+
+.scene-core {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  padding: 12px 0 16px;
+}
+
+.scene-core__glow {
+  position: absolute;
+  inset: 18px 38px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(53, 106, 230, 0.18), transparent 42%),
+    radial-gradient(circle at 50% 60%, rgba(24, 167, 160, 0.14), transparent 46%);
+  filter: blur(6px);
+}
+
+.scene-core__caption {
+  position: relative;
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid #e1e9f4;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 12px 24px rgba(39, 72, 112, 0.08);
+}
+
+.scene-core__caption span,
+.scene-core__caption strong {
+  display: block;
+}
+
+.scene-core__caption span {
+  color: #6d7f96;
+  font-size: 11px;
+}
+
+.scene-core__caption strong {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.scene-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  color: #5f718a;
+  background: linear-gradient(180deg, #f8fbff, #f2f7ff);
+  border: 1px solid #dfe8f4;
+  border-radius: 18px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.section {
+  padding: 86px 0;
+}
+
+.section--soft {
+  background: #fff;
+  border-top: 1px solid #edf1f6;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.section-grid {
+  display: grid;
+  gap: 30px;
+  align-items: start;
+}
+
+.section-grid--roles,
+.section-grid--agents,
+.section-grid--governance,
+.section-grid--planning {
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+}
+
+.section-copy--hero h2 {
+  max-width: 14ch;
+}
+
+.section-copy--center {
+  max-width: 820px;
+  margin: 0 auto 28px;
+  text-align: center;
+}
+
+.section-copy h2 {
+  font-size: clamp(30px, 3.8vw, 48px);
+  line-height: 1.12;
+}
+
+.capability-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 16px;
+}
+
+.capability-card {
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 24px;
+  box-shadow: 0 14px 32px rgba(39, 72, 112, 0.07);
+}
+
+.capability-card--large {
+  grid-row: span 2;
+  min-height: 284px;
+}
+
+.capability-card--mid {
+  min-height: 134px;
+}
+
+.capability-card__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #356ae6;
+  background: #edf4ff;
+  border-radius: 14px;
+}
+
+.capability-card h3,
+.role-preview h3,
+.workflow-preview__main h3,
+.planning-card h3 {
+  margin: 16px 0 8px;
+  font-size: 20px;
+}
+
+.capability-card p,
+.role-preview p,
+.workflow-preview__main p {
+  color: #667994;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.capability-mini {
+  margin-top: 18px;
+}
+
+.capability-mini b,
+.agent-strip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  color: #2f6fec;
+  background: #edf4ff;
+  border: 1px solid #cfe0ff;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.capability-graph {
+  align-items: center;
+  margin-top: 18px;
+}
+
+.capability-graph span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  color: #356ae6;
+  background: #f3f7ff;
+  border: 1px solid #d7e4ff;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.capability-graph i {
+  width: 22px;
+  height: 2px;
+  background: linear-gradient(90deg, #c8d6ea, #356ae6);
+  border-radius: 99px;
+}
+
+.roles-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 0.7fr) minmax(0, 1.3fr);
+  gap: 16px;
+}
+
+.role-tabs {
+  display: grid;
+  gap: 12px;
+}
+
+.role-tab {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 0 16px;
+  color: #4f6480;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.role-tab:hover,
+.role-tab.is-active {
+  color: #356ae6;
+  background: #edf4ff;
+  border-color: #cfe0ff;
+  transform: translateY(-2px);
+}
+
+.role-preview {
+  padding: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(53, 106, 230, 0.08), transparent 24%),
+    #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 24px;
+  box-shadow: 0 16px 34px rgba(39, 72, 112, 0.08);
+}
+
+.role-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.role-preview__head span {
+  color: #356ae6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.role-preview__head strong {
+  color: #8b9fb8;
+  font-size: 12px;
+}
+
+.role-preview__list {
+  margin-top: 18px;
+}
+
+.role-preview__list span,
+.workflow-preview__chips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  color: #5f718a;
+  background: #f7f9fc;
+  border: 1px solid #e7edf5;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.workflow-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.workflow-track {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workflow-step {
+  padding: 16px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(39, 72, 112, 0.06);
+  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.workflow-step:hover,
+.workflow-step.is-active {
+  border-color: #cfe0ff;
+  background: #f5f9ff;
+  transform: translateY(-3px);
+}
+
+.workflow-step__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  color: #356ae6;
+  background: #edf4ff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.workflow-step strong {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 16px;
+}
+
+.workflow-step small {
+  color: #667994;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.workflow-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(250px, 0.8fr);
+  gap: 16px;
+}
+
+.workflow-preview__main,
+.workflow-preview__aside {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 24px;
+  box-shadow: 0 14px 32px rgba(39, 72, 112, 0.07);
+}
+
+.workflow-preview__aside {
+  display: grid;
+  gap: 14px;
+}
+
+.workflow-preview__aside span {
+  display: block;
+  color: #8b9fb8;
+  font-size: 11px;
+}
+
+.workflow-preview__aside strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.agents-story {
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: 16px;
+}
+
+.agents-story__left {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.agents-story__bubble {
+  padding: 18px;
+  background: #f3f0ff;
+  border: 1px solid #e2d9fb;
+  border-radius: 22px;
+}
+
+.agents-story__bubble strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #5b4a88;
+  font-size: 13px;
+}
+
+.agents-story__bubble p {
+  margin: 0;
+  color: #62528d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.agents-story__right {
+  display: grid;
+  gap: 12px;
+}
+
+.agent-flow-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(39, 72, 112, 0.06);
+}
+
+.agent-flow-item__index {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #356ae6;
+  background: #edf4ff;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.agent-flow-item strong {
+  display: block;
+  font-size: 15px;
+}
+
+.agent-flow-item p {
+  margin: 4px 0 0;
+  color: #667994;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.agent-flow-item.done .agent-flow-item__index { color: #1d9c5e; background: #eaf8f0; }
+.agent-flow-item.review .agent-flow-item__index { color: #bd7d18; background: #fff5df; }
+.agent-flow-item.current .agent-flow-item__index { color: #fff; background: #356ae6; }
+.agent-flow-item.support .agent-flow-item__index { color: #0b91ac; background: #ecfbfd; }
+
+.governance-board {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.1fr) minmax(0, 0.95fr);
+  gap: 14px;
+}
+
+.governance-board__column {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 24px;
+  box-shadow: 0 14px 30px rgba(39, 72, 112, 0.06);
+}
+
+.governance-board__column strong {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.governance-board__column span {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  padding: 10px 12px;
+  color: #5f718a;
+  background: #f7f9fc;
+  border: 1px solid #e7edf5;
+  border-radius: 14px;
+  font-size: 12px;
+}
+
+.planning-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.planning-card {
+  padding: 22px;
+  background: #fff;
+  border: 1px solid #dfe8f3;
+  border-radius: 24px;
+  box-shadow: 0 14px 30px rgba(39, 72, 112, 0.07);
+}
+
+.planning-card > span {
+  color: #7856d9;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.planning-card h3 {
+  max-width: 18ch;
+}
+
+.planning-path {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 10px;
+}
+
+.planning-path b {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid #dfe6ef;
+  background: #f5f7fa;
+  color: #6b7d94;
+  font-size: 12px;
+  text-align: center;
+}
+
+.planning-path .state-已掌握,
+.planning-path .state-done {
+  color: #1d9c5e;
+  background: #eaf8f0;
+  border-color: #b9e7ca;
+}
+
+.planning-path .state-进行中,
+.planning-path .state-current {
+  color: #fff;
+  background: #356ae6;
+  border-color: #356ae6;
+}
+
+.planning-path .state-待学习,
+.planning-path .state-neutral {
+  color: #6b7d94;
+  background: #f5f7fa;
+}
+
+.planning-path .state-待补救,
+.planning-path .state-review,
+.planning-path .state-反馈更新 {
+  color: #bd7d18;
+  background: #fff5df;
+  border-color: #edd39f;
+}
+
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 20px;
+  color: #356ae6;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.cta-section {
+  padding: 78px 0;
+  background: #172b4d;
+}
+
+.cta-section__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.cta-section h2 {
+  max-width: 740px;
+  margin-bottom: 0;
+  color: #fff;
+  font-size: clamp(30px, 3.6vw, 46px);
+  line-height: 1.14;
+}
+
+.cta-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer {
+  background: #fff;
+  border-top: 1px solid #edf1f6;
+}
+
+.footer__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 0;
+}
+
+.footer__inner strong,
+.footer__inner small {
+  display: block;
+}
+
+.footer__inner small {
+  margin-top: 4px;
+  color: #667994;
+  font-size: 11px;
+}
+
+.footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-size: 12px;
+}
+
+.footer a {
+  color: #5e718a;
+}
+
+.product-home [data-reveal] {
+  opacity: 1;
+  transform: translateY(14px);
+  transition: opacity 0.56s ease, transform 0.56s ease;
+}
+
+.product-home [data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 1120px) {
+  .hero,
+  .section-grid--roles,
+  .section-grid--agents,
+  .section-grid--governance,
+  .section-grid--planning {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: auto;
+  }
+
+  .roles-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-track {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 780px) {
+  .product-home__container {
+    width: min(100% - 32px, 1240px);
+  }
+
+  .hero {
+    gap: 28px;
+    padding: 34px 0 52px;
+  }
+
+  .hero-copy h1 {
+    max-width: 100%;
+    font-size: 38px;
+  }
+
+  .hero-copy p,
+  .section-copy p {
+    font-size: 15px;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .button {
+    width: 100%;
+  }
+
+  .scene-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .scene-core {
+    padding: 10px 0 0;
+  }
+
+  .capability-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .capability-card--large {
+    grid-row: auto;
+  }
+
+  .workflow-track {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .agents-story {
+    grid-template-columns: 1fr;
+  }
+
+  .governance-board {
+    grid-template-columns: 1fr;
+  }
+
+  .cta-section__inner,
+  .footer__inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 460px) {
+  .product-home__container {
+    width: min(100% - 24px, 1240px);
+  }
+
+  .hero-copy h1 {
+    font-size: 34px;
+  }
+
+  .section-copy h2,
+  .cta-section h2 {
+    font-size: 28px;
+  }
+
+  .scene-card--wide {
+    padding: 16px;
+    border-radius: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .product-home *,
+  .product-home *::before,
+  .product-home *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .product-home [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
+}
+</style>
