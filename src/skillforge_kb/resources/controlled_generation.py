@@ -546,7 +546,10 @@ def build_generation_prompt(
         "Do not wrap it in Markdown or add commentary. Do not include keys outside the schema. "
         "Do not create release status, new evidence, new scope IDs, executable notebook core "
         "code, or a different quiz blueprint. Every technical claim must use an allowed evidence "
-        "ID and a knowledge scope ID.\nJSON SCHEMA:\n"
+        "ID and a knowledge scope ID. For mathematics, always put inline TeX between single dollar "
+        "delimiters ($...$), and put display TeX between double dollar delimiters on their own lines "
+        "(a line containing only $$, the formula, and $$). Never emit bare backslash commands such as "
+        "\\\\mathbb or \\\\frac in prose, and never place $$...$$ in the middle of a paragraph.\nJSON SCHEMA:\n"
         f"{schema_json}"
         + (
             "\nPEDAGOGICAL REQUIREMENTS: For lecture, write at least seven ordered blocks with kinds "
