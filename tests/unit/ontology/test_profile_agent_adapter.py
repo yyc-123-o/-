@@ -88,6 +88,24 @@ def test_adapts_cnn_and_reports_unmapped_legacy_points(catalog) -> None:
     assert any(item.legacy_id == "kp_composite" for item in adapted.warnings)
 
 
+def test_adapts_optional_diagnostic_item_evidence(catalog) -> None:
+    raw = _raw_profile()
+    raw["diagnostic_evidence"] = [
+        {"item_id": "q-1", "concept_id": "kp_012", "correct": True},
+        {"item_id": "q-2", "concept_id": "kp_012", "correct": True},
+        {"item_id": "q-3", "concept_id": "kp_012", "correct": False, "error_code": "calculation"},
+    ]
+
+    adapted = LearnerProfileAgentAdapter(
+        catalog,
+        mappings={"kp_012": "dl.cnn.convolution"},
+    ).adapt(raw)
+
+    assert len(adapted.snapshot.diagnostic_evidence) == 3
+    assert adapted.snapshot.diagnostic_evidence[0].concept_id == "dl.cnn.convolution"
+    assert adapted.snapshot.diagnostic_evidence[2].error_code == "calculation"
+
+
 def test_adapter_does_not_copy_downstream_resource_decisions(catalog) -> None:
     adapted = LearnerProfileAgentAdapter(
         catalog,

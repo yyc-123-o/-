@@ -11,6 +11,7 @@ from skillforge_kb.agents.planning_agent_models import (
     PlanningAgentStatus,
     PlanningEventKind,
     PlanningNextAction,
+    PlanningPathMode,
 )
 from skillforge_kb.ontology.concept_attributes import load_concept_attributes
 from skillforge_kb.ontology.models import (
@@ -177,6 +178,8 @@ def test_initialize_builds_a_ready_path(agent, profile) -> None:
     assert result.status is PlanningAgentStatus.READY
     assert result.next_action is PlanningNextAction.START_CURRENT_NODE
     assert result.path is not None
+    assert result.full_path is not None
+    assert len(result.full_path.nodes) == len(result.path.nodes)
     assert result.current_node is not None
     assert result.current_node.status is PathStatus.AVAILABLE
     assert result.current_adaptation is not None
@@ -189,6 +192,25 @@ def test_initialize_builds_a_ready_path(agent, profile) -> None:
         if node.status not in {PathStatus.COMPLETED, PathStatus.SKIPPED}
     )
     assert tuple(item.concept_id for item in result.adaptations) == unfinished
+
+
+def test_full_path_mode_can_start_a_node_that_personalized_path_skips(agent, profile) -> None:
+    enriched = enriched_profile(profile, "math.linear-algebra.scalar", mastery_score=0.95)
+    event = initialize_event(enriched, label="initialize-full-mode")
+    event = event.model_copy(
+        update={
+            "path_mode": PlanningPathMode.FULL,
+            "start_concept_id": "math.linear-algebra.scalar",
+        }
+    )
+
+    result = agent.invoke(event, thread_id="full-mode")
+
+    assert result.status is PlanningAgentStatus.READY
+    assert result.current_node is not None
+    assert result.current_node.concept_id == "math.linear-algebra.scalar"
+    assert result.path is not None
+    assert result.path.nodes[0].status is not PathStatus.SKIPPED
 
 
 def test_initialize_exposes_actionable_remediation_queue(agent, profile) -> None:

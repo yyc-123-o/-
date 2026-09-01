@@ -15,6 +15,7 @@ from .planning_agent_models import (
     PlanningAgentStatus,
     PlanningEventKind,
     PlanningNextAction,
+    PlanningPathMode,
     ProcessedPlanningEvent,
     build_event_digest,
 )
@@ -86,6 +87,7 @@ __all__ = [
     "PlanningNodeStatus",
     "PlanningOperation",
     "PlanningNextAction",
+    "PlanningPathMode",
     "PlanningToolAudit",
     "PlanningToolResult",
     "ResourceGenerationTool",

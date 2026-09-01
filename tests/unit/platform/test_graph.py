@@ -9,6 +9,7 @@ from skillforge_kb.platform.graph import PlatformGraphDependencies, PlatformServ
 from skillforge_kb.platform.models import (
     AssessmentModel,
     ExecutionMode,
+    PlanningPathMode,
     PlatformRunRequest,
     PlatformRunStatus,
     PlatformStage,
@@ -213,7 +214,11 @@ def test_accepted_practice_updates_profile_and_knowledge_tracing_history(
     assert review.accepted is True
     request = service._repository.get_request(initial.run_id)
     assert request is not None
-    mastery = next(item for item in request.profile.knowledge_mastery if item.concept_id == concept_id)
+    mastery = next(
+        item
+        for item in request.profile.knowledge_mastery
+        if item.concept_id == concept_id
+    )
     assert mastery.mastery_score is not None and mastery.mastery_score > 0.50
     observations = service._repository.list_prediction_observations(initial.run_id)
     assert len(observations) == 1
@@ -502,3 +507,41 @@ def test_identical_replay_does_not_invoke_agents_twice(platform_case, profile) -
     assert second == first
     assert len(planning.calls) == 1
     assert len(resource.preview_calls) == 1
+
+
+def test_start_node_keeps_the_requested_personalized_path_mode(platform_case, profile) -> None:
+    service, planning, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="start-node-personalized-mode",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    service.start_node(
+        initial.run_id,
+        "math.linear-algebra.scalar",
+        PlanningPathMode.PERSONALIZED,
+    )
+
+    event, _ = planning.calls[-1]
+    assert event.path_mode is PlanningPathMode.PERSONALIZED
+
+
+def test_start_node_full_mode_requires_a_full_path(platform_case, profile) -> None:
+    service, _, _ = _service(platform_case)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            idempotency_key="start-node-missing-full-path",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    with pytest.raises(ValueError, match="full learning path is not ready"):
+        service.start_node(
+            initial.run_id,
+            "math.linear-algebra.scalar",
+            PlanningPathMode.FULL,
+        )

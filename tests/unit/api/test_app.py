@@ -112,8 +112,25 @@ def test_start_node_requires_learning_progress_service(
         json={"concept_id": "math.linear-algebra.scalar"},
     )
 
-    assert response.status_code == 409
-    assert response.json()["detail"]["code"] == "invalid_start_node"
+    assert response.status_code == 200
+
+
+def test_start_node_forwards_full_path_mode(
+    client: TestClient,
+    profile_payload: dict[str, object],
+    service,
+) -> None:
+    created = client.post("/api/v1/runs", json=_request(profile_payload)).json()
+
+    response = client.post(
+        f"/api/v1/runs/{created['run_id']}/start-node",
+        json={"concept_id": "math.linear-algebra.scalar", "path_mode": "full"},
+    )
+
+    assert response.status_code == 200
+    assert service.start_calls == [
+        (created["run_id"], "math.linear-algebra.scalar", "full")
+    ]
 
 
 def test_assessment_requires_learning_progress_service(

@@ -30,6 +30,7 @@ class ReasonCode(StrEnum):
     MASTERY_SKIP_THRESHOLD_MET = "mastery_skip_threshold_met"
     MASTERY_MISSING = "mastery_missing"
     MASTERY_LOW_CONFIDENCE = "mastery_low_confidence"
+    INFERRED_MASTERY_SKIP = "inferred_mastery_skip"
     ABILITY_INCOMPLETE = "ability_incomplete"
     ABILITY_LOW_CONFIDENCE = "ability_low_confidence"
     HARD_PREREQUISITE_UNASSESSED = "hard_prerequisite_unassessed"
@@ -105,6 +106,9 @@ class PathNode(BaseModel):
     hard_prerequisite_ids: tuple[str, ...] = ()
     blocking_prerequisite_ids: tuple[str, ...] = ()
     reason_codes: tuple[ReasonCode, ...] = ()
+    mastery_score: float | None = Field(default=None, ge=0, le=1)
+    mastery_confidence: float = Field(default=0.0, ge=0, le=1)
+    mastery_source: str = Field(default="unavailable", min_length=1)
 
     @model_validator(mode="after")
     def validate_node(self) -> "PathNode":

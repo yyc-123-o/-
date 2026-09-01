@@ -22,6 +22,7 @@ from skillforge_kb.platform.graph import PlatformGraphDependencies, PlatformServ
 from skillforge_kb.platform.models import (
     AssessmentModel,
     ExecutionMode,
+    PlanningPathMode,
     PlatformRunRequest,
     PlatformRunStatus,
 )
@@ -553,6 +554,30 @@ def test_start_node_preserves_mastered_skips_for_adapted_profile() -> None:
     )
     assert started.planning.path.nodes[57].concept_id == "dl.cnn.convolution"
     assert started.planning.path.nodes[57].status.value == "pending"
+
+
+def test_start_node_can_opt_into_skipped_node_from_full_path() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = _cnn_ready_profile(project_root)
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="start-node-full-path-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    started = service.start_node(
+        initial.run_id,
+        "math.linear-algebra.scalar",
+        PlanningPathMode.FULL,
+    )
+
+    assert started.planning is not None
+    assert started.planning.current_node is not None
+    assert started.planning.current_node.concept_id == "math.linear-algebra.scalar"
 
 
 def test_published_fixture_completes_formal_run() -> None:

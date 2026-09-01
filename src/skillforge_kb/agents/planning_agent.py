@@ -16,6 +16,7 @@ from skillforge_kb.ontology.concept_attributes import ConceptAttributeCatalog
 from skillforge_kb.planning.adaptation import NodeWeightEngine, NodeWeightPolicy
 from skillforge_kb.planning.models import PathDecision, PathNode, PathStatus, PlannerPolicy
 from skillforge_kb.planning.ordering import PlanningError
+from skillforge_kb.planning.planner import CoursePlanner
 from skillforge_kb.retrieval.models import KnowledgeQuery
 from skillforge_kb.retrieval.tool import KnowledgeRetrievalTool
 
@@ -28,6 +29,7 @@ from .planning_agent_models import (
     PlanningAgentStatus,
     PlanningEventKind,
     PlanningNextAction,
+    PlanningPathMode,
     ProcessedPlanningEvent,
     build_event_digest,
 )
@@ -278,7 +280,7 @@ def build_course_planning_graph(
                     {
                         "profile": event.profile.model_dump(mode="json"),
                         "completed_concept_ids": [],
-                        "allow_skips": True,
+                        "allow_skips": event.path_mode is PlanningPathMode.PERSONALIZED,
                         "target_concept_id": event.target_concept_id,
                     }
                 )
@@ -289,9 +291,15 @@ def build_course_planning_graph(
                 PlanningAgentFailureCode.PLANNING_ERROR,
                 str(exc),
             )
+        full_path = CoursePlanner(catalog, planner_policy).plan(
+            event.profile,
+            allow_skips=False,
+            target_concept_id=event.target_concept_id,
+        )
         return {
             "candidate_profile": event.profile,
             "candidate_path": result.path,
+            "candidate_full_path": full_path,
             "candidate_audit": result.audit,
         }
 
@@ -317,7 +325,7 @@ def build_course_planning_graph(
                         "existing": existing_path.model_dump(mode="json"),
                         "profile": candidate_profile.model_dump(mode="json"),
                         "completed_concept_ids": list(event.completed_concept_ids),
-                        "allow_skips": event.kind is PlanningEventKind.PROFILE_REFRESHED,
+                        "allow_skips": event.path_mode is PlanningPathMode.PERSONALIZED,
                     }
                 )
             )
@@ -327,9 +335,21 @@ def build_course_planning_graph(
                 PlanningAgentFailureCode.PLANNING_ERROR,
                 str(exc),
             )
+        completed_ids = {
+            node.concept_id
+            for node in existing_path.nodes
+            if node.status is PathStatus.COMPLETED
+        } | set(event.completed_concept_ids)
+        full_path = CoursePlanner(catalog, planner_policy).plan(
+            candidate_profile,
+            completed_ids,
+            allow_skips=False,
+            target_concept_id=existing_path.target_concept_id,
+        )
         return {
             "candidate_profile": candidate_profile,
             "candidate_path": result.path,
+            "candidate_full_path": full_path,
             "candidate_audit": result.audit,
         }
 
@@ -484,6 +504,7 @@ def build_course_planning_graph(
             "route": _Route.RESET.value,
             "profile": None,
             "path": None,
+            "full_path": None,
             "adaptations": (),
             "current_node_id": None,
             "status": PlanningAgentStatus.IDLE,
@@ -496,6 +517,7 @@ def build_course_planning_graph(
             "failure": None,
             "candidate_profile": None,
             "candidate_path": None,
+            "candidate_full_path": None,
             "candidate_adaptations": (),
             "candidate_audit": None,
         }
@@ -632,11 +654,13 @@ def _commit_candidate(
     event = state["event"]
     profile = state.get("candidate_profile")
     path = state.get("candidate_path")
+    full_path = state.get("candidate_full_path")
     audit = state.get("candidate_audit")
-    assert profile is not None and path is not None and audit is not None
+    assert profile is not None and path is not None and full_path is not None and audit is not None
     return {
         "profile": profile,
         "path": path,
+        "full_path": full_path,
         "adaptations": state.get("candidate_adaptations", ()),
         "current_node_id": current_node_id,
         "status": status,
@@ -649,6 +673,7 @@ def _commit_candidate(
         "failure": None,
         "candidate_profile": None,
         "candidate_path": None,
+        "candidate_full_path": None,
         "candidate_adaptations": (),
         "candidate_audit": None,
     }
@@ -677,6 +702,12 @@ def _build_result(
     values = _STATE_ADAPTER.validate_python(raw_values)
     path_value = values.get("path")
     path = PathDecision.model_validate(path_value) if path_value is not None else None
+    full_path_value = values.get("full_path")
+    full_path = (
+        PathDecision.model_validate(full_path_value)
+        if full_path_value is not None
+        else None
+    )
     current_node_id = values.get("current_node_id")
     current_node = None
     if path is not None and isinstance(current_node_id, str):
@@ -699,6 +730,7 @@ def _build_result(
         status=values.get("status", PlanningAgentStatus.IDLE),
         next_action=values.get("next_action", PlanningNextAction.WAIT_FOR_EVENT),
         path=path,
+        full_path=full_path,
         current_node=current_node,
         current_adaptation=current_adaptation,
         adaptations=adaptations,

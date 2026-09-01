@@ -6,6 +6,7 @@ from skillforge_kb.ontology.models import (
     AbilityScore,
     AssessmentStatus,
     DepthLevel,
+    DiagnosticItemEvidence,
     KnowledgeMastery,
     LearnerProfileSnapshot,
 )
@@ -105,6 +106,48 @@ def test_high_confidence_mastery_keeps_node_as_skipped(catalog) -> None:
     assert node.status is PathStatus.SKIPPED
     assert node.delivery_depth is None
     assert node.reason_codes == (ReasonCode.MASTERY_SKIP_THRESHOLD_MET,)
+
+
+def test_diagnostic_item_evidence_can_skip_unlisted_scalar(catalog) -> None:
+    profile = make_profile(catalog, ability=0.90).model_copy(
+        update={
+            "diagnostic_evidence": [
+                DiagnosticItemEvidence(
+                    item_id=f"q-{index}",
+                    concept_id="math.linear-algebra.scalar",
+                    correct=True,
+                )
+                for index in range(3)
+            ]
+        }
+    )
+
+    decision = CoursePlanner(catalog).plan(profile)
+    node = node_for(decision, "math.linear-algebra.scalar")
+
+    assert node.status is PathStatus.SKIPPED
+    assert node.mastery_source == "inferred_from_items"
+    assert node.reason_codes == (ReasonCode.INFERRED_MASTERY_SKIP,)
+
+
+def test_plan_variants_keep_scalar_in_full_path(catalog) -> None:
+    profile = make_profile(catalog, ability=0.90).model_copy(
+        update={
+            "diagnostic_evidence": [
+                DiagnosticItemEvidence(
+                    item_id=f"q-{index}",
+                    concept_id="math.linear-algebra.scalar",
+                    correct=True,
+                )
+                for index in range(3)
+            ]
+        }
+    )
+
+    personalized, full = CoursePlanner(catalog).plan_variants(profile)
+
+    assert node_for(personalized, "math.linear-algebra.scalar").status is PathStatus.SKIPPED
+    assert node_for(full, "math.linear-algebra.scalar").status is not PathStatus.SKIPPED
 
 
 def test_complete_high_readiness_can_select_advanced(catalog) -> None:

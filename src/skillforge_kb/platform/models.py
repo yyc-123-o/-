@@ -5,7 +5,10 @@ from hashlib import sha256
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
 
-from skillforge_kb.agents.planning_agent_models import CoursePlanningAgentResult
+from skillforge_kb.agents.planning_agent_models import (
+    CoursePlanningAgentResult,
+    PlanningPathMode,
+)
 from skillforge_kb.agents.resource_agent import ResourceAgentResult
 from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalResult,
@@ -65,6 +68,7 @@ class PlatformRunRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     target_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
     start_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
+    path_mode: PlanningPathMode = PlanningPathMode.PERSONALIZED
 
 
 class AssessmentSubmission(BaseModel):
@@ -255,6 +259,12 @@ class PlatformRunResult(BaseModel):
             and self.planning.path.profile_id != self.profile_id
         ):
             raise ValueError("planning result profile does not match platform run")
+        if (
+            self.planning is not None
+            and self.planning.full_path is not None
+            and self.planning.full_path.profile_id != self.profile_id
+        ):
+            raise ValueError("full planning result profile does not match platform run")
         if self.handoff is not None and self.handoff.profile_id != self.profile_id:
             raise ValueError("handoff profile does not match platform run")
         if (

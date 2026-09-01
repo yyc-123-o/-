@@ -14,6 +14,7 @@ from skillforge_kb.agents.planning_agent_models import (
     PlanningAgentEvent,
     PlanningAgentStatus,
     PlanningEventKind,
+    PlanningPathMode,
 )
 from skillforge_kb.agents.resource_agent import ResourceAgentResult
 from skillforge_kb.agents.retrieval_agent_models import (
@@ -244,6 +245,7 @@ class PlatformService:
                 kind=PlanningEventKind.PROFILE_REFRESHED,
                 profile=request.profile,
                 start_concept_id=planning.current_node.concept_id,
+                path_mode=request.path_mode,
             )
             refreshed = self._execute(
                 request,
@@ -389,6 +391,7 @@ class PlatformService:
                 kind=PlanningEventKind.PROFILE_REFRESHED,
                 profile=update.ledger.profile,
                 start_concept_id=submission.concept_id,
+                path_mode=updated_request.path_mode,
             )
             refreshed = self._execute(
                 updated_request,
@@ -499,9 +502,14 @@ class PlatformService:
             if planning.current_node.concept_id != submission.concept_id:
                 raise ValueError("practice concept does not match the current learning node")
             preview = existing.resources.preview_package
-            practical = preview.draft.practical_guide if preview is not None and preview.draft is not None else None
+            practical = (
+                preview.draft.practical_guide
+                if preview is not None and preview.draft is not None
+                else None
+            )
             exercise = (
-                practical.project_exercise if practical is not None and submission.exercise_kind == "project"
+                practical.project_exercise
+                if practical is not None and submission.exercise_kind == "project"
                 else practical.exercise if practical is not None
                 else None
             )
@@ -595,6 +603,7 @@ class PlatformService:
                     kind=PlanningEventKind.PROFILE_REFRESHED,
                     profile=update.ledger.profile,
                     start_concept_id=submission.concept_id,
+                    path_mode=updated_request.path_mode,
                 )
                 refreshed = self._execute(
                     updated_request,
@@ -682,7 +691,12 @@ class PlatformService:
             self._repository.save(result)
             return result
 
-    def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
+    def start_node(
+        self,
+        run_id: str,
+        concept_id: str,
+        path_mode: PlanningPathMode = PlanningPathMode.PERSONALIZED,
+    ) -> PlatformRunResult:
         with self._lock:
             existing = self._repository.get(run_id)
             request = self._repository.get_request(run_id)
@@ -690,8 +704,21 @@ class PlatformService:
                 raise KeyError(f"platform run not found: {run_id}")
             if existing.planning is None or existing.planning.path is None:
                 raise ValueError("learning path is not ready")
+            if (
+                path_mode is PlanningPathMode.FULL
+                and existing.planning.full_path is None
+            ):
+                raise ValueError("full learning path is not ready")
             node = next(
-                (item for item in existing.planning.path.nodes if item.concept_id == concept_id),
+                (
+                    item
+                    for item in (
+                        existing.planning.full_path
+                        if path_mode is PlanningPathMode.FULL
+                        else existing.planning.path
+                    ).nodes
+                    if item.concept_id == concept_id
+                ),
                 None,
             )
             if node is None:
@@ -708,7 +735,11 @@ class PlatformService:
             suffix = f":start:{concept_id}"
             key = f"{request.idempotency_key}{suffix}"[-128:]
             started_request = request.model_copy(
-                update={"idempotency_key": key, "start_concept_id": concept_id}
+                update={
+                    "idempotency_key": key,
+                    "start_concept_id": concept_id,
+                    "path_mode": path_mode,
+                }
             )
             return self.run(started_request)
 
@@ -785,6 +816,7 @@ def build_platform_graph(dependencies: PlatformGraphDependencies) -> PlatformGra
                     profile=request.profile,
                     target_concept_id=request.target_concept_id,
                     start_concept_id=request.start_concept_id,
+                    path_mode=request.path_mode,
                 )
             planning = dependencies.planning_agent.invoke(event, state["run_id"])
             if (

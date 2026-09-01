@@ -42,6 +42,11 @@ class PlanningNextAction(StrEnum):
     RESET_REQUIRED = "reset_required"
 
 
+class PlanningPathMode(StrEnum):
+    PERSONALIZED = "personalized"
+    FULL = "full"
+
+
 class PlanningAgentFailureCode(StrEnum):
     INVALID_EVENT = "invalid_event"
     INVALID_TRANSITION = "invalid_transition"
@@ -62,6 +67,7 @@ class PlanningAgentEvent(BaseModel):
     completed_concept_ids: tuple[ConceptId, ...] = ()
     target_concept_id: ConceptId | None = None
     start_concept_id: ConceptId | None = None
+    path_mode: PlanningPathMode = PlanningPathMode.PERSONALIZED
 
     @model_validator(mode="after")
     def validate_payload(self) -> "PlanningAgentEvent":
@@ -114,6 +120,7 @@ class CoursePlanningAgentState(TypedDict, total=False):
     route: str
     profile: LearnerProfileSnapshot | None
     path: PathDecision | None
+    full_path: PathDecision | None
     adaptations: tuple[NodeAdaptationDecision, ...]
     current_node_id: str | None
     status: PlanningAgentStatus
@@ -126,6 +133,7 @@ class CoursePlanningAgentState(TypedDict, total=False):
     failure: PlanningAgentFailure | None
     candidate_profile: LearnerProfileSnapshot | None
     candidate_path: PathDecision | None
+    candidate_full_path: PathDecision | None
     candidate_adaptations: tuple[NodeAdaptationDecision, ...]
     candidate_audit: PlanningToolAudit | None
 
@@ -140,6 +148,7 @@ class CoursePlanningAgentResult(BaseModel):
     status: PlanningAgentStatus
     next_action: PlanningNextAction
     path: PathDecision | None = None
+    full_path: PathDecision | None = None
     current_node: PathNode | None = None
     current_adaptation: NodeAdaptationDecision | None = None
     adaptations: tuple[NodeAdaptationDecision, ...] = ()
@@ -156,7 +165,7 @@ class CoursePlanningAgentResult(BaseModel):
     @model_validator(mode="after")
     def validate_state(self) -> "CoursePlanningAgentResult":
         if self.status is PlanningAgentStatus.IDLE:
-            if self.path is not None:
+            if self.path is not None or self.full_path is not None:
                 raise ValueError("idle result cannot contain a path")
             if self.adaptations or self.current_node or self.current_adaptation:
                 raise ValueError("idle result cannot contain planning decisions")
@@ -197,6 +206,18 @@ class CoursePlanningAgentResult(BaseModel):
                     raise ValueError(
                         "remediation queue concepts must be unfinished and non-blocked"
                     )
+
+        if self.full_path is not None:
+            if self.path is None:
+                raise ValueError("full path requires a personalized path")
+            if self.full_path.profile_id != self.path.profile_id:
+                raise ValueError("full path profile does not match personalized path")
+            if self.full_path.graph_version != self.path.graph_version:
+                raise ValueError("full path graph version does not match personalized path")
+            if tuple(node.concept_id for node in self.full_path.nodes) != tuple(
+                node.concept_id for node in self.path.nodes
+            ):
+                raise ValueError("full path must preserve personalized path ordering")
 
         if self.status is PlanningAgentStatus.READY:
             self._validate_ready_state()

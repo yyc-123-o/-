@@ -14,6 +14,7 @@ from .models import (
     CONCEPT_ID_PATTERN,
     AbilityScore,
     AssessmentStatus,
+    DiagnosticItemEvidence,
     ErrorPattern,
     KnowledgeMastery,
     LearnerProfileSnapshot,
@@ -157,6 +158,10 @@ class LearnerProfileAgentAdapter:
             generated_at,
             warnings,
         )
+        diagnostic_evidence = self._adapt_diagnostic_evidence(
+            payload.get("diagnostic_evidence", []),
+            warnings,
+        )
         abilities = self._adapt_abilities(payload.get("ability_level"), runs[0])
         errors = self._adapt_errors(payload.get("error_patterns"), warnings)
         preferences = self._adapt_preferences(payload.get("learning_preferences"))
@@ -169,6 +174,7 @@ class LearnerProfileAgentAdapter:
             generated_at=generated_at,
             assessment_runs=runs,
             knowledge_mastery=mastery,
+            diagnostic_evidence=diagnostic_evidence,
             abilities=abilities,
             error_patterns=errors,
             preferences=preferences,
@@ -180,6 +186,54 @@ class LearnerProfileAgentAdapter:
             suggested_target_concept_id=suggested_target,
             warnings=tuple(warnings),
         )
+
+    def _adapt_diagnostic_evidence(
+        self,
+        value: object,
+        warnings: list[ProfileAgentAdaptationWarning],
+    ) -> list[DiagnosticItemEvidence]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ProfileAgentAdaptationError("diagnostic_evidence must be a list")
+        result: list[DiagnosticItemEvidence] = []
+        for index, raw_item in enumerate(value):
+            item = _mapping(raw_item, f"diagnostic_evidence[{index}]")
+            item_id = _string(item.get("item_id"), f"diagnostic_evidence[{index}].item_id")
+            legacy_id = _string(item.get("concept_id"), f"diagnostic_evidence[{index}].concept_id")
+            concept_ids = self._canonical_targets(legacy_id)
+            if len(concept_ids) != 1:
+                warnings.append(
+                    ProfileAgentAdaptationWarning(
+                        legacy_id=legacy_id,
+                        reason="diagnostic evidence must map to exactly one concept",
+                    )
+                )
+                continue
+            correct = item.get("correct")
+            if not isinstance(correct, bool):
+                raise ProfileAgentAdaptationError(
+                    f"diagnostic_evidence[{index}].correct must be a boolean"
+                )
+            error_code = item.get("error_code")
+            if error_code is not None:
+                error_code = _string(error_code, f"diagnostic_evidence[{index}].error_code")
+            observed_at = item.get("observed_at")
+            result.append(
+                DiagnosticItemEvidence(
+                    item_id=item_id,
+                    concept_id=concept_ids[0],
+                    correct=correct,
+                    error_code=error_code,
+                    observed_at=_parse_datetime(
+                        observed_at,
+                        f"diagnostic_evidence[{index}].observed_at",
+                    )
+                    if observed_at is not None
+                    else None,
+                )
+            )
+        return result
 
     def _adapt_target_hint(
         self,

@@ -12,6 +12,7 @@ from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.platform.models import (
     AssessmentSubmission,
     LectureProgressSubmission,
+    PlanningPathMode,
     PlatformRunRequest,
     PlatformRunResult,
     PlatformStepRecord,
@@ -49,7 +50,12 @@ class PlatformApplicationService(Protocol):
         submission: LectureProgressSubmission | dict[str, object],
     ) -> PlatformRunResult: ...
 
-    def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult: ...
+    def start_node(
+        self,
+        run_id: str,
+        concept_id: str,
+        path_mode: PlanningPathMode = PlanningPathMode.PERSONALIZED,
+    ) -> PlatformRunResult: ...
 
     def review_practice(
         self, run_id: str, submission: PracticeReviewSubmission | dict[str, object]
@@ -336,7 +342,14 @@ def create_app(
                 detail={"code": "invalid_start_node", "message": "concept_id is required"},
             )
         try:
-            return service.start_node(run_id, concept_id.strip())
+            path_mode_value = payload.get("path_mode")
+            if path_mode_value is None:
+                return service.start_node(run_id, concept_id.strip())
+            try:
+                path_mode = PlanningPathMode(path_mode_value)
+            except ValueError as exc:
+                raise ValueError("path_mode must be 'personalized' or 'full'") from exc
+            return service.start_node(run_id, concept_id.strip(), path_mode)
         except KeyError as exc:
             raise _run_not_found(run_id) from exc
         except ValueError as exc:

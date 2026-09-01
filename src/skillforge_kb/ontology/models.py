@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 CONCEPT_ID_PATTERN = r"^[a-z0-9][a-z0-9.-]+$"
 GRAPH_ID_PATTERN = r"^[a-z0-9][a-z0-9.-]+$"
@@ -203,6 +203,18 @@ class LearningPreferences(BaseModel):
     project_orientation: str | None = None
 
 
+class DiagnosticItemEvidence(BaseModel):
+    """One scored diagnostic item that is directly mapped to a graph concept."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    item_id: str = Field(min_length=1)
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    correct: bool
+    error_code: str | None = Field(default=None, min_length=1)
+    observed_at: datetime | None = None
+
+
 class LearnerProfileSnapshot(BaseModel):
     schema_version: str = Field(min_length=1)
     profile_id: str = Field(min_length=1)
@@ -212,6 +224,7 @@ class LearnerProfileSnapshot(BaseModel):
     generated_at: datetime | None = None
     assessment_runs: list[str] = Field(default_factory=list)
     knowledge_mastery: list[KnowledgeMastery] = Field(default_factory=list)
+    diagnostic_evidence: list[DiagnosticItemEvidence] = Field(default_factory=list)
     abilities: dict[str, AbilityScore] = Field(default_factory=dict)
     error_patterns: list[ErrorPattern] = Field(default_factory=list)
     preferences: LearningPreferences = Field(default_factory=LearningPreferences)

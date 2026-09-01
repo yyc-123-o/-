@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import UTC, datetime
 
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import (
@@ -58,6 +59,7 @@ class CoursePlanner:
         if unknown_completed:
             raise PlanningError(f"unknown completed concept: {sorted(unknown_completed)[0]}")
         mastery = self._mastery_index(profile)
+        mastery, inferred_ids = self._apply_diagnostic_evidence(profile, mastery)
         ability_score, ability_reasons = self._ability_score(profile)
         ordered_ids = self._ordered_ids_for_target(target_concept_id)
         initial_nodes = [
@@ -69,6 +71,7 @@ class CoursePlanner:
                 ability_reasons,
                 completed,
                 allow_skips,
+                inferred_ids,
             )
             for sequence, concept_id in enumerate(ordered_ids, start=1)
         ]
@@ -90,6 +93,28 @@ class CoursePlanner:
             generated_at=profile.generated_at,
             nodes=nodes,
         )
+
+    def plan_variants(
+        self,
+        profile: LearnerProfileSnapshot,
+        completed_concept_ids: set[str] | None = None,
+        *,
+        target_concept_id: str | None = None,
+    ) -> tuple[PathDecision, PathDecision]:
+        """Return (personalized, full) paths with identical course ordering."""
+        personalized = self.plan(
+            profile,
+            completed_concept_ids,
+            allow_skips=True,
+            target_concept_id=target_concept_id,
+        )
+        full = self.plan(
+            profile,
+            completed_concept_ids,
+            allow_skips=False,
+            target_concept_id=target_concept_id,
+        )
+        return personalized, full
 
     def _ordered_ids_for_target(self, target_concept_id: str | None) -> list[str]:
         if target_concept_id is None:
@@ -118,6 +143,66 @@ class CoursePlanner:
                 raise PlanningError(f"duplicate mastery concept: {item.concept_id}")
             result[item.concept_id] = item
         return result
+
+    def _apply_diagnostic_evidence(
+        self,
+        profile: LearnerProfileSnapshot,
+        mastery: dict[str, KnowledgeMastery],
+    ) -> tuple[dict[str, KnowledgeMastery], set[str]]:
+        grouped: dict[str, list] = defaultdict(list)
+        for evidence in profile.diagnostic_evidence:
+            if evidence.concept_id not in self._known_ids:
+                raise PlanningError(f"unknown diagnostic concept: {evidence.concept_id}")
+            grouped[evidence.concept_id].append(evidence)
+
+        inferred_ids: set[str] = set()
+        result = dict(mastery)
+        fallback_time = profile.generated_at or datetime(2000, 1, 1, tzinfo=UTC)
+        for concept_id, items in grouped.items():
+            if len(items) < 3:
+                continue
+            accuracy = sum(item.correct for item in items) / len(items)
+            transitions = sum(
+                items[index].correct != items[index - 1].correct
+                for index in range(1, len(items))
+            )
+            stability = 1.0 - transitions / max(1, len(items) - 1)
+            error_ratio = sum(item.error_code is not None for item in items) / len(items)
+            inferred_score = max(
+                0.0,
+                min(1.0, 0.70 * accuracy + 0.20 * stability - 0.10 * error_ratio),
+            )
+            inferred_confidence = max(
+                0.0,
+                min(
+                    0.95,
+                    0.50
+                    + 0.10 * min(len(items), 4)
+                    + 0.10 * stability
+                    - 0.10 * error_ratio,
+                ),
+            )
+            latest = max(
+                (item.observed_at for item in items if item.observed_at is not None),
+                default=fallback_time,
+            )
+            existing = result.get(concept_id)
+            if (
+                existing is None
+                or existing.assessment_status is AssessmentStatus.NOT_ASSESSED
+                or existing.mastery_score is None
+                or existing.confidence < self._policy.minimum_confidence
+            ):
+                result[concept_id] = KnowledgeMastery(
+                    concept_id=concept_id,
+                    mastery_score=inferred_score,
+                    assessment_status=AssessmentStatus.ASSESSED,
+                    confidence=inferred_confidence,
+                    observed_at=latest,
+                    evidence_refs=[item.item_id for item in items],
+                )
+                inferred_ids.add(concept_id)
+        return result, inferred_ids
 
     def _ability_score(
         self,
@@ -148,6 +233,7 @@ class CoursePlanner:
         ability_reasons: list[ReasonCode],
         completed_concept_ids: set[str],
         allow_skips: bool,
+        inferred_ids: set[str],
     ) -> PathNode:
         position = self._positions[concept_id]
         concept_mastery = mastery.get(concept_id)
@@ -161,7 +247,18 @@ class CoursePlanner:
                 status=PathStatus.SKIPPED,
                 delivery_depth=None,
                 hard_prerequisite_ids=self._prerequisite_ids(concept_id),
-                reason_codes=(ReasonCode.MASTERY_SKIP_THRESHOLD_MET,),
+                reason_codes=(
+                    (ReasonCode.INFERRED_MASTERY_SKIP,)
+                    if concept_id in inferred_ids
+                    else (ReasonCode.MASTERY_SKIP_THRESHOLD_MET,)
+                ),
+                mastery_score=concept_mastery.mastery_score if concept_mastery else None,
+                mastery_confidence=concept_mastery.confidence if concept_mastery else 0.0,
+                mastery_source=(
+                    "inferred_from_items"
+                    if concept_id in inferred_ids
+                    else "direct_assessment"
+                ),
             )
 
         blocking_ids, blocking_reasons = self._blocking_prerequisites(
@@ -184,6 +281,16 @@ class CoursePlanner:
             hard_prerequisite_ids=self._prerequisite_ids(concept_id),
             blocking_prerequisite_ids=tuple(blocking_ids),
             reason_codes=tuple(_unique([*depth_reasons, *blocking_reasons])),
+            mastery_score=concept_mastery.mastery_score if concept_mastery else None,
+            mastery_confidence=concept_mastery.confidence if concept_mastery else 0.0,
+            mastery_source=(
+                "inferred_from_items"
+                if concept_id in inferred_ids
+                else "direct_assessment"
+                if concept_mastery is not None
+                and concept_mastery.assessment_status is AssessmentStatus.ASSESSED
+                else "unavailable"
+            ),
         )
 
     def _can_skip(self, mastery: KnowledgeMastery | None) -> bool:

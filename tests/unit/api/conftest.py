@@ -10,6 +10,7 @@ from skillforge_kb.domain.enums import ContentKind
 from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
 from skillforge_kb.ontology.models import LearnerProfileSnapshot
 from skillforge_kb.platform.models import (
+    PlanningPathMode,
     PlatformRunRequest,
     PlatformRunResult,
     PlatformRunStatus,
@@ -24,6 +25,7 @@ class StubPlatformService:
     def __init__(self) -> None:
         self.repository = InMemoryPlatformRunRepository()
         self.evaluation_reports: tuple[KnowledgeTracingEvaluationReport, ...] = ()
+        self.start_calls: list[tuple[str, str, PlanningPathMode]] = []
 
     def run(self, request: PlatformRunRequest) -> PlatformRunResult:
         existing = self.repository.reserve(request)
@@ -57,8 +59,17 @@ class StubPlatformService:
     def refresh_current_resources(self, run_id: str) -> PlatformRunResult:
         raise ValueError("stub service does not support resource refresh")
 
-    def start_node(self, run_id: str, concept_id: str) -> PlatformRunResult:
-        raise ValueError("stub service does not support learning node selection")
+    def start_node(
+        self,
+        run_id: str,
+        concept_id: str,
+        path_mode: PlanningPathMode = PlanningPathMode.PERSONALIZED,
+    ) -> PlatformRunResult:
+        self.start_calls.append((run_id, concept_id, path_mode))
+        result = self.repository.get(run_id)
+        if result is None:
+            raise KeyError(f"platform run not found: {run_id}")
+        return result
 
     def review_practice(self, run_id: str, submission) -> PracticeReviewResult:
         return PracticeReviewResult(
