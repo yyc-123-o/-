@@ -13,7 +13,7 @@ export function normalizeMath(value: string, promoteComplex = true): string {
       const textFence = segment.match(/^(?:```|~~~)text\s*\n([\s\S]*?)\n(?:```|~~~)$/i);
       return textFence ? `\n$$\n${normalizeLegacyMath(textFence[1])}\n$$\n` : segment;
     }
-    const normalized = normalizeLegacyMath(segment)
+    const normalized = normalizeBareTex(normalizeLegacyMath(segment))
       .replace(/\\\(([^\n]*?)\\\)/g, (_match, body: string) => "$" + body + "$")
       .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body: string) => promoteComplex ? "\n$$\n" + body + "\n$$\n" : "$" + body + "$");
     return promoteComplex ? promoteComplexMath(normalized) : normalized;
@@ -22,13 +22,41 @@ export function normalizeMath(value: string, promoteComplex = true): string {
 
 /** Keep tall TeX constructs out of paragraph line boxes. */
 function promoteComplexMath(value: string): string {
-  return value.replace(/\$\$[\s\S]*?\$\$|\$(?!\$)([\s\S]*?)\$/g, (match, body?: string) => {
-    if (body === undefined) return match;
+  const blockSafe = value.replace(/\$\$([\s\S]*?)\$\$/g, (_match, body: string) =>
+    `\n$$\n${body.trim()}\n$$\n`,
+  );
+  return blockSafe.replace(/\$(?!\$)([^$\n]*?)\$/g, (match, body: string) => {
     if (!/(?:\\begin\{|\\end\{|\\matrix|\\frac|\\sum|\\prod|\\left|\\right)/.test(body)) {
       return match;
     }
     return `\n$$\n${body}\n$$\n`;
   });
+}
+
+/** Recover common TeX commands emitted without dollar delimiters. */
+function normalizeBareTex(value: string): string {
+  const protectedParts: string[] = [];
+  const protectedText = value.replace(/\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$/g, (part) => {
+    const index = protectedParts.push(part) - 1;
+    return `\u0001${index}\u0002`;
+  });
+  const normalized = protectedText
+    .replace(
+      /(?<![$\\])((?:\\(?:mathbb|mathbf|mathrm|mathcal)\{[^{}\n]+\}(?:[_^][A-Za-z0-9{}]+)?)(?:\s*(?:=|∈|\\(?:in|dots|cdot|times)|[A-Za-z0-9_{}\[\],+\-*/^]))*)/g,
+      (_match, body: string) => `$${body.trim()}$`,
+    );
+  const formulaParts: string[] = [];
+  const formulaSafe = normalized.replace(/\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$/g, (part) => {
+    const index = formulaParts.push(part) - 1;
+    return `\u0003${index}\u0004`;
+  });
+  const withCommands = formulaSafe.replace(
+      /(?<![$\\])(\\(?:alpha|beta|gamma|theta|lambda|mu|sigma|in|notin|cdot|times|dots)\b)/g,
+      (_match, command: string) => `$${command}$`,
+    );
+  return withCommands
+    .replace(/\u0003(\d+)\u0004/g, (_match, index: string) => formulaParts[Number(index)])
+    .replace(/\u0001(\d+)\u0002/g, (_match, index: string) => protectedParts[Number(index)]);
 }
 
 function normalizeLegacyMath(value: string): string {
