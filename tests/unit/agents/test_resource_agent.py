@@ -18,7 +18,13 @@ from skillforge_kb.agents.retrieval_agent_models import (
 )
 from skillforge_kb.domain.enums import ContentKind, LicenseStatus
 from skillforge_kb.evidence.models import EvidenceReviewStatus
-from skillforge_kb.ontology.models import AbilityScore, AssessmentStatus, KnowledgeMastery, LearnerProfileSnapshot, LearningPreferences
+from skillforge_kb.ontology.models import (
+    AbilityScore,
+    AssessmentStatus,
+    KnowledgeMastery,
+    LearnerProfileSnapshot,
+    LearningPreferences,
+)
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import GenerationGate, build_brief_id
 
@@ -134,6 +140,33 @@ def test_preview_does_not_open_formal_gate(resource_case) -> None:
     assert result.preview_package.draft is not None
     assert result.preview_package.audit_status.value == "passed"
     assert result.publication_status == "candidate_draft"
+
+
+def test_preview_uses_a_multi_round_review_transcript(resource_case) -> None:
+    """generate_preview wires ContentReviewAgent with max_attempts=3 (not the
+    service default of 2): a passing draft still records its one review
+    round, proving the transcript is wired through end to end."""
+
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+
+    result = ResourceGenerationAgent().generate_preview(
+        _profile(handoff),
+        handoff,
+        _candidate_retrieval(handoff),
+    )
+
+    assert result.preview_package is not None
+    assert len(result.preview_package.review_rounds) >= 1
+    assert result.preview_package.review_rounds[-1].report == result.preview_package.audit_report
 
 
 def test_preview_policy_does_not_carry_cnn_demo_scope_bans(resource_case) -> None:

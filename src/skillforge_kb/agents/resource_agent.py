@@ -13,6 +13,7 @@ from skillforge_kb.ontology.models import (
 from skillforge_kb.resources.controlled_generation import (
     AllowedEvidence,
     CandidateLearningPackage,
+    ContentReviewAgent,
     ControlledResourceGenerationService,
     EvidenceApprovalStatus,
     FakeLLMAdapter,
@@ -24,7 +25,6 @@ from skillforge_kb.resources.controlled_generation import (
     PracticalGuideDraft,
     PracticeExercise,
     PublicationStatus,
-    ResourceAuditor,
     ResourceGenerationBrief,
     StructuredResourceDraft,
     StudentQuizDraft,
@@ -105,10 +105,19 @@ class ResourceAgentResult(BaseModel):
 class ResourceGenerationAgent:
     def __init__(self, llm_adapter: LLMAdapter | None = None) -> None:
         self._llm_adapter = llm_adapter
+        # A separately addressable "审核 Agent" role: the generation agent
+        # hands its drafts to this agent for cross-verification rather than
+        # auditing its own output. Held once here so callers (and future
+        # orchestration/tracing hooks) can reach it directly.
+        self._review_agent = ContentReviewAgent()
 
     @property
     def llm_adapter(self) -> LLMAdapter | None:
         return self._llm_adapter
+
+    @property
+    def review_agent(self) -> ContentReviewAgent:
+        return self._review_agent
 
     def generate_strict(
         self,
@@ -155,14 +164,19 @@ class ResourceGenerationAgent:
             if self._llm_adapter is not None
             else FakeLLMAdapter(fallback_draft)
         )
+        # max_attempts=3: a genuine multi-round generation-review trip, not the
+        # library default's single retry -- the review Agent gets up to two
+        # chances to send a rejected draft back before this preview gives up.
         package = ControlledResourceGenerationService(
             adapter,
-            auditor=ResourceAuditor(),
+            auditor=self._review_agent.auditor,
+            max_attempts=3,
         ).generate(brief, notebook_passed=False)
         if package.draft is None and self._llm_adapter is not None:
             package = ControlledResourceGenerationService(
                 FakeLLMAdapter(fallback_draft),
-                auditor=ResourceAuditor(),
+                auditor=self._review_agent.auditor,
+                max_attempts=3,
             ).generate(brief, notebook_passed=False)
         if package.publication_status is not PublicationStatus.CANDIDATE_DRAFT:
             raise ValueError("candidate preview unexpectedly received release rights")
