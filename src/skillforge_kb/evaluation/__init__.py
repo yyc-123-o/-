@@ -36,24 +36,6 @@ from .persona_metrics import (
     aggregate_hard_metrics,
     compute_persona_hard_metrics,
 )
-from .persona_pipeline import (
-    PERSONA_PIPELINE_SCHEMA_VERSION,
-    FeedbackRoundRecord,
-    PersonaPathNodeRecord,
-    PersonaPipelineContext,
-    PersonaPipelineSnapshot,
-    build_persona_pipeline_context,
-    build_persona_snapshot_digest,
-    dump_persona_pipeline_snapshot,
-    run_persona_feedback_loop,
-    run_persona_pipeline,
-)
-from .persona_verification import (
-    PERSONA_VERIFICATION_SCHEMA_VERSION,
-    VerificationCheck,
-    VerificationReport,
-    verify_persona_snapshot,
-)
 from .planner_calibration import (
     PlannerPolicyCalibrationReport,
     PlannerPolicyCandidate,
@@ -137,3 +119,54 @@ __all__ = [
     "load_knowledge_tracing_report",
     "write_knowledge_tracing_report",
 ]
+
+
+# ``persona_pipeline`` composes the live platform runtime. Importing it while
+# ``platform.graph`` is importing ``evaluation.knowledge_tracing`` creates a
+# cycle (graph -> evaluation package -> persona pipeline -> runtime -> graph).
+# Keep the public package API, but load the runtime-dependent exports only when
+# a caller explicitly asks for one of them (for example, the persona CLI).
+_LAZY_PERSONA_EXPORTS = {
+    "PERSONA_PIPELINE_SCHEMA_VERSION",
+    "FeedbackRoundRecord",
+    "PersonaPathNodeRecord",
+    "PersonaPipelineContext",
+    "PersonaPipelineSnapshot",
+    "build_persona_pipeline_context",
+    "build_persona_snapshot_digest",
+    "dump_persona_pipeline_snapshot",
+    "run_persona_feedback_loop",
+    "run_persona_pipeline",
+    "PERSONA_VERIFICATION_SCHEMA_VERSION",
+    "VerificationCheck",
+    "VerificationReport",
+    "verify_persona_snapshot",
+}
+
+
+def __getattr__(name: str):
+    if name in {
+        "PERSONA_PIPELINE_SCHEMA_VERSION",
+        "FeedbackRoundRecord",
+        "PersonaPathNodeRecord",
+        "PersonaPipelineContext",
+        "PersonaPipelineSnapshot",
+        "build_persona_pipeline_context",
+        "build_persona_snapshot_digest",
+        "dump_persona_pipeline_snapshot",
+        "run_persona_feedback_loop",
+        "run_persona_pipeline",
+    }:
+        from . import persona_pipeline
+
+        return getattr(persona_pipeline, name)
+    if name in {
+        "PERSONA_VERIFICATION_SCHEMA_VERSION",
+        "VerificationCheck",
+        "VerificationReport",
+        "verify_persona_snapshot",
+    }:
+        from . import persona_verification
+
+        return getattr(persona_verification, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
