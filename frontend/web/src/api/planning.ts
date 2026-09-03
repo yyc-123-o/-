@@ -13,8 +13,8 @@ export const planningApi = {
       target_concept_id: options.target_concept_id || null,
       start_concept_id: options.start_concept_id || null,
     }, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
-  startNode: (runId: string, conceptId: string) =>
-    api.post<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}/start-node`, { concept_id: conceptId }, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
+  startNode: (runId: string, conceptId: string, pathMode: "personalized" | "full" = "personalized") =>
+    api.post<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}/start-node`, { concept_id: conceptId, path_mode: pathMode }, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
   completeNode: (runId: string, conceptId: string) =>
     api.post<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}/complete-node`, { concept_id: conceptId }, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
   runById: (runId: string) => api.get<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}`).then((r) => r.data),

@@ -8,6 +8,7 @@ export const useLearningPathStore = defineStore("learningPath", () => {
   const RUN_KEY = "zhijing.learning-path.run.v2";
   const loading = ref(false);
   const error = ref("");
+  const pathMode = ref<"personalized" | "full">("personalized");
   const learner = useLearnerStore();
 
   function profileKey(): string {
@@ -42,7 +43,21 @@ export const useLearningPathStore = defineStore("learningPath", () => {
 
   const run = ref<PlatformRun | null>(loadSavedRun());
 
-  const nodes = computed<PathNode[]>(() => run.value?.planning?.path?.nodes || []);
+  const personalizedNodes = computed<PathNode[]>(() =>
+    (run.value?.planning?.path?.nodes || []).filter((node) => node.status !== "skipped"),
+  );
+  const fullNodes = computed<PathNode[]>(() =>
+    (run.value?.planning?.full_path?.nodes || run.value?.planning?.path?.nodes || []).map((node) => ({
+      ...node,
+      personalized_skipped: run.value?.planning?.path?.nodes?.some(
+        (personalizedNode) => personalizedNode.concept_id === node.concept_id
+          && personalizedNode.status === "skipped",
+      ) || false,
+    })),
+  );
+  const nodes = computed<PathNode[]>(() =>
+    pathMode.value === "full" ? fullNodes.value : personalizedNodes.value,
+  );
   const recommendations = computed<PathRecommendation[]>(() => run.value?.planning?.path?.recommendations || []);
   const currentNode = computed(() => run.value?.planning?.current_node || nodes.value.find((node) => node.status === "available"));
   function persistRun() {
@@ -69,6 +84,7 @@ export const useLearningPathStore = defineStore("learningPath", () => {
       // snapshot is already normalized, so let the planner derive a safe queue
       // instead of sending the legacy `kp_*` identifier to the API.
       run.value = await planningApi.run(snapshot);
+      pathMode.value = "personalized";
       persistRun();
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : "学习路径生成失败";
@@ -77,10 +93,23 @@ export const useLearningPathStore = defineStore("learningPath", () => {
     }
   }
 
-  async function startNode(conceptId: string) {
+  function setPathMode(mode: "personalized" | "full") {
+    pathMode.value = mode;
+  }
+
+  async function startNode(conceptId: string, mode: "personalized" | "full" = pathMode.value) {
     if (!run.value?.run_id) return;
-    run.value = await planningApi.startNode(run.value.run_id, conceptId);
-    persistRun();
+    loading.value = true;
+    error.value = "";
+    try {
+      run.value = await planningApi.startNode(run.value.run_id, conceptId, mode);
+      pathMode.value = mode;
+      persistRun();
+    } catch (reason) {
+      error.value = reason instanceof Error ? reason.message : "知识点启动失败";
+    } finally {
+      loading.value = false;
+    }
   }
 
   async function completeNode() {
@@ -108,5 +137,8 @@ export const useLearningPathStore = defineStore("learningPath", () => {
     },
   );
 
-  return { run, loading, error, nodes, recommendations, currentNode, generate, startNode, completeNode, setRun };
+  return {
+    run, loading, error, pathMode, personalizedNodes, fullNodes, nodes, recommendations, currentNode,
+    generate, setPathMode, startNode, completeNode, setRun,
+  };
 });

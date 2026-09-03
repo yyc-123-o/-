@@ -844,9 +844,16 @@ p { color: var(--muted); line-height: 1.75; }
 .recommendation-copy strong { font-size: 12px; }
 .recommendation-copy small { margin-top: 3px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .recommendation-time { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); white-space: nowrap; font-size: 10px; }
-.markdown-content .katex-display { display: block; clear: both; overflow: visible; min-height: 2.25em; margin: 1.25em 0; padding: .3em 0 .75em; line-height: 1.35; }
+.markdown-content .katex-display { display: block; clear: both; max-width: 100%; overflow: visible; min-height: 2.25em; margin: 1.25em 0; padding: .3em 0 .75em; font-size: calc(1em * var(--katex-fit-scale, 1)); line-height: 1.35; }
 .markdown-content .katex-display > .katex { display: inline-block; white-space: nowrap; line-height: 1.2; }
 .markdown-content p:has(> .katex-display) { margin: 0; line-height: 1.2; }
+.path-controls { display: flex; gap: 6px; }
+.path-mode-button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; color: var(--muted); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; }
+.path-mode-button.active { color: var(--blue); background: var(--blue-soft); border-color: #b8cef3; }
+.path-mode-note { margin: -3px 0 9px; color: var(--muted); font-size: 11px; }
+.path-evidence-note { margin: -2px 0 10px; padding: 9px 10px; color: #80631d; background: var(--amber-soft); border-radius: 8px; font-size: 11px; line-height: 1.5; }
+.mastered-note { display: flex; align-items: center; gap: 6px; margin: -3px 0 12px; padding: 9px 10px; color: var(--green); background: var(--green-soft); border-radius: 8px; font-size: 11px; }
+.node-skipped .node-state, .node-mastered .node-state { color: var(--green); background: var(--green-soft); }
 
 /* Keep tall TeX constructs readable inside diagnosis question rows. */
 .question-card .katex,

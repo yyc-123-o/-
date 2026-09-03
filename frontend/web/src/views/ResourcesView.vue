@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { renderMarkdown, renderInlineMath } from "@/utils/math";
 import { BookOpen, CheckCircle2, Code2, Dumbbell, FileCheck2, MessageCircle, RefreshCw, Sparkles } from "lucide-vue-next";
 import { useRouter } from "vue-router";
@@ -12,6 +12,7 @@ import { useLearningPathStore } from "@/stores/learningPath";
 const router = useRouter();
 const path = useLearningPathStore();
 const active = ref("lecture");
+const reader = ref<HTMLElement | null>(null);
 const md = { render: renderMarkdown, renderInline: renderInlineMath };
 const resources = computed(() => path.run?.resources as Record<string, any> | null);
 const retrieval = computed(() => path.run?.retrieval as Record<string, any> | null);
@@ -112,6 +113,37 @@ const resourceCards = [
   { key: "practice", title: "实践练习", description: "动手完成一个小任务，巩固迁移能力。", kind: "练习" },
   { key: "quiz", title: "小测验", description: "用几道题检查是否真的掌握。", kind: "测验" },
 ];
+
+let resizeObserver: ResizeObserver | undefined;
+let fitFrame: number | undefined;
+
+function fitDisplayMath() {
+  if (!reader.value) return;
+  for (const display of reader.value.querySelectorAll<HTMLElement>(".katex-display")) {
+    display.style.removeProperty("--katex-fit-scale");
+    const formula = display.firstElementChild as HTMLElement | null;
+    if (!formula || display.clientWidth <= 0) continue;
+    const scale = Math.min(1, display.clientWidth / formula.scrollWidth);
+    if (scale < 1) display.style.setProperty("--katex-fit-scale", String(scale));
+  }
+}
+
+function scheduleMathFit() {
+  if (fitFrame !== undefined) cancelAnimationFrame(fitFrame);
+  nextTick(() => {
+    fitFrame = requestAnimationFrame(() => {
+      fitFrame = undefined;
+      fitDisplayMath();
+    });
+  });
+}
+
+watch(content, scheduleMathFit, { flush: "post" });
+watch(reader, (element) => {
+  resizeObserver?.disconnect();
+  if (element) resizeObserver?.observe(element);
+  scheduleMathFit();
+});
 async function ask(value: string) {
   if (!path.run?.run_id || !path.currentNode || coachLoading.value) return;
   coachLoading.value = true;
@@ -199,10 +231,21 @@ async function refreshLesson() {
 }
 
 onMounted(() => {
+  reader.value = document.querySelector<HTMLElement>(".learning-reader");
+  resizeObserver = new ResizeObserver(scheduleMathFit);
+  if (reader.value) resizeObserver.observe(reader.value);
+  window.addEventListener("resize", scheduleMathFit);
+  scheduleMathFit();
   // The run normally already contains its resource draft. Only request a
   // refresh when the page was opened before resources were attached; checking
   // for a hard-coded phrase caused repeated requests for valid LLM lessons.
   if (path.run?.run_id && (!draft.value || quizNeedsRefresh.value)) refreshLesson();
+});
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
+  window.removeEventListener("resize", scheduleMathFit);
+  if (fitFrame !== undefined) cancelAnimationFrame(fitFrame);
 });
 </script>
 

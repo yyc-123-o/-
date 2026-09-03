@@ -1,5 +1,8 @@
 export interface PathNode {
   concept_id: string;
+  chapter_id?: string;
+  section_id?: string;
+  sequence?: number;
   title?: string;
   name?: string;
   summary?: string;
@@ -7,10 +10,15 @@ export interface PathNode {
   mastery_score?: number | null;
   confidence?: number;
   depth?: string;
+  delivery_depth?: string | null;
   estimated_minutes?: number;
   prerequisite_ids?: string[];
   blocking_prerequisite_ids?: string[];
   reason_codes?: string[];
+  hard_prerequisite_ids?: string[];
+  mastery_confidence?: number;
+  mastery_source?: string;
+  personalized_skipped?: boolean;
 }
 
 export interface PathRecommendation {
@@ -28,6 +36,7 @@ export interface PlatformRun {
   status: string;
   planning?: {
     path?: { nodes: PathNode[]; profile_id?: string; recommendations?: PathRecommendation[] };
+    full_path?: { nodes: PathNode[]; profile_id?: string };
     current_node?: PathNode;
     adaptations?: Record<string, unknown>;
   };
