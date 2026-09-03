@@ -65,6 +65,10 @@ export const useLearningPathStore = defineStore("learningPath", () => {
   }
 
   async function generate() {
+    // Importing a profile updates the store before the route mounts. The
+    // watcher below and LearningPathView's onMounted hook can otherwise start
+    // two identical, LLM-backed resource requests for the same snapshot.
+    if (loading.value) return;
     loading.value = true;
     error.value = "";
     try {
