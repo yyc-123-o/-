@@ -4,9 +4,12 @@ import { ArrowRight, BarChart3, CheckCircle2, CircleAlert, FileCheck2 } from "lu
 import { useRouter } from "vue-router";
 import { assessmentApi } from "@/api/assessment";
 import { useLearningPathStore } from "@/stores/learningPath";
+import { useLearningRecordsStore } from "@/stores/learningRecords";
+import { courseIdFromProfile, courseTitle, knowledgeTitle } from "@/utils/knowledgeGraph";
 
 const router = useRouter();
 const path = useLearningPathStore();
+const learningRecords = useLearningRecordsStore();
 const score = ref(0.8);
 const submitted = ref(false);
 const feedback = ref<any>(null);
@@ -25,6 +28,37 @@ async function submit() {
       passing_score: 0.6,
     });
     if (feedback.value?.status) path.setRun(feedback.value);
+    const courseId = courseIdFromProfile(feedback.value?.profile || null) || feedback.value?.handoff?.chapter_id || node.value.chapter_id || "current-course";
+    const nodeTitle = knowledgeTitle(node.value.concept_id, node.value.title, node.value.name);
+    const occurredAt = new Date().toISOString();
+    learningRecords.upsert({
+      id: `${path.run.run_id}:${node.value.concept_id}:assessment:${Math.round(score.value * 100)}`,
+      learnerId: feedback.value?.profile?.learner_ref || "current-learner",
+      courseId,
+      courseTitle: courseTitle(courseId),
+      knowledgeNodeId: node.value.concept_id,
+      knowledgeNodeTitle: nodeTitle,
+      resourceId: null,
+      resourceTitle: null,
+      assessmentId: "self-assessment",
+      attemptId: `${path.run.run_id}:${node.value.concept_id}:${occurredAt}`,
+      type: "assessment_completed",
+      title: "完成阶段测评",
+      description: `${nodeTitle} · 掌握度 ${Math.round(score.value * 100)}%`,
+      durationSeconds: 90,
+      completionRate: null,
+      previousMastery: null,
+      currentMastery: score.value,
+      assessmentScore: score.value,
+      assessmentAccuracy: score.value,
+      previousRecommendedNodeId: node.value.concept_id,
+      currentRecommendedNodeId: feedback.value?.planning?.current_node?.concept_id || null,
+      unlockedNodeIds: [],
+      occurredAt,
+      createdAt: occurredAt,
+      source: "local-event",
+      metadata: { runId: path.run.run_id },
+    });
     submitted.value = true;
   } catch (error) {
     feedback.value = {

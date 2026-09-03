@@ -1,7 +1,12 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { profileApi } from "@/api/profile";
-import type { DiagnosisProfile, LearnerSnapshot, LearnerSummary, LearningOutcomeReport } from "@/types/learner";
+import type {
+  DiagnosisProfile,
+  LearnerSnapshot,
+  LearnerSummary,
+  LearningOutcomeReport,
+} from "@/types/learner";
 
 const KEY = "zhijing.learner.state.v1";
 
@@ -18,8 +23,6 @@ function readState(): LearnerPersistedState {
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) || "") as Partial<LearnerPersistedState>;
     return {
-      // A previous frontend version may have persisted a partial profile.
-      // Do not treat it as a current learner until its identity is complete.
       profile: parsed.profile?.learner ? parsed.profile : null,
       snapshot: parsed.snapshot ?? null,
       source: parsed.source ?? "empty",
@@ -28,7 +31,14 @@ function readState(): LearnerPersistedState {
       outcomeReport: parsed.outcomeReport ?? null,
     };
   } catch {
-    return { profile: null, snapshot: null, source: "empty", baselineProfileId: "", baselineLearnerId: "", outcomeReport: null };
+    return {
+      profile: null,
+      snapshot: null,
+      source: "empty",
+      baselineProfileId: "",
+      baselineLearnerId: "",
+      outcomeReport: null,
+    };
   }
 }
 
@@ -73,9 +83,6 @@ export const useLearnerStore = defineStore("learner", () => {
     error.value = "";
     try {
       learners.value = (await diagnosisApi.learners()).learners;
-      // Persisted profiles may use an older diagnostic schema. Refresh the
-      // selected learner on app start so legacy local storage cannot keep
-      // presenting obsolete, hard-coded-looking results.
       if (profile.value?.learner_id) {
         try {
           profile.value = await diagnosisApi.profile(profile.value.learner_id);
@@ -83,8 +90,6 @@ export const useLearnerStore = defineStore("learner", () => {
           source.value = "real";
           persist();
         } catch {
-          // The backend was restarted or the learner was deleted. Do not keep
-          // rendering its stale local result as though it were current data.
           profile.value = null;
           snapshot.value = null;
           source.value = "empty";
@@ -109,7 +114,6 @@ export const useLearnerStore = defineStore("learner", () => {
       selectedLearnerId.value = id;
       source.value = "real";
       snapshot.value = null;
-      // 切换学习者时，基线与成果报告属于上一个学习者，一并重置
       if (profile.value.learner_id !== outcomeReport.value?.learner_id) outcomeReport.value = null;
       if (profile.value.learner_id !== baselineLearnerId.value) baselineProfileId.value = "";
       persist();
@@ -140,8 +144,7 @@ export const useLearnerStore = defineStore("learner", () => {
     persist();
   }
 
-  // ===== 学习成果检验（第二流程）=====
-  // 保存当前画像为基线，之后继续学习/测评，再复诊对比生成检验报告
+  // 保存基线，继续学习后再复诊并生成成果对比报告。
   async function saveBaseline() {
     if (!profile.value) return null;
     const { diagnosisApi } = await import("@/api/diagnosis");
@@ -168,7 +171,6 @@ export const useLearnerStore = defineStore("learner", () => {
     error.value = "";
     try {
       const learnerId = profile.value.learner_id;
-      // 复诊会用最新答题记录重建画像，直接把返回的新画像写入看板
       profile.value = await diagnosisApi.reDiagnose(learnerId);
       selectedLearnerId.value = learnerId;
       source.value = "real";
@@ -187,9 +189,24 @@ export const useLearnerStore = defineStore("learner", () => {
   }
 
   return {
-    learners, profile, snapshot, source, selectedLearnerId, loading, error,
-    baselineProfileId, outcomeReport,
-    learnerName, mastery, weakPoints, loadLearners, selectLearner, adaptProfile, setProfile, setSnapshot,
-    saveBaseline, verifyOutcome,
+    learners,
+    profile,
+    snapshot,
+    source,
+    selectedLearnerId,
+    loading,
+    error,
+    baselineProfileId,
+    outcomeReport,
+    learnerName,
+    mastery,
+    weakPoints,
+    loadLearners,
+    selectLearner,
+    adaptProfile,
+    setProfile,
+    setSnapshot,
+    saveBaseline,
+    verifyOutcome,
   };
 });

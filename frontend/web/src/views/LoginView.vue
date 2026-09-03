@@ -24,7 +24,7 @@ function handleSubmit() {
 
     <main class="auth-page__shell">
       <section class="auth-page__copy">
-        <span class="auth-page__eyebrow"><Sparkles :size="16" /> 登录后进入工作台</span>
+        <span class="auth-page__eyebrow"><Sparkles :size="16" /> 登录后进入我的学习</span>
         <h1>把课程知识、学习者画像和智能规划放在同一个平台里</h1>
         <p>进入你的课程知识库、图谱、诊断和规划工作区，继续处理当前的学习任务与证据流转。</p>
         <div class="auth-page__points">
@@ -49,7 +49,7 @@ function handleSubmit() {
             <input v-model="password" type="password" autocomplete="current-password" placeholder="请输入密码" />
           </label>
           <button type="submit" class="auth-form__submit" :disabled="!canSubmit">
-            进入工作台
+            进入我的学习
             <ArrowRight :size="16" />
           </button>
         </form>
