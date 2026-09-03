@@ -83,7 +83,7 @@ const stageDefinitions = computed(() => {
   return [
     { key: "materials", label: "课程资料", icon: FileText, state: hasProfile ? "done" : "current" },
     { key: "graph", label: "知识图谱", icon: Route, state: hasPath ? "done" : hasProfile ? "current" : "locked" },
-    { key: "diagnosis", label: "学情诊断", icon: Target, state: hasTestEvidence ? "done" : hasProfile ? "current" : "locked" },
+    { key: "diagnosis", label: "学情诊断", icon: Target, state: hasTestEvidence ? "done" : "current" },
     { key: "planning", label: "课程规划", icon: BookOpenCheck, state: hasPath ? "current" : "locked" },
   ];
 });
@@ -193,7 +193,10 @@ function retrySync() {
 }
 
 function openStage(stage: { state: string; key: string }) {
-  if (stage.state === "locked") return;
+  if (stage.state === "locked") {
+    void router.push("/diagnosis");
+    return;
+  }
   const routes: Record<string, string> = {
     materials: "/resources#knowledge-base",
     graph: "/learning-path#knowledge-graph",
@@ -333,7 +336,7 @@ onMounted(() => {
             type="button"
             class="stage-flow-item"
             :class="`is-${stage.state}`"
-            :disabled="stage.state === 'locked'"
+            :aria-disabled="stage.state === 'locked'"
             @click="openStage(stage)"
           >
             <span class="stage-flow-node">
