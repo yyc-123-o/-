@@ -34,6 +34,16 @@ function readState(): LearnerPersistedState {
   }
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 export const useLearnerStore = defineStore("learner", () => {
   const saved = readState();
   const learners = ref<LearnerSummary[]>([]);
@@ -140,6 +150,67 @@ export const useLearnerStore = defineStore("learner", () => {
     persist();
   }
 
+  function setDemoProfile(raw: unknown, nextSnapshot: LearnerSnapshot) {
+    const data = asRecord(raw);
+    const learnerId = String(data.learner_id || nextSnapshot.learner_ref || "demo-learner");
+    const rawMastery = asRecord(data.knowledge_mastery);
+    const rawPoints = asRecord(rawMastery.points);
+    const pointEntries = Object.entries(rawPoints);
+    const points = Object.fromEntries(pointEntries.map(([conceptId, value]) => {
+      const item = asRecord(value);
+      return [conceptId, {
+        name: String(item.name || conceptId),
+        domain: "导入画像",
+        mastery: typeof item.mastery === "number" ? item.mastery : null,
+        status: String(item.status || "unknown"),
+        test_count: 0,
+        confidence: asNumber(item.confidence, 0.4),
+        evidence_level: "stable" as const,
+      }];
+    }));
+    const scores = Object.values(points)
+      .map((item) => item.mastery)
+      .filter((value): value is number => typeof value === "number");
+    const scope = asRecord(data.learning_scope);
+    const preferences = asRecord(data.learning_preferences);
+    const pace = asRecord(preferences.pace);
+    const profile: DiagnosisProfile = {
+      profile_id: String(data.profile_id || learnerId),
+      profile_version: String(data.profile_version || "2.1"),
+      learner_id: learnerId,
+      learner: {
+        name: String(asRecord(data.learner).name || `导入画像 · ${learnerId}`),
+        education: asRecord(asRecord(data.learner).education),
+        self_assessment: {
+          learning_goal: String(scope.chapter_id || "按导入画像生成个性化学习路径"),
+          weekly_hours: asNumber(pace.weekly_hours, 5),
+        },
+      },
+      knowledge_mastery: {
+        global_theta: asNumber(rawMastery.global_theta),
+        overall_accuracy: asNumber(rawMastery.overall_accuracy),
+        overall_mastery: scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : null,
+        overall_confidence: scores.length ? 0.8 : 0,
+        tested_kps: scores.length,
+        total_kps: pointEntries.length,
+        coverage_ratio: pointEntries.length ? scores.length / pointEntries.length : 0,
+        points,
+      },
+      ability_level: {
+        overall: String(asRecord(data.ability_level).overall || "beginner"),
+        global_theta: asNumber(asRecord(data.ability_level).global_theta),
+        sub_dimensions: {},
+      },
+      learning_scope: {
+        chapter_id: String(scope.chapter_id || "ch03_cnn"),
+        primary_kp_id: String(scope.primary_kp_id || "kp_012"),
+        target_depth: String(scope.target_depth || "入门"),
+      },
+    };
+    setProfile(profile, "demo");
+    setSnapshot(nextSnapshot);
+  }
+
   function setSnapshot(next: LearnerSnapshot) {
     const currentMastery = snapshot.value?.knowledge_mastery || [];
     const nextMastery = next.knowledge_mastery || [];
@@ -203,7 +274,7 @@ export const useLearnerStore = defineStore("learner", () => {
   return {
     learners, profile, snapshot, previousSnapshot, source, selectedLearnerId, loading, error,
     baselineProfileId, outcomeReport,
-    learnerName, mastery, weakPoints, loadLearners, selectLearner, adaptProfile, setProfile, setSnapshot,
+    learnerName, mastery, weakPoints, loadLearners, selectLearner, adaptProfile, setProfile, setDemoProfile, setSnapshot,
     saveBaseline, verifyOutcome,
   };
 });

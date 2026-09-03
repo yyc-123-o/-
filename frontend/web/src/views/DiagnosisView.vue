@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { ArrowRight, ClipboardCheck, FileText, Gauge, Sparkles } from "lucide-vue-next";
+import { ArrowRight, ClipboardCheck, FileText, Gauge, Sparkles, Upload } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import DiagnosisStepper from "@/components/DiagnosisStepper.vue";
 import ProfileSummary from "@/components/ProfileSummary.vue";
@@ -8,11 +8,16 @@ import AIInsightCard from "@/components/AIInsightCard.vue";
 import StateBlocks from "@/components/StateBlocks.vue";
 import { useDiagnosisStore } from "@/stores/diagnosis";
 import { useLearnerStore } from "@/stores/learner";
+import { api } from "@/api/client";
+import type { LearnerSnapshot } from "@/types/learner";
 
 const router = useRouter();
 const diagnosis = useDiagnosisStore();
 const learner = useLearnerStore();
 const selectedId = ref(learner.selectedLearnerId);
+const demoInput = ref<HTMLInputElement | null>(null);
+const demoImporting = ref(false);
+const demoImportError = ref("");
 onMounted(() => diagnosis.loadLearners());
 function jump(stage: number) {
   if (stage === 1) router.push("/diagnosis/basic");
@@ -21,6 +26,30 @@ function jump(stage: number) {
 }
 async function loadSelected() {
   await learner.selectLearner(selectedId.value);
+}
+
+function openDemoImport() {
+  demoImportError.value = "";
+  demoInput.value?.click();
+}
+
+async function importDemoProfile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) return;
+  demoImporting.value = true;
+  demoImportError.value = "";
+  try {
+    const raw = JSON.parse(await file.text()) as Record<string, unknown>;
+    const result = await api.post<{ snapshot: LearnerSnapshot }>("/api/v1/profiles/adapt", raw);
+    learner.setDemoProfile(raw, result.data.snapshot);
+    await router.push("/learning-path");
+  } catch (error) {
+    demoImportError.value = error instanceof Error ? error.message : "画像导入失败";
+  } finally {
+    demoImporting.value = false;
+  }
 }
 </script>
 
@@ -39,7 +68,8 @@ async function loadSelected() {
           <button class="diagnosis-task" @click="router.push('/diagnosis/assessment')"><span class="task-icon task-purple"><Gauge :size="20" /></span><span><b>知识水平</b><small>自评与自适应测试相结合</small></span><ArrowRight :size="17" /></button>
           <button class="diagnosis-task" @click="router.push('/profile')"><span class="task-icon task-green"><ClipboardCheck :size="20" /></span><span><b>学习画像</b><small>掌握度、能力维度与薄弱点</small></span><ArrowRight :size="17" /></button>
         </div>
-        <div class="learner-selector"><label>查看已有学习者画像<select v-model="selectedId" :disabled="diagnosis.learnersLoading"><option value="">请选择学习者</option><option v-for="item in learner.learners" :key="item.id" :value="item.id">{{ item.name }} · {{ item.major }}</option></select></label><button class="button button-secondary" :disabled="!selectedId || learner.loading" @click="loadSelected">{{ learner.loading ? "加载中…" : "载入画像" }}</button></div>
+        <div class="learner-selector"><label>查看已有学习者画像<select v-model="selectedId" :disabled="diagnosis.learnersLoading"><option value="">请选择学习者</option><option v-for="item in learner.learners" :key="item.id" :value="item.id">{{ item.name }} · {{ item.major }}</option></select></label><button class="button button-secondary" :disabled="!selectedId || learner.loading" @click="loadSelected">{{ learner.loading ? "加载中…" : "载入画像" }}</button><input ref="demoInput" type="file" accept="application/json,.json" hidden @change="importDemoProfile" /><button class="button button-quiet" :disabled="demoImporting" @click="openDemoImport"><Upload :size="16" /> {{ demoImporting ? "导入中…" : "导入画像 JSON" }}</button></div>
+        <div v-if="demoImportError" class="inline-error">{{ demoImportError }}</div>
         <StateBlocks v-if="learner.error" type="error" title="画像加载失败" :message="learner.error" action="重新加载" @retry="diagnosis.loadLearners" />
       </section>
       <AIInsightCard title="你的 AI 学习顾问" :body="learner.profile ? `我已经看到 ${learner.profile.learner.name} 的部分学习信号。下一步建议完成自适应测试，让路径规划更准确。` : '我会根据你的回答调整诊断节奏，并解释每一步结果。先完成基础信息，我们就可以开始。'" suggestion="先完成自评，再开始自适应测试。" action="开始自适应测试" @action="router.push('/diagnosis/assessment')" />
