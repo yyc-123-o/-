@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from enum import StrEnum
 from hashlib import sha256
@@ -459,6 +460,10 @@ class OpenAICompatibleLLMAdapter:
                 "messages": [{"role": "user", "content": message}],
                 "response_format": {"type": "json_object"},
                 "temperature": 0.2,
+                # Keep structured lesson responses bounded; without an output
+                # cap the compatible endpoint may spend minutes elaborating
+                # prose that the local Pydantic contract would discard.
+                "max_tokens": 4096,
             },
             timeout=self._timeout_seconds,
         )
@@ -908,6 +913,7 @@ class ControlledResourceGenerationService:
                 draft, prompts = self._generate_materials(
                     brief, repair="; ".join(errors) if errors else None
                 )
+                _validate_math_markup(draft)
                 decision = self._reviewer.review(
                     draft, brief.policy, notebook_passed=notebook_passed
                 )
@@ -965,7 +971,6 @@ class ControlledResourceGenerationService:
             ),
             review_rounds=tuple(rounds),
         )
-
     def _generate_materials(
         self, brief: ResourceGenerationBrief, *, repair: str | None
     ) -> tuple[StructuredResourceDraft, dict[str, str]]:
@@ -977,9 +982,24 @@ class ControlledResourceGenerationService:
             raw = self._adapter.complete(prompt, repair=repair)
             return schema.model_validate_json(raw)
 
-        lecture = cast(LectureDraft, generate_one("lecture", LectureDraft))
-        practical = cast(PracticalGuideDraft, generate_one("practical_guide", PracticalGuideDraft))
-        quiz = cast(StudentQuizDraft, generate_one("student_quiz", StudentQuizDraft))
+        # These three learner-facing materials are independent. Generating them
+        # concurrently keeps one slow model call from serially delaying all of
+        # the others. The teacher guide remains after the quiz because it must
+        # preserve the quiz's question IDs.
+        independent: tuple[tuple[str, type[BaseModel]], ...] = (
+            ("lecture", LectureDraft),
+            ("practical_guide", PracticalGuideDraft),
+            ("student_quiz", StudentQuizDraft),
+        )
+        with ThreadPoolExecutor(max_workers=3, thread_name_prefix="resource-llm") as pool:
+            futures = {
+                name: pool.submit(generate_one, name, schema)
+                for name, schema in independent
+            }
+            generated = {name: futures[name].result() for name, _ in independent}
+        lecture = cast(LectureDraft, generated["lecture"])
+        practical = cast(PracticalGuideDraft, generated["practical_guide"])
+        quiz = cast(StudentQuizDraft, generated["student_quiz"])
         teacher = cast(
             TeacherGuideDraft,
             generate_one("teacher_guide", TeacherGuideDraft, student_quiz=quiz),
@@ -990,3 +1010,48 @@ class ControlledResourceGenerationService:
             student_quiz=quiz,
             teacher_guide=teacher,
         ), prompts
+
+
+def _validate_math_markup(draft: StructuredResourceDraft) -> None:
+    """Reject learner content that contains bare or unbalanced TeX."""
+
+    fields: list[tuple[str, str]] = [
+        ("lecture.title", draft.lecture.title),
+        *[(f"lecture.sections[{index}]", value) for index, value in enumerate(draft.lecture.sections)],
+        *[(f"lecture.blocks[{index}].title", block.title) for index, block in enumerate(draft.lecture.blocks)],
+        *[(f"lecture.blocks[{index}].body", block.body) for index, block in enumerate(draft.lecture.blocks)],
+        ("practical_guide.title", draft.practical_guide.title),
+        *[(f"practical_guide.learning_steps[{index}]", value) for index, value in enumerate(draft.practical_guide.learning_steps)],
+        *[(f"practical_guide.experiment_protocol[{index}]", value) for index, value in enumerate(draft.practical_guide.experiment_protocol)],
+        ("student_quiz.instructions", draft.student_quiz.instructions),
+    ]
+    for name, exercise in (
+        ("practical_guide.exercise", draft.practical_guide.exercise),
+        ("practical_guide.project_exercise", draft.practical_guide.project_exercise),
+    ):
+        if exercise is not None:
+            fields.extend(
+                [
+                    (f"{name}.task", exercise.task),
+                    (f"{name}.expected_output", exercise.expected_output),
+                    *[(f"{name}.checks[{index}]", value) for index, value in enumerate(exercise.checks)],
+                ]
+            )
+    for index, item in enumerate(draft.student_quiz.items):
+        fields.extend(
+            [
+                (f"student_quiz.items[{index}].prompt", item.prompt),
+                *[(f"student_quiz.items[{index}].choices[{choice_index}]", choice) for choice_index, choice in enumerate(item.choices)],
+                *[(f"student_quiz.items[{index}].hints[{hint_index}]", hint) for hint_index, hint in enumerate(item.hints)],
+            ]
+        )
+
+    bare_command = re.compile(r"(?<!\\)\\[A-Za-z]+")
+    math_span = re.compile(r"\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$")
+    for field, raw in fields:
+        text = re.sub(r"```[\s\S]*?```|`[^`\n]+`", "", raw)
+        unwrapped = math_span.sub("", text)
+        if bare_command.search(unwrapped):
+            raise ValueError(f"{field} contains bare TeX; wrap every formula in $...$ or $$...$$")
+        if len(re.findall(r"(?<!\\)\$", text)) % 2:
+            raise ValueError(f"{field} contains unbalanced TeX delimiters")

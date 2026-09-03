@@ -1,0 +1,40 @@
+{
+  "profile_id": "PROFILE-DEMO-MID",
+  "profile_version": "2.1",
+  "generated_at": "2026-09-02T08:05:00Z",
+  "learner_id": "demo-mid",
+  "graph_version": "ai-course-v1",
+  "knowledge_mastery": {
+    "global_theta": 0.2,
+    "overall_accuracy": 0.68,
+    "points": {
+      "kp_004": {"name": "矩阵运算", "mastery": 0.78, "status": "familiar", "confidence": 0.86},
+      "kp_002": {"name": "线性代数", "mastery": 0.72, "status": "familiar", "confidence": 0.82},
+      "kp_005": {"name": "导数与梯度", "mastery": 0.72, "status": "familiar", "confidence": 0.82},
+      "kp_011": {"name": "神经网络基础", "mastery": 0.62, "status": "partial", "confidence": 0.84},
+      "kp_012": {"name": "卷积神经网络CNN", "mastery": 0.58, "status": "partial", "confidence": 0.88},
+      "kp_015": {"name": "激活函数", "mastery": 0.55, "status": "partial", "confidence": 0.80}
+    }
+  },
+  "ability_level": {
+    "overall": "intermediate",
+    "global_theta": 0.2,
+    "sub_dimensions": {
+      "theoretical_understanding": {"score": 0.60, "confidence": 0.82},
+      "coding_ability": {"score": 0.42, "confidence": 0.80},
+      "mathematical_foundation": {"score": 0.72, "confidence": 0.84},
+      "problem_solving": {"score": 0.55, "confidence": 0.78}
+    }
+  },
+  "error_patterns": {
+    "items": [{"category": "逻辑跳跃", "count": 4, "ratio": 0.45, "involved_kp_ids": ["kp_011", "kp_012"]}]
+  },
+  "learning_preferences": {
+    "format": {"content_order": ["概念直觉理解", "代码实战", "面试考点"], "code_language": "Python", "framework": "PyTorch"},
+    "style": {"prefers_step_by_step": true, "prefers_comparison_tables": true},
+    "pace": {"weekly_hours": 8},
+    "motivation": {"project_driven": true}
+  },
+  "learning_scope": {"scope_type": "chapter", "chapter_id": "ch03_cnn", "primary_kp_id": "kp_012", "target_depth": "回顾"},
+  "meta": {"total_test_count": 5}
+}

@@ -8,6 +8,7 @@ from skillforge_kb.agents.resource_agent import (
     _preview_policy,
     _preview_quiz_content,
 )
+from skillforge_kb.agents.resource_tools import _resource_items
 from skillforge_kb.agents.retrieval_agent_models import (
     DomainRetrievalRequest,
     DomainRetrievalResult,
@@ -25,6 +26,7 @@ from skillforge_kb.ontology.models import (
     LearnerProfileSnapshot,
     LearningPreferences,
 )
+from skillforge_kb.ontology.resource_blueprints import ResourceType
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import GenerationGate, build_brief_id
 
@@ -114,6 +116,17 @@ def test_strict_generation_uses_formal_tool(resource_case) -> None:
     assert result.formal_package is not None
     assert result.preview_package is None
     assert result.publication_status == "formal"
+
+
+def test_formal_resource_items_expose_learner_adaptation(resource_case) -> None:
+    brief, _ = resource_case
+
+    items = _resource_items(ResourceType.LECTURE, brief)
+
+    assert items[0].startswith("个性化支架") or items[0].startswith("个性化路径")
+    assert any(
+        str(brief.resource_allocation.estimated_minutes) in item for item in items
+    )
 
 
 def test_preview_does_not_open_formal_gate(resource_case) -> None:
@@ -269,6 +282,36 @@ def test_vector_preview_quiz_is_answerable_and_content_specific() -> None:
         _preview_quiz_content("向量", "concept", index)[2]
         for index in range(1, 9)
     } == {0, 1, 2}
+
+
+def test_matrix_multiplication_preview_quiz_is_unique_and_answerable() -> None:
+    items = [
+        _preview_quiz_content("矩阵乘法", "concept", index)
+        for index in range(1, 9)
+    ]
+
+    prompts = [item[0] for item in items]
+    choices = [choice for _, item_choices, _ in items for choice in item_choices]
+    assert len(set(prompts)) == 8
+    assert all(len(item_choices) == 3 for _, item_choices, _ in items)
+    assert all(len(set(item_choices)) == 3 for _, item_choices, _ in items)
+    assert all(item[2] in range(3) for item in items)
+    assert "只需记住名称" not in choices
+    assert "对所有输入都适用" not in choices
+
+
+def test_generic_preview_quiz_varies_by_check_angle() -> None:
+    items = [
+        _preview_quiz_content("注意力机制", "concept", index)
+        for index in range(1, 9)
+    ]
+
+    prompts = [item[0] for item in items]
+    choices = [choice for _, item_choices, _ in items for choice in item_choices]
+    assert len(set(prompts)) == 8
+    assert all(len(set(item_choices)) == 3 for _, item_choices, _ in items)
+    assert "只需记住名称" not in choices
+    assert "对所有输入都适用" not in choices
 
 
 def test_lesson_formulas_use_katex_delimiters() -> None:

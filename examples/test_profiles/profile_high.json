@@ -1,0 +1,41 @@
+{
+  "profile_id": "PROFILE-DEMO-HIGH",
+  "profile_version": "2.1",
+  "generated_at": "2026-09-02T08:10:00Z",
+  "learner_id": "demo-high",
+  "graph_version": "ai-course-v1",
+  "knowledge_mastery": {
+    "global_theta": 2.1,
+    "overall_accuracy": 0.93,
+    "points": {
+      "kp_004": {"name": "矩阵运算", "mastery": 0.94, "status": "mastered", "confidence": 0.94},
+      "kp_002": {"name": "线性代数", "mastery": 0.94, "status": "mastered", "confidence": 0.94},
+      "kp_005": {"name": "导数与梯度", "mastery": 0.92, "status": "mastered", "confidence": 0.93},
+      "kp_011": {"name": "神经网络基础", "mastery": 0.91, "status": "mastered", "confidence": 0.94},
+      "kp_012": {"name": "卷积神经网络CNN", "mastery": 0.93, "status": "mastered", "confidence": 0.96},
+      "kp_015": {"name": "激活函数", "mastery": 0.88, "status": "familiar", "confidence": 0.90},
+      "kp_018": {"name": "Adam优化器", "mastery": 0.52, "status": "partial", "confidence": 0.86}
+    }
+  },
+  "ability_level": {
+    "overall": "advanced",
+    "global_theta": 2.1,
+    "sub_dimensions": {
+      "theoretical_understanding": {"score": 0.88, "confidence": 0.92},
+      "coding_ability": {"score": 0.90, "confidence": 0.92},
+      "mathematical_foundation": {"score": 0.91, "confidence": 0.94},
+      "problem_solving": {"score": 0.87, "confidence": 0.90}
+    }
+  },
+  "error_patterns": {
+    "items": [{"category": "概念混淆", "count": 2, "ratio": 0.20, "involved_kp_ids": ["kp_018"]}]
+  },
+  "learning_preferences": {
+    "format": {"content_order": ["面试考点", "代码实战", "数学推导"], "code_language": "Python", "framework": "PyTorch"},
+    "style": {"prefers_comparison_tables": true},
+    "pace": {"weekly_hours": 8},
+    "motivation": {"project_driven": true}
+  },
+  "learning_scope": {"scope_type": "chapter", "chapter_id": "ch03_cnn", "primary_kp_id": "kp_012", "target_depth": "跳过"},
+  "meta": {"total_test_count": 6}
+}

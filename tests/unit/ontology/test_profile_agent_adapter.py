@@ -115,6 +115,21 @@ def test_adapter_does_not_copy_downstream_resource_decisions(catalog) -> None:
     assert not hasattr(adapted.snapshot, "resource_generation_hints")
 
 
+def test_adapter_warns_on_inconsistent_exported_depth(catalog) -> None:
+    raw = _raw_profile()
+    raw["learning_scope"] = {"primary_kp_id": "kp_012", "target_depth": "回顾"}
+    raw["resource_generation_hints"] = {"target_depth": "跳过"}
+    raw["depth_labels"] = [{"kp_id": "kp_012", "depth": "skip"}]
+
+    adapted = LearnerProfileAgentAdapter(
+        catalog,
+        mappings={"kp_012": "dl.cnn.convolution"},
+    ).adapt(raw)
+
+    reasons = [item.reason for item in adapted.warnings]
+    assert any("conflicts" in reason for reason in reasons)
+
+
 def test_omits_ability_dimension_without_evidence(catalog) -> None:
     raw = _raw_profile()
     raw["ability_level"]["sub_dimensions"]["coding_ability"]["score"] = None

@@ -127,6 +127,18 @@ class PathNode(BaseModel):
         return self
 
 
+class PathRecommendation(BaseModel):
+    """One learner-specific item in the short-term recommendation queue."""
+
+    model_config = ConfigDict(frozen=True)
+
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    rank: int = Field(ge=1)
+    score: float = Field(ge=0, le=1)
+    estimated_minutes: int = Field(ge=1)
+    reason_codes: tuple[str, ...] = Field(min_length=1)
+
+
 class PathDecision(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -139,6 +151,7 @@ class PathDecision(BaseModel):
     target_concept_id: str | None = Field(default=None, pattern=CONCEPT_ID_PATTERN)
     generated_at: datetime | None = None
     nodes: tuple[PathNode, ...] = Field(min_length=1)
+    recommendations: tuple[PathRecommendation, ...] = ()
 
     @model_validator(mode="after")
     def validate_nodes(self) -> "PathDecision":
@@ -149,4 +162,11 @@ class PathDecision(BaseModel):
             raise ValueError("path concept IDs must be unique")
         if self.target_concept_id is not None and self.target_concept_id not in concept_ids:
             raise ValueError("target concept must be present in path")
+        if [item.rank for item in self.recommendations] != list(
+            range(1, len(self.recommendations) + 1)
+        ):
+            raise ValueError("recommendation ranks must be contiguous from 1")
+        recommendation_ids = [item.concept_id for item in self.recommendations]
+        if len(recommendation_ids) != len(set(recommendation_ids)):
+            raise ValueError("recommendation concept IDs must be unique")
         return self

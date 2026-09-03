@@ -144,6 +144,7 @@ class LearnerProfileAgentAdapter:
             raise ProfileAgentAdaptationError("profile graph version does not match catalog")
 
         warnings: list[ProfileAgentAdaptationWarning] = []
+        _validate_profile_consistency(payload, profile_id, warnings)
         if "graph_version" not in payload:
             warnings.append(
                 ProfileAgentAdaptationWarning(
@@ -552,3 +553,129 @@ def _assessment_runs(payload: Mapping[str, object], profile_id: str) -> list[str
         if runs:
             return runs
     return [f"{profile_id}:profile-agent-v2.1"]
+
+
+def _validate_profile_consistency(
+    payload: Mapping[str, object],
+    profile_id: str,
+    warnings: list[ProfileAgentAdaptationWarning],
+) -> None:
+    """Report contradictions in exported Agent profiles without hiding facts.
+
+    The v2.1 contract intentionally keeps the normalized diagnosis at the top
+    level and the original questionnaire under ``uploaded_data``.  These
+    checks make common export mistakes visible while preserving compatibility
+    with older profiles that do not carry the optional raw section.
+    """
+    scope = payload.get("learning_scope")
+    hints = payload.get("resource_generation_hints")
+    if isinstance(scope, Mapping) and isinstance(hints, Mapping):
+        scope_depth = scope.get("target_depth")
+        hint_depth = hints.get("target_depth")
+        if scope_depth and hint_depth and scope_depth != hint_depth:
+            warnings.append(
+                ProfileAgentAdaptationWarning(
+                    legacy_id=profile_id,
+                    reason=(
+                        "learning_scope.target_depth conflicts with "
+                        "resource_generation_hints.target_depth; use learning_scope "
+                        "as authoritative"
+                    ),
+                )
+            )
+
+        primary_kp = scope.get("primary_kp_id")
+        labels = payload.get("depth_labels")
+        if isinstance(primary_kp, str) and isinstance(labels, list) and scope_depth:
+            primary_label = next(
+                (
+                    item.get("depth")
+                    for item in labels
+                    if isinstance(item, Mapping) and item.get("kp_id") == primary_kp
+                ),
+                None,
+            )
+            if primary_label and _depth_token(primary_label) != _depth_token(scope_depth):
+                warnings.append(
+                    ProfileAgentAdaptationWarning(
+                        legacy_id=profile_id,
+                        reason=(
+                            f"depth_labels for {primary_kp}={primary_label} conflicts "
+                            f"with learning_scope.target_depth={scope_depth}"
+                        ),
+                    )
+                )
+
+    raw = payload.get("uploaded_data")
+    if not isinstance(raw, Mapping):
+        raw = {}
+    raw_records = raw.get("test_records")
+    if isinstance(raw_records, list) and not isinstance(payload.get("test_records"), list):
+        warnings.append(
+            ProfileAgentAdaptationWarning(
+                legacy_id=profile_id,
+                reason=(
+                    "raw assessment records are nested under uploaded_data; "
+                    "normalized adapter facts are used"
+                ),
+            )
+        )
+    meta = payload.get("meta")
+    expected = meta.get("total_test_count") if isinstance(meta, Mapping) else None
+    if isinstance(raw_records, list) and isinstance(expected, int) and expected != len(raw_records):
+        warnings.append(
+            ProfileAgentAdaptationWarning(
+                legacy_id=profile_id,
+                reason=(
+                    f"meta.total_test_count={expected} but uploaded_data.test_records "
+                    f"contains {len(raw_records)} records"
+                ),
+            )
+        )
+    if isinstance(raw_records, list):
+        keys = [
+            item.get("question_id")
+            for item in raw_records
+            if isinstance(item, Mapping) and item.get("question_id")
+        ]
+        if len(keys) != len(set(keys)):
+            warnings.append(
+                ProfileAgentAdaptationWarning(
+                    legacy_id=profile_id,
+                    reason="uploaded_data.test_records contains repeated question IDs",
+                )
+            )
+
+    learner = payload.get("learner")
+    self_assessment = learner.get("self_assessment") if isinstance(learner, Mapping) else None
+    profile_hours = (
+        self_assessment.get("weekly_hours")
+        if isinstance(self_assessment, Mapping)
+        else None
+    )
+    preferences = payload.get("learning_preferences")
+    pace = preferences.get("pace") if isinstance(preferences, Mapping) else None
+    preference_hours = pace.get("weekly_hours") if isinstance(pace, Mapping) else None
+    if (
+        isinstance(profile_hours, int | float)
+        and isinstance(preference_hours, int | float)
+        and abs(float(profile_hours) - float(preference_hours)) > 1e-9
+    ):
+        warnings.append(
+            ProfileAgentAdaptationWarning(
+                legacy_id=profile_id,
+                reason=(
+                    f"learner.self_assessment.weekly_hours={profile_hours} conflicts "
+                    f"with learning_preferences.pace.weekly_hours={preference_hours}"
+                ),
+            )
+        )
+
+
+def _depth_token(value: object) -> str:
+    return {
+        "入门": "entry",
+        "回顾": "review",
+        "进阶": "advanced",
+        "跳过": "skip",
+    }.get(str(value).strip().casefold(), str(value).strip().casefold())

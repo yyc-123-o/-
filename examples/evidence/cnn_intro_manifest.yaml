@@ -1,0 +1,54 @@
+version: evidence-manifest-v1
+graph_version: ai-course-v1
+# Demo-only records prepared from the public PyTorch documentation. Confirm
+# license and wording with a human reviewer before using this as submission
+# evidence.
+records:
+  - evidence_id: evidence_09a5052d441f804733bc62a918e38dfa76d4fb42bf7da50b4b68188e4665d42f
+    graph_version: ai-course-v1
+    source_id: pytorch-conv2d
+    chunk_id: conv2d-description
+    concept_id: dl.cnn.convolution
+    depth: intro
+    source_url: https://docs.pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+    locator: section:description
+    normalized_hash: afb6c6c17be55d55789293c9b291e5ea0990434a0b267ec0c778b8d3ede2eb3b
+    language: en
+    content_kind: definition
+    difficulty: 1
+    license_status: allowed
+    review_status: published
+    reviewed_by: demo-reviewer
+    reviewed_at: 2026-09-02T08:00:00Z
+  - evidence_id: evidence_4ff89eca47cebdf8c726d6f032bff84edfb2805ca10aebaf681ea8360349c7ba
+    graph_version: ai-course-v1
+    source_id: pytorch-conv2d
+    chunk_id: conv2d-example
+    concept_id: dl.cnn.convolution
+    depth: intro
+    source_url: https://docs.pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+    locator: section:examples
+    normalized_hash: 44bb26a92ee9d731eddfd724cfd4087ea798d903f65532fb4c0a9637fd218b36
+    language: en
+    content_kind: code
+    difficulty: 1
+    license_status: allowed
+    review_status: published
+    reviewed_by: demo-reviewer
+    reviewed_at: 2026-09-02T08:00:00Z
+  - evidence_id: evidence_4555992559b12a94243502f38c449c2ab837245d9be48a6b048ee948f39eb247
+    graph_version: ai-course-v1
+    source_id: pytorch-conv2d
+    chunk_id: conv2d-shape-exercise
+    concept_id: dl.cnn.convolution
+    depth: intro
+    source_url: https://docs.pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+    locator: section:examples-derived
+    normalized_hash: a9791582d4755085f1d174e04b172e675327de15fe8f3fc78bc4aaedc4bd9daa
+    language: en
+    content_kind: exercise
+    difficulty: 1
+    license_status: allowed
+    review_status: published
+    reviewed_by: demo-reviewer
+    reviewed_at: 2026-09-02T08:00:00Z
