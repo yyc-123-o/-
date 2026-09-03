@@ -152,9 +152,9 @@ function isGroupActive(group: NavGroup) {
 }
 
 function isGroupExpanded(group: NavGroup) {
-  if (group.key === "course") return courseExpanded.value || isGroupActive(group);
-  if (group.key === "diagnosis") return diagnosisExpanded.value || isGroupActive(group);
-  return resourceExpanded.value || isGroupActive(group);
+  if (group.key === "course") return courseExpanded.value;
+  if (group.key === "diagnosis") return diagnosisExpanded.value;
+  return resourceExpanded.value;
 }
 
 function toggleGroup(groupKey: string) {
