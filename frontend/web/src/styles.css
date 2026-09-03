@@ -898,9 +898,7 @@ p { color: var(--muted); line-height: 1.75; }
 .outcome-hint { margin-top: 14px; padding: 12px 14px; color: var(--muted); background: var(--surface-soft); border: 1px dashed var(--line); border-radius: 11px; font-size: 11px; }
 .markdown-content pre { overflow-x: auto; margin: 16px 0; padding: 16px 18px; color: #f8fafc; background: #182b45; border: 1px solid #284568; border-radius: 10px; line-height: 1.65; }
 .markdown-content pre code { display: block; min-width: max-content; padding: 0; color: #f8fafc; background: transparent; border-radius: 0; font-family: "Cascadia Code", Consolas, monospace; font-size: 13px; white-space: pre; }
-.markdown-content .katex-display { max-width: 100%; margin: 1.1em 0; overflow-x: auto; overflow-y: hidden; padding: 0.15em 0; }
-.markdown-content .katex { line-height: 1.35; }
-.markdown-content .katex-display > .katex { white-space: nowrap; }
+.markdown-content .katex { line-height: 1.2; }
 .quiz-reader { min-height: 250px; padding: 20px 4px 6px; }
 .quiz-reader h2 { margin: 4px 0 8px; font-size: 21px; }
 .quiz-reader > div > p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -930,10 +928,21 @@ p { color: var(--muted); line-height: 1.75; }
 .answer-history .panel-heading { flex: 0 0 auto; }
 .answer-history .history-items { display: grid; flex: 1 1 auto; min-height: 0; gap: 8px; overflow-y: auto; padding-right: 6px; scrollbar-gutter: stable; }
 .answer-history .history-items > div { min-height: 34px; }
+.profile-stability-stable { color: var(--green); background: var(--green-soft); }.profile-stability-limited { color: var(--blue); background: var(--blue-soft); }.profile-stability-early { color: var(--amber); background: var(--amber-soft); }
+.learning-change-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 120px)) minmax(220px, 1fr); gap: 10px; align-items: center; padding: 12px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; }.learning-change-strip > div { display: grid; gap: 3px; }.learning-change-strip span, .learning-change-strip p { color: var(--muted); font-size: 10px; }.learning-change-strip b { font-size: 14px; }.learning-change-strip p { margin: 0; line-height: 1.55; }
+.next-action-card { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; margin-top: 13px; padding: 14px; background: #f3f8ff; border: 1px solid #cfe0fb; border-radius: 8px; }.next-action-icon { display: grid; place-items: center; width: 40px; height: 40px; color: var(--blue); background: #fff; border: 1px solid #d8e6fa; border-radius: 8px; }.next-action-card h3 { margin: 4px 0; font-size: 15px; }.next-action-card p { margin: 0; font-size: 11px; }
+.learning-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }.learning-toolbar > span { color: var(--muted); font-size: 11px; }.segmented-control { display: flex; flex-wrap: wrap; gap: 3px; padding: 3px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; }.segmented-control button { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; padding: 4px 8px; color: var(--muted); background: transparent; border: 0; border-radius: 6px; font-size: 10px; font-weight: 800; }.segmented-control button.active { color: var(--blue); background: #fff; box-shadow: 0 1px 3px rgba(30, 63, 109, .12); }.mastery-value { display: grid; justify-items: end; gap: 3px; min-width: 48px; }.mastery-value small { font-size: 10px; font-weight: 800; }.compact-button { margin-top: 12px; }
+.evidence-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 13px; padding: 10px 12px; color: #49617f; background: #f7faff; border: 1px dashed #c9dbf4; border-radius: 8px; }.evidence-note svg { flex: 0 0 auto; margin-top: 1px; color: var(--blue); }.evidence-note p { margin: 0; font-size: 11px; line-height: 1.6; }
+.review-list { display: grid; gap: 2px; }.review-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }.review-list article:last-child { border-bottom: 0; }.review-list strong, .review-list small { display: block; }.review-list strong { font-size: 12px; }.review-list small { margin-top: 3px; color: var(--muted); font-size: 10px; }.icon-button { display: grid; place-items: center; flex: 0 0 auto; width: 31px; height: 31px; color: var(--blue); background: var(--blue-soft); border: 0; border-radius: 7px; }.icon-button:hover { color: #fff; background: var(--blue); }.weekly-plan { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }.weekly-plan > div { padding: 11px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; }.weekly-plan strong, .weekly-plan span { display: block; }.weekly-plan strong { color: var(--blue); font-size: 18px; }.weekly-plan span { margin-top: 3px; color: var(--muted); font-size: 10px; }.weekly-plan p { grid-column: 1 / -1; margin: 2px 0 0; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; }
 @media (max-width: 960px) {
   .outcome-metrics, .outcome-columns, .outcome-gaps { grid-template-columns: 1fr; }
   .learning-profile-summary, .learning-profile-grid { grid-template-columns: 1fr; }
+  .learning-change-strip { grid-template-columns: repeat(3, 1fr); }.learning-change-strip p { grid-column: 1 / -1; }.next-action-card { grid-template-columns: 40px minmax(0, 1fr); }.next-action-card .button { grid-column: 1 / -1; width: 100%; justify-content: center; }
 }
+@media (max-width: 620px) { .learning-change-strip { grid-template-columns: 1fr; }.learning-change-strip p { grid-column: auto; }.learning-toolbar { align-items: flex-start; flex-direction: column; }.weekly-plan { grid-template-columns: 1fr; }.weekly-plan p { grid-column: auto; } }
+.markdown-content .katex-display { display: block; clear: both; max-width: 100%; overflow-x: auto; overflow-y: hidden; min-height: 1.2em; margin: 1.25em 0; padding: 4px 0; line-height: 1.2; }
+.markdown-content .katex-display > .katex { display: inline-block; white-space: nowrap; line-height: 1.2; }
+.markdown-content p:has(> .katex-display) { margin: 0; line-height: 1.2; }
 
 /* Public product homepage */
 .zh-home {

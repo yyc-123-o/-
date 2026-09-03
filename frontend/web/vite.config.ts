@@ -16,7 +16,10 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
+    // 5173 is occupied by another local project in the shared development setup.
+    // Fail clearly instead of silently serving this platform on an unexpected port.
+    port: 5174,
+    strictPort: true,
     proxy: {
       "/api": apiTarget,
       "/diagnosis/api": apiTarget,

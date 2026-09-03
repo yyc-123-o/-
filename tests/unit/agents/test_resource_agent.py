@@ -1,6 +1,10 @@
+from datetime import UTC, datetime
+
 from skillforge_kb.agents.resource_agent import (
     ResourceGenerationAgent,
     ResourceGenerationMode,
+    _lesson_details,
+    _lesson_enrichment,
     _preview_policy,
     _preview_quiz_content,
 )
@@ -14,7 +18,13 @@ from skillforge_kb.agents.retrieval_agent_models import (
 )
 from skillforge_kb.domain.enums import ContentKind, LicenseStatus
 from skillforge_kb.evidence.models import EvidenceReviewStatus
-from skillforge_kb.ontology.models import LearnerProfileSnapshot
+from skillforge_kb.ontology.models import (
+    AbilityScore,
+    AssessmentStatus,
+    KnowledgeMastery,
+    LearnerProfileSnapshot,
+    LearningPreferences,
+)
 from skillforge_kb.resources.handoff import ResourceHandoffContract
 from skillforge_kb.resources.models import GenerationGate, build_brief_id
 
@@ -132,6 +142,33 @@ def test_preview_does_not_open_formal_gate(resource_case) -> None:
     assert result.publication_status == "candidate_draft"
 
 
+def test_preview_uses_a_multi_round_review_transcript(resource_case) -> None:
+    """generate_preview wires ContentReviewAgent with max_attempts=3 (not the
+    service default of 2): a passing draft still records its one review
+    round, proving the transcript is wired through end to end."""
+
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+
+    result = ResourceGenerationAgent().generate_preview(
+        _profile(handoff),
+        handoff,
+        _candidate_retrieval(handoff),
+    )
+
+    assert result.preview_package is not None
+    assert len(result.preview_package.review_rounds) >= 1
+    assert result.preview_package.review_rounds[-1].report == result.preview_package.audit_report
+
+
 def test_preview_policy_does_not_carry_cnn_demo_scope_bans(resource_case) -> None:
     brief, _ = resource_case
     handoff = _handoff_with_gate(
@@ -187,13 +224,44 @@ def test_preview_materials_are_specific_to_node_and_question_kind(resource_case)
     assert all("用自己的话定义" not in item.prompt for item in draft.student_quiz.items)
 
 
+def test_preview_lesson_changes_with_learner_evidence(resource_case) -> None:
+    brief, _ = resource_case
+    handoff = _handoff_with_gate(
+        ResourceHandoffContract.from_brief(brief),
+        GenerationGate(
+            allowed=False,
+            status="blocked_missing_published_evidence",
+            blocking_codes=("blocked_missing_published_evidence",),
+            next_action="publish required evidence before generation",
+        ),
+    )
+    low_profile = _profile(handoff)
+    high_profile = low_profile.model_copy(update={
+        "abilities": {"coding_ability": AbilityScore(score=.9, confidence=.9, assessment_run_id="run-high")},
+        "knowledge_mastery": [KnowledgeMastery(
+            concept_id=handoff.concept_id,
+            mastery_score=.85,
+            assessment_status=AssessmentStatus.ASSESSED,
+            confidence=.9,
+            observed_at=datetime.now(UTC),
+        )],
+        "preferences": LearningPreferences(content_order=["formula", "code"], presentation=["示例优先"]),
+    })
+    low = ResourceGenerationAgent().generate_preview(low_profile, handoff, _candidate_retrieval(handoff)).preview_package.draft
+    high = ResourceGenerationAgent().generate_preview(high_profile, handoff, _candidate_retrieval(handoff)).preview_package.draft
+    assert low.lecture.sections[0] != high.lecture.sections[0]
+    assert "分步支架" in low.lecture.sections[0]
+    assert "较好掌握" in high.lecture.sections[0]
+    assert low.student_quiz.instructions != high.student_quiz.instructions
+
+
 def test_vector_preview_quiz_is_answerable_and_content_specific() -> None:
     first_prompt, first_choices, first_answer = _preview_quiz_content(
         "向量", "concept", 1
     )
     dot_prompt, dot_choices, dot_answer = _preview_quiz_content("向量", "code", 6)
 
-    assert "v = [3, 4]" in first_prompt
+    assert "$v=[3,4]$" in first_prompt
     assert first_choices[first_answer].startswith("它表示两个有顺序的分量")
     assert "np.dot" in dot_prompt
     assert dot_choices[dot_answer] == "11"
@@ -201,6 +269,26 @@ def test_vector_preview_quiz_is_answerable_and_content_specific() -> None:
         _preview_quiz_content("向量", "concept", index)[2]
         for index in range(1, 9)
     } == {0, 1, 2}
+
+
+def test_lesson_formulas_use_katex_delimiters() -> None:
+    details = (
+        _lesson_details("标量")
+        + _lesson_details("向量")
+        + _lesson_details("矩阵")
+        + _lesson_details("卷积运算")
+    )
+    enrichment = (
+        _lesson_enrichment("标量")
+        + _lesson_enrichment("向量")
+        + _lesson_enrichment("矩阵")
+        + _lesson_enrichment("卷积运算")
+    )
+    formula_text = " ".join((*details, *enrichment))
+
+    assert "$" in formula_text
+    assert "v' = s·v" not in formula_text
+    assert "floor((H+2P-K)/S)+1" not in formula_text
 
 
 def test_generic_preview_quiz_uses_current_node_evidence() -> None:

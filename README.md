@@ -72,8 +72,14 @@ from correctly typed candidate material. Platform run records, assessment
 idempotency records, knowledge-tracing observations, and LangGraph planning
 checkpoints are persisted in the SQLite file configured by
 `SKILLFORGE_PLATFORM_STATE_DB` (default: `.skillforge/platform.sqlite3`), so a
-service restart can resume an existing learning path. Real model calls and
-authentication remain outside this release.
+service restart can resume an existing learning path. The resource preview
+writer uses an OpenAI-compatible model when `SKILLFORGE_LLM_ENABLED=true`,
+`SKILLFORGE_LLM_BASE_URL`, `SKILLFORGE_LLM_MODEL`, and
+`SKILLFORGE_LLM_API_KEY` are set in the local `.env`. The model receives only
+the immutable learner context, planning policy, and retrieved evidence. Its
+structured lecture, practical guide, and assessment output is audited before
+display; malformed or unavailable model responses fall back to the deterministic
+preview writer.
 
 The console also accepts an optional target concept ID, for example
 `dl.cnn.convolution`. The target is recorded as the learner's focus while the
@@ -172,6 +178,36 @@ uv run skillforge-kb planning-calibrate-policy `
 The dataset is stratified across beginner, intermediate, advanced, uneven, low-confidence, missing-evidence, conflicting-evidence, and boundary cohorts. The report measures prerequisite violations, required-concept coverage, skip and delivery-depth accuracy, path-order stability, conservative low-confidence handling, and mean learning/skipped node counts. These outputs are synthetic regression evidence only; they do not measure real student learning effectiveness.
 
 The calibration command performs a bounded one-coordinate sensitivity search over confidence, skip, readiness, depth, and four-dimensional ability weights. It ranks candidates against the stored synthetic oracle but never replaces the production policy. A candidate can only be considered for promotion after expert-labelled or observed data is available and reviewed.
+
+Run the complete diagnosis → planning → retrieval → resource Agent chain once for one learner profile and capture a full snapshot:
+
+```powershell
+uv run skillforge-kb persona-pipeline-run `
+  --profile-file tests/fixtures/profile-2026-0001-demo.json `
+  --output-file reports/generated/persona-pipeline/demo-run.json
+```
+
+`profile-file` accepts either a raw `学情诊断Agent` v2.1 export or an already-canonical learner-profile snapshot. The command is read-only evaluation tooling: it never opens the live platform state database (`SKILLFORGE_PLATFORM_STATE_DB`) and never publishes evidence or resources. The written snapshot carries `full_path` (every course-graph node with its status, depth, and skip reasons) plus `personalized_path_concept_ids`, and for each personalized node a `retrieval_result` and `resource_result`: resource generation is `formal` only for concepts with published, allowed evidence, and otherwise falls back to a non-publishable `candidate_draft` preview or reports why it is `blocked_hard_prerequisite`. Candidate-preview resource results strip teacher-only content (answer keys, quiz choices) from their JSON output, matching the same privacy contract the live platform API applies elsewhere, so the persisted file is not guaranteed to round-trip through `PersonaPipelineSnapshot.model_validate_json` when a candidate preview is present.
+
+Add `--feedback-loop` to close the loop instead of taking one static snapshot: the command advances one node at a time, generating for the current node, simulating an answer, updating mastery through the same rule-based `AssessmentLedger` the live platform uses, and replanning on the same thread (`PROFILE_REFRESHED` then `CONCEPTS_COMPLETED`, the same two-event sequence `PlatformService.submit_assessment` issues for a real answer) before moving on:
+
+```powershell
+uv run skillforge-kb persona-pipeline-run `
+  --profile-file tests/fixtures/profile-2026-0001-demo.json `
+  --output-file reports/generated/persona-pipeline/demo-feedback-run.json `
+  --feedback-loop
+```
+
+The simulated answer defaults to the profile's own diagnosed mastery for that concept against the platform's passing threshold (`platform.models.ASSESSMENT_PASSING_SCORE`), so replaying the same profile always simulates the same session; callers embedding `run_persona_feedback_loop` directly can pass `correctness_fn` to script a specific persona instead. `--max-rounds` stops after a fixed number of nodes rather than running to course completion; the resulting snapshot's `feedback_rounds` records each round's concept, simulated correctness, and mastery before/after, and nodes the loop had not yet reached are reported plainly (no retrieval/resource preview, since generating for a node out of order would use mastery that has not evolved to that point yet).
+
+Verify a written snapshot with deterministic, no-external-ground-truth checks (full_path matches the catalog, no hard-prerequisite ordering violations, `resource_mode` agrees with `generation_gate`, every formal node has counted evidence, every `candidate_draft` carries a `ResourceAuditor` audit report, `feedback_rounds` are internally consistent):
+
+```powershell
+uv run skillforge-kb persona-pipeline-verify `
+  --snapshot-file reports/generated/persona-pipeline/demo-run.json
+```
+
+Prints the `VerificationReport` as JSON and exits non-zero if any check failed. This does not replace expert gold-label path accuracy or real-cohort statistics (neither exists yet, and both need external data this repo does not have) — it only confirms the snapshot is internally consistent and keeps the promises the pipeline itself already makes.
 
 ## Course Planning Agent Architecture
 

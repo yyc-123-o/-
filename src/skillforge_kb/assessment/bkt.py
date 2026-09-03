@@ -138,6 +138,7 @@ def apply_bkt_event(
     profile_payload = validated_ledger.profile.model_dump()
     profile_payload["knowledge_mastery"] = mastery
     profile_payload["error_patterns"] = error_patterns
+    profile_payload["generated_at"] = validated_event.timestamp
     updated_profile = validated_ledger.profile.__class__.model_validate(profile_payload)
     updated_ledger = AssessmentLedger(
         profile=updated_profile,
@@ -183,6 +184,7 @@ def _updated_bkt_mastery(
         )
         updated = update_bkt_probability(current, event.correct, parameters)
         confidence = existing.confidence if existing is not None else 0.25
+        confidence = _clamp(max(confidence, 0.25) + 0.12 * (1 - max(confidence, 0.25)))
         evidence_refs = _unique_refs(
             existing.evidence_refs if existing is not None else (),
             (event.event_id,),

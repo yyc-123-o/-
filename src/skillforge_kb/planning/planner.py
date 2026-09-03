@@ -154,6 +154,7 @@ class CoursePlanner:
         if allow_skips and self._can_skip(concept_mastery):
             return PathNode(
                 concept_id=concept_id,
+                title=self._catalog.get_concept(concept_id).names.zh,
                 chapter_id=position.chapter_id,
                 section_id=position.section_id,
                 sequence=sequence,
@@ -174,6 +175,7 @@ class CoursePlanner:
         )
         return PathNode(
             concept_id=concept_id,
+            title=self._catalog.get_concept(concept_id).names.zh,
             chapter_id=position.chapter_id,
             section_id=position.section_id,
             sequence=sequence,

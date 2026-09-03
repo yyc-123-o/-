@@ -107,6 +107,7 @@ def test_correct_answer_raises_mastery_and_duplicate_is_noop(
     assert first.mastery_before == ((event.concept_ids[0], 0.50),)
     assert first.mastery_after == ((event.concept_ids[0], pytest.approx(0.56)),)
     assert first.ledger.profile.knowledge_mastery[0].confidence == pytest.approx(0.34)
+    assert first.ledger.profile.generated_at == event.timestamp
     assert first.ledger.profile.knowledge_mastery[0].evidence_refs == [
         "event-1",
         "item-bank:item-7",

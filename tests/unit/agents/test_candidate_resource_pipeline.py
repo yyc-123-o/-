@@ -175,6 +175,22 @@ def test_profile_features_change_scaffolding_and_visual_assets(tmp_path: Path) -
     assert package.visual_assets == {}
 
 
+def test_cnn_candidate_materials_use_renderable_math_for_visible_formulas(tmp_path: Path) -> None:
+    package = InputFolderResourceAgent().build(
+        _input_folder(tmp_path), allow_candidate_drafts=True
+    )
+
+    lecture = next(item.content for item in package.resources if item.resource_type == "lecture_notes")
+    practical = next(item.content for item in package.resources if item.resource_type == "pytorch_practical_guide")
+    answer_key = next(item.content for item in package.resources if item.resource_type == "assessment_answer_key")
+
+    assert "floor((32+2P-K)/S)+1" not in lecture
+    assert "两侧填充的 2×padding" not in lecture
+    assert "3×3 卷积核" not in lecture
+    assert "8×8 的空间尺寸" not in practical
+    assert "验证输出为 16×16" not in answer_key
+
+
 def test_export_preserves_candidate_label(tmp_path: Path) -> None:
     agent = InputFolderResourceAgent()
     package = agent.build(_input_folder(tmp_path / "input"), allow_candidate_drafts=True)

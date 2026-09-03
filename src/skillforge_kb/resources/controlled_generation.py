@@ -360,6 +360,7 @@ class CandidateLearningPackage(BaseModel):
     draft: StructuredResourceDraft | None
     audit_report: ResourceAuditReport | None
     trace: GenerationTrace
+    review_rounds: tuple[ReviewRoundRecord, ...] = ()
 
 
 class ClaimSupportVerifier(Protocol):
@@ -546,13 +547,18 @@ def build_generation_prompt(
         "Do not wrap it in Markdown or add commentary. Do not include keys outside the schema. "
         "Do not create release status, new evidence, new scope IDs, executable notebook core "
         "code, or a different quiz blueprint. Every technical claim must use an allowed evidence "
-        "ID and a knowledge scope ID.\nJSON SCHEMA:\n"
+        "ID and a knowledge scope ID. For mathematics, always put inline TeX between single dollar "
+        "delimiters ($...$), and put display TeX between double dollar delimiters on their own lines "
+        "(a line containing only $$, the formula, and $$). Never emit bare backslash commands such as "
+        "\\\\mathbb or \\\\frac in prose, and never place $$...$$ in the middle of a paragraph.\nJSON SCHEMA:\n"
         f"{schema_json}"
         + (
             "\nPEDAGOGICAL REQUIREMENTS: For lecture, write at least seven ordered blocks with kinds "
             "objective, intuition, definition, derivation, example, pitfall, summary. "
             "Each body must explain the concept in complete sentences, include a concrete example, "
-            "and connect the explanation to the learner objective."
+            "and connect the explanation to the learner objective. The immutable brief contains learner "
+            "mastery, ability, error patterns, explanation order, presentation preferences, and review "
+            "intensity; visibly adapt the lesson to those fields instead of returning generic prose."
             if material == "lecture"
             else "\nPEDAGOGICAL REQUIREMENTS: For practical_guide, provide two distinct Python exercises: "
             "exercise is a short teaching example with TODOs, while project_exercise is a more complex "
@@ -796,30 +802,133 @@ class ResourceAuditor:
         )
 
 
-class ControlledResourceGenerationService:
-    """Four material calls with one repair pass for schema/structural failures."""
+class ReviewDecisionStatus(StrEnum):
+    """Only the two outcomes that drive control flow. ``PASSED`` and
+    ``NEEDS_REVIEW`` both mean "proceed" -- the finer distinction between
+    them stays on ``ReviewDecision.report.audit_status`` for downstream
+    transparency; only a hard ``FAILED`` finding sends the draft back."""
 
-    def __init__(self, adapter: LLMAdapter, auditor: ResourceAuditor | None = None) -> None:
-        self._adapter = adapter
+    APPROVED = "approved"
+    NEEDS_REVISION = "needs_revision"
+
+
+class ReviewDecision(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: ReviewDecisionStatus
+    report: ResourceAuditReport
+    revision_instructions: str | None = None
+
+
+class ReviewRoundRecord(BaseModel):
+    """One generation-review round in a multi-attempt
+    :meth:`ControlledResourceGenerationService.generate` run -- the visible
+    "cross-verification" transcript: what the review Agent actually judged
+    on each attempt, not just the final outcome. Reuses ``ResourceAuditReport``
+    as-is rather than a separate summary shape."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    attempt: int = Field(ge=1)
+    status: ReviewDecisionStatus
+    report: ResourceAuditReport
+
+
+class ContentReviewAgent:
+    """内容审核 Agent -- independent of the resource-generation Agent's own
+    judgment. Takes a draft the generation Agent produced and cross-checks
+    every claim against the evidence it was supposed to be grounded in
+    (``ResourceAuditor``, unchanged), returning a decision the generation
+    Agent must act on rather than a private implementation detail buried
+    inside ``ControlledResourceGenerationService``. This is the "审核 Agent"
+    role the competition brief names as a required, separately identifiable
+    participant in the 学情诊断/生成/审核 协同闭环, not a new audit algorithm --
+    ``ResourceAuditor``'s logic (claim-evidence matching, forbidden scope,
+    quiz structure, answer-leakage checks) is reused exactly as-is.
+    """
+
+    def __init__(self, auditor: ResourceAuditor | None = None) -> None:
         self._auditor = auditor or ResourceAuditor()
+
+    @property
+    def auditor(self) -> ResourceAuditor:
+        """Exposed so a caller that also needs raw ``ResourceAuditor``
+        metadata (e.g. ``.verifier`` for tracing) can share this Agent's
+        own auditor instance instead of constructing an unrelated one."""
+
+        return self._auditor
+
+    def review(
+        self,
+        draft: StructuredResourceDraft,
+        policy: GenerationPolicy,
+        *,
+        notebook_passed: bool,
+    ) -> ReviewDecision:
+        report = self._auditor.audit(draft, policy, notebook_passed=notebook_passed)
+        if report.audit_status is AuditStatus.FAILED:
+            return ReviewDecision(
+                status=ReviewDecisionStatus.NEEDS_REVISION,
+                report=report,
+                # Every finding, not just hard ones -- matches what the
+                # generation retry path fed back before this Agent existed.
+                revision_instructions="; ".join(
+                    finding.message for finding in report.findings
+                ),
+            )
+        return ReviewDecision(status=ReviewDecisionStatus.APPROVED, report=report)
+
+
+class ControlledResourceGenerationService:
+    """Four material calls with a repair pass on each failed review, up to
+    ``max_attempts`` -- a bounded generation-review round trip (the "多 Agent
+    交叉验证" the generation Agent and the independent ``ContentReviewAgent``
+    run together), not a single one-shot call with one retry bolted on."""
+
+    def __init__(
+        self,
+        adapter: LLMAdapter,
+        auditor: ResourceAuditor | None = None,
+        *,
+        max_attempts: int = 2,
+    ) -> None:
+        if max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1")
+        self._adapter = adapter
+        self._reviewer = ContentReviewAgent(auditor)
+        self._max_attempts = max_attempts
 
     def generate(
         self, brief: ResourceGenerationBrief, *, notebook_passed: bool
     ) -> CandidateLearningPackage:
         errors: list[str] = []
-        for attempt in (1, 2):
+        rounds: list[ReviewRoundRecord] = []
+        for attempt in range(1, self._max_attempts + 1):
             try:
                 draft, prompts = self._generate_materials(
                     brief, repair="; ".join(errors) if errors else None
                 )
-                audit = self._auditor.audit(draft, brief.policy, notebook_passed=notebook_passed)
+                decision = self._reviewer.review(
+                    draft, brief.policy, notebook_passed=notebook_passed
+                )
+                audit = decision.report
+                rounds.append(
+                    ReviewRoundRecord(attempt=attempt, status=decision.status, report=audit)
+                )
                 evidence_ids = {
                     evidence_id
                     for item in audit.claim_evidence_ledger
                     for evidence_id in item.evidence_ids
                 }
-                if audit.audit_status is AuditStatus.FAILED and attempt == 1:
-                    errors = [finding.message for finding in audit.findings]
+                if (
+                    decision.status is ReviewDecisionStatus.NEEDS_REVISION
+                    and attempt < self._max_attempts
+                ):
+                    errors = (
+                        [decision.revision_instructions]
+                        if decision.revision_instructions
+                        else []
+                    )
                     continue
                 return CandidateLearningPackage(
                     generation_status=GenerationStatus.COMPLETED,
@@ -835,9 +944,10 @@ class ControlledResourceGenerationService:
                         brief=brief,
                         adapter=self._adapter,
                         attempt=attempt,
-                        verifier=self._auditor.verifier,
+                        verifier=self._reviewer.auditor.verifier,
                         material_prompts=prompts,
                     ),
+                    review_rounds=tuple(rounds),
                 )
             except (ValueError, KeyError, httpx.HTTPError, json.JSONDecodeError) as exc:
                 errors.append(str(exc))
@@ -850,9 +960,10 @@ class ControlledResourceGenerationService:
             trace=build_trace(
                 brief=brief,
                 adapter=self._adapter,
-                attempt=2,
-                verifier=self._auditor.verifier,
+                attempt=self._max_attempts,
+                verifier=self._reviewer.auditor.verifier,
             ),
+            review_rounds=tuple(rounds),
         )
 
     def _generate_materials(

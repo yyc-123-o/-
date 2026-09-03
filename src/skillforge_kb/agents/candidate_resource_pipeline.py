@@ -546,7 +546,7 @@ def _build_personalization_plan(
         },
         "project_connection": {
             "target_project": motivation.get("target_project"),
-            "current_connection": "用 CIFAR-10 的 32×32×3 输入理解卷积 shape；后续连接图像分类与目标检测。",
+            "current_connection": "用 CIFAR-10 的 $32\\times 32\\times 3$ 输入理解卷积 shape；后续连接图像分类与目标检测。",
         },
         "deferred_advanced_content": advanced_hints,
         "prior_chapter_signal": _prior_chapter_signal(profile),
@@ -594,7 +594,7 @@ def _svg_convolution_window() -> str:
 <rect x="115" y="135" width="110" height="110" fill="#bfdbfe" fill-opacity=".75" stroke="#2563eb" stroke-width="4"/>
 <path d="M325 185h155" stroke="#2563eb" stroke-width="5" marker-end="url(#a)"/><defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker></defs>
 <g stroke="#64748b" fill="#fff"><rect x="525" y="105" width="135" height="135"/><path d="M570 105v135M615 105v135M525 150h135M525 195h135"/></g>
-<text x="170" y="320" text-anchor="middle" font-size="18" fill="#334155">输入特征图：窗口只看局部 3×3 区域</text><text x="592" y="270" text-anchor="middle" font-size="18" fill="#334155">同一卷积核滑动后形成输出特征图</text>
+<text x="170" y="320" text-anchor="middle" font-size="18" fill="#334155">输入特征图：窗口只看局部区域</text><text x="592" y="270" text-anchor="middle" font-size="18" fill="#334155">同一卷积核滑动后形成输出特征图</text>
 <text x="740" y="145" font-size="19" fill="#0f172a">先预测：</text><text x="740" y="178" font-size="18" fill="#334155">kernel=3</text><text x="740" y="207" font-size="18" fill="#334155">padding=1</text><text x="740" y="236" font-size="18" fill="#334155">stride=2</text></svg>"""
 
 
@@ -602,7 +602,7 @@ def _svg_shape_flow() -> str:
     return """<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250">
 <rect width="900" height="250" fill="#f8fafc"/><text x="35" y="42" font-size="27" fill="#0f172a">输出 shape 推理流程</text>
 <g font-family="Microsoft YaHei, sans-serif" text-anchor="middle"><rect x="35" y="95" width="170" height="80" rx="12" fill="#dbeafe"/><text x="120" y="128" font-size="19">输入</text><text x="120" y="155" font-size="16">(2, 3, 32, 32)</text>
-<rect x="270" y="95" width="210" height="80" rx="12" fill="#fef3c7"/><text x="375" y="128" font-size="17">代入公式</text><text x="375" y="155" font-size="14">floor((32+2P-K)/S)+1</text>
+<rect x="270" y="95" width="210" height="80" rx="12" fill="#fef3c7"/><text x="375" y="128" font-size="17">代入输出尺寸公式</text><text x="375" y="155" font-size="14">逐项代入输入、填充、卷积核和步幅</text>
 <rect x="545" y="95" width="150" height="80" rx="12" fill="#dcfce7"/><text x="620" y="128" font-size="17">空间尺寸</text><text x="620" y="155" font-size="16">32 → 16</text>
 <rect x="760" y="95" width="110" height="80" rx="12" fill="#fce7f3"/><text x="815" y="128" font-size="17">输出</text><text x="815" y="155" font-size="14">(2,8,16,16)</text></g>
 <path d="M205 135h65M480 135h65M695 135h65" stroke="#2563eb" stroke-width="5" marker-end="url(#a)"/><defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker></defs>
@@ -799,8 +799,8 @@ def _build_resources(
         content=(
             f"# {heading}：卷积运算学习讲义\n\n"
             "## 你将解决的真实问题\n\n"
-            "给一张 32×32 的 RGB 图片，为什么一个小小的 3×3 窗口能提取有用特征？"
-            "为什么 stride 从 1 改成 2，输出会从 32×32 变成 16×16？"
+            "给一张 $32\\times 32$ 的 RGB 图片，为什么一个小小的 $3\\times 3$ 窗口能提取有用特征？"
+            "为什么 stride 从 1 改成 2，输出会从 $32\\times 32$ 变成 $16\\times 16$？"
             "本讲义不要求你背定义，而要求你能先预测、再计算、最后用代码验证。\n\n"
             "## 本次学习边界\n\n"
             f"当前学习深度为 **{depth}**：先把图像张量、卷积窗口、padding、stride 与"
@@ -822,14 +822,14 @@ def _build_resources(
             "一批两张 CIFAR-10 彩色图片应写成 (2, 3, 32, 32)，而不是 NHWC。"
             "后续 Conv2d 的 in_channels 必须等于 C；这是代码形状错误最常见的根源。\n\n"
             "## 3. 为什么图像适合卷积：从 MLP 的参数爆炸开始\n\n"
-            "若将 32×32×3 图像直接展平并连接到 1000 个隐藏单元，参数量约为"
-            " 32×32×3×1000 = 3,072,000。一个 3×3、3 输入通道、8 输出通道的卷积层"
-            "只有 3×3×3×8 + 8 = 224 个参数。卷积依靠两件事减少参数：\n\n"
+            "若将 $32\\times 32\\times 3$ 图像直接展平并连接到 1000 个隐藏单元，参数量约为"
+            " $32\\times 32\\times 3\\times 1000 = 3{,}072{,}000$。一个 $3\\times 3$、3 输入通道、8 输出通道的卷积层"
+            "只有 $3\\times 3\\times 3\\times 8 + 8 = 224$ 个参数。卷积依靠两件事减少参数：\n\n"
             "- 局部连接：一个输出位置只看输入附近的小窗口；\n"
             "- 参数共享：同一个卷积核在整张图上滑动，边缘和纹理无论出现在哪里都可复用。\n\n"
             "## 4. 卷积、互相关与特征图\n\n"
             "![卷积滑窗](02_convolution_window.svg)\n\n"
-            "把 3×3 卷积核看成一个小检测器。它在输入上滑动，每个位置做逐元素相乘再求和，"
+            "把 $3\\times 3$ 卷积核看成一个小检测器。它在输入上滑动，每个位置做逐元素相乘再求和，"
             "得到一张输出特征图。严格的数学卷积会翻转卷积核；深度学习框架的 Conv2d 通常计算"
             "互相关，但工程里仍习惯称为卷积层。\n\n"
             "| 对比项 | 数学卷积 | CNN 常用互相关 |\n|---|---|---|\n"
@@ -840,26 +840,26 @@ def _build_resources(
             "![shape 推理流程](03_shape_reasoning_flow.svg)\n\n"
             f"本学生的数学支架策略：{scaffolding.get('math_strategy')}\n\n"
             "单个空间维度的公式为：\n\n"
-            "~~~text\n输出 = floor((输入 + 2×padding - kernel_size) / stride) + 1\n~~~\n\n"
+            "$$\\mathrm{输出} = \\left\\lfloor\\frac{\\mathrm{输入} + 2\\,\\mathrm{padding} - \\mathrm{kernel\\_size}}{\\mathrm{stride}}\\right\\rfloor + 1$$\n\n"
             "例 1：输入 32、kernel=3、padding=1、stride=1："
-            "floor((32+2-3)/1)+1=32，空间尺寸保持不变。\n\n"
+            "$\\left\\lfloor(32+2-3)/1\\right\\rfloor+1=32$，空间尺寸保持不变。\n\n"
             "例 2：输入 32、kernel=3、padding=1、stride=2："
-            "floor((32+2-3)/2)+1=16，输出为 16×16。"
-            "这里最容易错的是漏掉两侧填充的 2×padding，或把 stride 当成减法。\n\n"
+            "$\\left\\lfloor(32+2-3)/2\\right\\rfloor+1=16$，输出为 $16\\times 16$。"
+            "这里最容易错的是漏掉两侧填充的 $2\\times\\mathrm{padding}$，或把 stride 当成减法。\n\n"
             "## 6. 通道、卷积核与参数量\n\n"
             "彩色图片有 3 个输入通道。设置 Conv2d(3, 8, 3) 时，8 表示要学习 8 组卷积核，"
-            "每一组都覆盖全部 3 个输入通道。因此忽略 bias 的参数量为 3×8×3×3=216；"
+            "每一组都覆盖全部 3 个输入通道。因此忽略 bias 的参数量为 $3\\times 8\\times 3\\times 3=216$；"
             "默认启用 8 个 bias，总参数为 224。out_channels 改变的是输出特征图数量，"
             "不是特征图的高和宽。\n\n"
             "## 7. stride、padding、池化：不要混为一谈\n\n"
             "| 操作 | 是否有可学习参数 | 主要作用 | 常见误解 |\n|---|---:|---|---|\n"
             "| Conv2d | 是 | 提取局部特征 | 以为只改变通道 |\n"
-            "| padding | 否 | 控制边界和尺寸 | 忘记公式中的 2P |\n"
+            "| padding | 否 | 控制边界和尺寸 | 忘记公式中的 $2P$ |\n"
             "| stride | 否 | 控制窗口移动距离 | 忽略对尺寸的下采样 |\n"
             "| MaxPool2d | 否 | 汇聚局部响应 | 误以为等同卷积 |\n\n"
             "## 8. 公式如何映射到 PyTorch\n\n"
             "~~~python\nnn.Conv2d(\n    in_channels=3, out_channels=8,\n    kernel_size=3, stride=2, padding=1\n)\n~~~\n\n"
-            "调用前先打印 x.shape；调用后先打印 y.shape；再用公式核对 32 是否变成 16。"
+            "调用前先打印 x.shape；调用后先打印 y.shape；再用公式核对 $32$ 是否变成 $16$。"
             "这一顺序对应“概念 → 公式 → 代码 → 验证”，避免只运行、不理解。\n\n"
             "## 9. 针对本学习者的防错设计\n\n"
             f"{error_lines}\n\n"
@@ -895,13 +895,13 @@ def _build_resources(
             "如果第二维不是 3，不要先改 Conv2d；先检查数据是否被错误地组织成 NHWC。\n\n"
             "## 2. 工作示例 A：保持空间尺寸\n\n"
             "~~~python\nlayer = nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1)\ny = layer(x)\nassert y.shape == (2, 8, 32, 32)\nprint(tuple(y.shape))\n~~~\n\n"
-            "解释：padding=1 抵消 3×3 卷积核带来的边界缩小；out_channels=8 只改变通道数。\n\n"
+            "解释：padding=1 抵消 $3\\times 3$ 卷积核带来的边界缩小；out_channels=8 只改变通道数。\n\n"
             "## 3. 工作示例 B：使用 stride 下采样\n\n"
             "~~~python\nlayer = nn.Conv2d(3, 8, kernel_size=3, stride=2, padding=1)\ny = layer(x)\nassert y.shape == (2, 8, 16, 16)\n~~~\n\n"
-            "请在运行前写下 floor((32+2×1-3)/2)+1=16，再用断言验证。\n\n"
+            "请在运行前写下 $\\left\\lfloor(32+2\\times 1-3)/2\\right\\rfloor+1=16$，再用断言验证。\n\n"
             "## 4. 工作示例 C：核对参数量\n\n"
             "~~~python\nweight_params = layer.weight.numel()\nbias_params = 0 if layer.bias is None else layer.bias.numel()\nprint(weight_params, bias_params, weight_params + bias_params)\nassert weight_params == 3 * 8 * 3 * 3\n~~~\n\n"
-            "这一步专门防止把 8 个输出通道误当成 8×8 的空间尺寸。\n\n"
+            "这一步专门防止把 8 个输出通道误当成 $8\\times 8$ 的空间尺寸。\n\n"
             "## 4.5 先看图，再改代码\n\n"
             "请先打开资源包中的 01_nchw_tensor_layout.svg、02_convolution_window.svg 和"
             "03_shape_reasoning_flow.svg：前两张用于建立视觉直觉，最后一张用于每次运行前"
@@ -913,11 +913,11 @@ def _build_resources(
             "| 现象 | 首先检查 | 修复动作 |\n|---|---|---|\n"
             "| expected input to have 3 channels | x.shape 的第二维 | 调整数据到 NCHW 或修改 in_channels |\n"
             "| 输出宽高和手算不一致 | kernel、padding、stride | 逐项代入公式，不凭直觉 |\n"
-            "| 参数量对不上 | weight 与 bias | 分开计算 3×8×3×3 和 8 |\n"
+            "| 参数量对不上 | weight 与 bias | 分开计算 $3\\times 8\\times 3\\times 3$ 和 $8$ |\n"
             "| 代码能跑但解释不出 | 没有记录中间 shape | 每层都打印输入与输出 |\n\n"
             "## 7. 四个引导练习\n\n"
-            "1. 将 padding 从 1 改为 0，先预测输出为 15×15，再运行验证。\n"
-            "2. 将 stride 从 2 改为 1，解释为什么输出回到 32×32。\n"
+            "1. 将 padding 从 1 改为 0，先预测输出为 $15\\times 15$，再运行验证。\n"
+            "2. 将 stride 从 2 改为 1，解释为什么输出回到 $32\\times 32$。\n"
             "3. 将 out_channels 从 8 改为 16，列出变化与不变的维度。\n"
             "4. 创建形状为 (2, 32, 32, 3) 的张量，解释为什么不能直接送入 Conv2d。\n\n"
             "## 8. 连接到后续项目\n\n"
@@ -941,7 +941,7 @@ def _build_resources(
             "### Q1｜卷积与互相关\n\n"
             "PyTorch 的 Conv2d 在实现上通常更接近数学卷积还是互相关？为什么工程里仍称其为卷积层？\n\n"
             "### Q2｜局部连接与参数共享\n\n"
-            "为什么卷积比全连接层更适合 32×32 图像？请各写出一个原因。\n\n"
+            "为什么卷积比全连接层更适合 $32\\times 32$ 图像？请各写出一个原因。\n\n"
             "### Q3｜卷积与池化\n\n"
             "下列哪项有可学习参数：Conv2d、padding、stride、MaxPool2d？\n\n"
             "## B. 公式推导\n\n"
@@ -950,7 +950,7 @@ def _build_resources(
             "请写出公式、代入、化简和最终结果四步。\n\n"
             "### Q5｜stride 下采样\n\n"
             "输入宽度 32，kernel=3，padding=1，stride=2。输出宽度是多少？\n\n"
-            "请特别标出 padding 对应的 2×1，以及最后的 +1。\n\n"
+            "请特别标出 padding 对应的 $2\\times 1$，以及最后的 $+1$。\n\n"
             "### Q6｜参数量\n\n"
             "Conv2d(3, 8, kernel_size=3, bias=True) 的参数量是多少？\n\n"
             "请分别写出 weight 参数和 bias 参数；不要把输出空间尺寸写入参数量公式。\n\n"
@@ -987,14 +987,14 @@ def _build_resources(
             "答：只有 Conv2d 有可学习的卷积核和 bias；padding、stride 是超参数，"
             "MaxPool2d 是无参数汇聚操作。\n\n"
             "### Q4\n\n"
-            "floor((32+2×1-3)/1)+1=32。评分必须检查是否写出 2×padding。\n\n"
+            "$\\left\\lfloor(32+2\\times 1-3)/1\\right\\rfloor+1=32$。评分必须检查是否写出 $2\\times\\mathrm{padding}$。\n\n"
             "### Q5\n\n"
-            "floor((32+2×1-3)/2)+1=16。若得到 15，通常漏掉最后的 +1；"
+            "$\\left\\lfloor(32+2\\times 1-3)/2\\right\\rfloor+1=16$。若得到 15，通常漏掉最后的 $+1$；"
             "若得到 14 或更小，检查是否遗漏 padding。\n\n"
             "### Q6\n\n"
-            "weight=3×8×3×3=216，bias=8，总计 224。输出宽高不影响该层参数量。\n\n"
+            "$weight=3\\times 8\\times 3\\times 3=216$，$bias=8$，总计 $224$。输出宽高不影响该层参数量。\n\n"
             "### Q7\n\n"
-            "stride=2，padding=1；并用 Q5 的公式验证输出为 16×16。\n\n"
+            "stride=2，padding=1；并用 Q5 的公式验证输出为 $16\\times 16$。\n\n"
             "### Q8\n\n"
             "Conv2d 将第二维解释为通道，当前第二维为 32 而不是 3；"
             "可使用 x.permute(0, 3, 1, 2) 转换为 NCHW。\n\n"
@@ -1066,7 +1066,7 @@ def _build_notebook(profile: dict[str, Any], handoff: dict[str, Any]) -> dict[st
             "source": [
                 "## 2. 公式与实际输出必须一致\n",
                 "\n",
-                "先用函数计算，再由 Conv2d 的输出 shape 交叉验证。这里专门防止漏写 2×padding。\n",
+                "先用函数计算，再由 Conv2d 的输出 shape 交叉验证。这里专门防止漏写 $2\\times\\mathrm{padding}$。\n",
             ],
         },
         {
@@ -1089,7 +1089,7 @@ def _build_notebook(profile: dict[str, Any], handoff: dict[str, Any]) -> dict[st
             "source": [
                 "## 2.5 手算一个窗口\n",
                 "\n",
-                "先看单通道、2×2 卷积核的一个位置，理解“逐元素相乘再求和”。\n",
+                "先看单通道、$2\\times 2$ 卷积核的一个位置，理解“逐元素相乘再求和”。\n",
             ],
         },
         {

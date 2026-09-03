@@ -1,6 +1,9 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
+import json
+import re
+
 from skillforge_kb.resources.controlled_evaluation import (
     EvaluationProfile,
     evaluate_profiles,
@@ -20,6 +23,7 @@ from skillforge_kb.resources.controlled_generation import (
     QuizKind,
     ResourceAuditor,
     ResourceGenerationBrief,
+    ReviewDecisionStatus,
     StructuredResourceDraft,
     StudentQuizDraft,
     StudentQuizItem,
@@ -38,6 +42,28 @@ class SupportingVerifier:
 class UncertainVerifier:
     def verify(self, *, claim: str, evidence_span: str) -> ClaimSupportStatus:
         return ClaimSupportStatus.UNCERTAIN
+
+
+class RoundAwareAdapter:
+    """Returns a different draft depending on how many generation rounds have
+    already happened (4 ``complete`` calls per round: lecture/practical_guide/
+    student_quiz/teacher_guide) -- simulates "the model eventually produces a
+    clean draft after N rejected attempts" for exercising multi-round review."""
+
+    model_name = "round-aware-writer"
+
+    def __init__(self, drafts: tuple[StructuredResourceDraft, ...]) -> None:
+        self._drafts = drafts
+        self._calls = 0
+
+    def complete(self, prompt: str, *, repair: str | None = None) -> str:
+        round_index = min(self._calls // 4, len(self._drafts) - 1)
+        self._calls += 1
+        payload = self._drafts[round_index].model_dump(mode="json")
+        material_match = re.search(r"MATERIAL: ([a-z_]+)", prompt)
+        if material_match and material_match.group(1) in payload:
+            payload = payload[material_match.group(1)]
+        return json.dumps(payload, ensure_ascii=False)
 
 
 def _policy(*, gate: bool = False, approved: bool = False) -> GenerationPolicy:
@@ -186,6 +212,55 @@ def test_uncertain_claim_needs_review_without_hard_failure() -> None:
 
     assert package.generation_status.value == "completed"
     assert package.audit_status is AuditStatus.NEEDS_REVIEW
+
+
+def test_default_two_attempts_still_fails_after_two_bad_rounds() -> None:
+    """Behavior-preservation: with no max_attempts override, a draft that
+    stays broken across every attempt still ends up FAILED after exactly 2
+    rounds, matching the pre-existing hardcoded-2 behavior -- only the new
+    ``review_rounds`` field is additive."""
+
+    adapter = RoundAwareAdapter((_draft(leaked=True), _draft(leaked=True), _draft()))
+    package = ControlledResourceGenerationService(
+        adapter, ResourceAuditor(SupportingVerifier())
+    ).generate(_brief(_policy()), notebook_passed=True)
+
+    assert package.audit_status is AuditStatus.FAILED
+    assert len(package.review_rounds) == 2
+    assert all(round_.status is ReviewDecisionStatus.NEEDS_REVISION for round_ in package.review_rounds)
+    assert [round_.attempt for round_ in package.review_rounds] == [1, 2]
+
+
+def test_max_attempts_three_recovers_a_draft_that_only_clears_review_on_round_three() -> None:
+    """The multi-round upgrade: a draft that fails review twice and only
+    becomes clean on the third generation attempt is recovered as PASSED when
+    max_attempts=3, with a full 3-round review transcript preserved."""
+
+    adapter = RoundAwareAdapter((_draft(leaked=True), _draft(leaked=True), _draft()))
+    package = ControlledResourceGenerationService(
+        adapter, ResourceAuditor(SupportingVerifier()), max_attempts=3
+    ).generate(_brief(_policy()), notebook_passed=True)
+
+    assert package.audit_status is AuditStatus.PASSED
+    assert len(package.review_rounds) == 3
+    assert [round_.status for round_ in package.review_rounds] == [
+        ReviewDecisionStatus.NEEDS_REVISION,
+        ReviewDecisionStatus.NEEDS_REVISION,
+        ReviewDecisionStatus.APPROVED,
+    ]
+    assert [round_.attempt for round_ in package.review_rounds] == [1, 2, 3]
+    # Each round's own audit report is preserved, not just the final one.
+    assert all(
+        any(finding.code == "answer_leakage" for finding in round_.report.findings)
+        for round_ in package.review_rounds[:2]
+    )
+
+
+def test_max_attempts_rejects_a_non_positive_value() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="max_attempts"):
+        ControlledResourceGenerationService(FakeLLMAdapter(_draft()), max_attempts=0)
 
 
 def test_three_profile_evaluation_only_varies_personalization() -> None:

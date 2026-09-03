@@ -326,3 +326,236 @@ def test_planning_policy_calibration_rejects_output_overwriting_dataset(
 
     assert result.exit_code != 0
     assert "must not overwrite" in result.output
+
+
+def test_persona_pipeline_run_cli(tmp_path: Path) -> None:
+    output_path = tmp_path / "snapshot.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "persona-pipeline-run",
+            "--profile-file",
+            "tests/fixtures/profile-2026-0001-demo.json",
+            "--output-file",
+            str(output_path),
+            "--project-root",
+            ".",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "140 path nodes" in result.output
+
+    # A full ``PersonaPipelineSnapshot.model_validate_json`` round trip is not
+    # guaranteed here: candidate-preview resource results deliberately strip
+    # teacher-only content (``teacher_guide``/``correct_choice``) in JSON mode
+    # (see ``ResourceAgentResult.serialize_public``), and with this repo's
+    # empty tracked evidence manifest most nodes take that branch. Validate
+    # the persisted file generically instead.
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["pipeline_failure"] is None
+    assert len(payload["full_path"]) == 140
+    assert payload["personalized_path_concept_ids"]
+
+
+def test_persona_pipeline_run_cli_feedback_loop(tmp_path: Path) -> None:
+    output_path = tmp_path / "feedback-snapshot.json"
+
+    result = runner.invoke(
+        app,
+        [
+            "persona-pipeline-run",
+            "--profile-file",
+            "tests/fixtures/profile-2026-0001-demo.json",
+            "--output-file",
+            str(output_path),
+            "--project-root",
+            ".",
+            "--feedback-loop",
+            "--max-rounds",
+            "2",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "2 feedback rounds" in result.output
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["pipeline_failure"] is None
+    assert len(payload["feedback_rounds"]) == 2
+    completed = [node for node in payload["full_path"] if node["status"] == "completed"]
+    assert len(completed) == 2
+
+
+def test_persona_pipeline_verify_cli(tmp_path: Path) -> None:
+    snapshot_path = tmp_path / "snapshot.json"
+    report_path = tmp_path / "report.json"
+
+    generated = runner.invoke(
+        app,
+        [
+            "persona-pipeline-run",
+            "--profile-file",
+            "tests/fixtures/profile-2026-0001-demo.json",
+            "--output-file",
+            str(snapshot_path),
+            "--project-root",
+            ".",
+        ],
+    )
+    assert generated.exit_code == 0
+
+    verified = runner.invoke(
+        app,
+        [
+            "persona-pipeline-verify",
+            "--snapshot-file",
+            str(snapshot_path),
+            "--project-root",
+            ".",
+            "--output-file",
+            str(report_path),
+        ],
+    )
+
+    assert verified.exit_code == 0
+    assert "All 10 checks passed." in verified.output
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["passed"] is True
+    assert all(check["passed"] for check in report["checks"])
+
+
+def test_persona_pipeline_verify_cli_fails_on_a_tampered_snapshot(tmp_path: Path) -> None:
+    snapshot_path = tmp_path / "snapshot.json"
+    generated = runner.invoke(
+        app,
+        [
+            "persona-pipeline-run",
+            "--profile-file",
+            "tests/fixtures/profile-2026-0001-demo.json",
+            "--output-file",
+            str(snapshot_path),
+            "--project-root",
+            ".",
+        ],
+    )
+    assert generated.exit_code == 0
+    tampered = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    tampered["snapshot_digest"] = "bogus"
+    snapshot_path.write_text(json.dumps(tampered), encoding="utf-8")
+
+    verified = runner.invoke(
+        app,
+        [
+            "persona-pipeline-verify",
+            "--snapshot-file",
+            str(snapshot_path),
+            "--project-root",
+            ".",
+        ],
+    )
+
+    assert verified.exit_code == 1
+    assert "snapshot_digest_matches_content" in verified.output
+
+
+def test_persona_hard_metrics_cli_aggregates_two_personas(tmp_path: Path) -> None:
+    snapshot_a = tmp_path / "a.json"
+    snapshot_b = tmp_path / "b.json"
+    for path in (snapshot_a, snapshot_b):
+        generated = runner.invoke(
+            app,
+            [
+                "persona-pipeline-run",
+                "--profile-file",
+                "tests/fixtures/profile-2026-0001-demo.json",
+                "--output-file",
+                str(path),
+                "--project-root",
+                ".",
+                "--feedback-loop",
+                "--max-rounds",
+                "2",
+            ],
+        )
+        assert generated.exit_code == 0
+
+    report_path = tmp_path / "hard-metrics.json"
+    result = runner.invoke(
+        app,
+        [
+            "persona-hard-metrics",
+            "--persona-label",
+            "a",
+            "--coverage-snapshot",
+            str(snapshot_a),
+            "--persona-label",
+            "b",
+            "--coverage-snapshot",
+            str(snapshot_b),
+            "--output-file",
+            str(report_path),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "coverage_rate=" in result.output
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert len(report["personas"]) == 2
+    assert {p["persona_label"] for p in report["personas"]} == {"a", "b"}
+    # A --max-rounds 2 run stops early, so "attempted" also counts every
+    # not-yet-reached node -- this only checks the CLI wiring end to end
+    # (arg parsing, snapshot loading, aggregation), not the coverage number
+    # itself (covered by tests/unit/evaluation/test_persona_metrics.py).
+    assert report["aggregate_coverage"]["attempted_nodes"] > 0
+
+
+def test_persona_hard_metrics_cli_rejects_a_snapshot_that_is_not_a_json_object(
+    tmp_path: Path,
+) -> None:
+    bad_snapshot = tmp_path / "not-an-object.json"
+    bad_snapshot.write_text(json.dumps(["oops", "this-is-a-list"]), encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "persona-hard-metrics",
+            "--persona-label",
+            "a",
+            "--coverage-snapshot",
+            str(bad_snapshot),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "Traceback" not in result.output
+    # A raw AttributeError from `.get()` on a list is the exact bug this
+    # guards against; asserting the clean Click/Typer error framing is
+    # present (rather than the wrapped message text, which can line-wrap
+    # differently depending on the terminal width Rich detects) is enough
+    # to prove it now fails cleanly instead of crashing.
+    assert "Invalid value" in result.output
+
+
+def test_persona_hard_metrics_cli_rejects_mismatched_label_and_snapshot_counts(
+    tmp_path: Path,
+) -> None:
+    snapshot = tmp_path / "a.json"
+    snapshot.write_text(json.dumps({"profile_id": "p", "full_path": []}), encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        [
+            "persona-hard-metrics",
+            "--persona-label",
+            "a",
+            "--persona-label",
+            "b",
+            "--coverage-snapshot",
+            str(snapshot),
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "must match --persona-label count" in result.output

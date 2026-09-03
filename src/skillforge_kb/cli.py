@@ -577,5 +577,222 @@ def resource_evaluate(
     typer.echo(f"Wrote three-profile evaluation to {output_file.resolve()}")
 
 
+@app.command("persona-pipeline-run")
+def persona_pipeline_run(
+    profile_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    output_file: Annotated[Path, typer.Option()],
+    project_root: Annotated[
+        Path | None,
+        typer.Option(exists=True, file_okay=False),
+    ] = None,
+    top_k: Annotated[int, typer.Option(min=1, max=20)] = 5,
+    feedback_loop: Annotated[
+        bool,
+        typer.Option(
+            "--feedback-loop",
+            help=(
+                "Advance one node at a time: simulate an answer, update mastery "
+                "through the same rule-based ledger the platform uses, and replan "
+                "on the same thread before moving on, instead of one static preview."
+            ),
+        ),
+    ] = False,
+    max_rounds: Annotated[
+        int | None,
+        typer.Option(min=1, help="Only with --feedback-loop: stop after this many nodes."),
+    ] = None,
+) -> None:
+    """Run the diagnosis -> planning -> retrieval -> resource Agent pipeline for
+    one learner profile (raw v2.1 学情诊断Agent export or a canonical
+    learner-profile snapshot) and write the full-path/personalized-path snapshot.
+
+    By default this is a single static pass. With --feedback-loop it instead
+    closes the loop: generate for the current node, simulate one answer,
+    update mastery, and replan before advancing -- so the path and delivery
+    depth can visibly change round over round.
+
+    This is read-only evaluation tooling: it never touches the live platform
+    state database and never publishes evidence or resources.
+    """
+    from skillforge_kb.evaluation.persona_pipeline import (
+        build_persona_pipeline_context,
+        dump_persona_pipeline_snapshot,
+        run_persona_feedback_loop,
+        run_persona_pipeline,
+    )
+
+    root = project_root or Path.cwd()
+    resolved_output = _output_path_outside_inputs(output_file, profile_file)
+    try:
+        raw_profile = json.loads(profile_file.read_text(encoding="utf-8"))
+        context = build_persona_pipeline_context(root)
+        if feedback_loop:
+            snapshot = run_persona_feedback_loop(
+                context, raw_profile, top_k=top_k, max_rounds=max_rounds
+            )
+        else:
+            snapshot = run_persona_pipeline(context, raw_profile, top_k=top_k)
+    except (OSError, ValueError, ValidationError, yaml.YAMLError, json.JSONDecodeError) as exc:
+        raise typer.BadParameter(f"persona pipeline run failed: {exc}") from exc
+    dump_persona_pipeline_snapshot(snapshot, resolved_output)
+    if snapshot.pipeline_failure:
+        typer.echo(f"Pipeline blocked: {snapshot.pipeline_failure}")
+    else:
+        rounds_note = (
+            f", {len(snapshot.feedback_rounds)} feedback rounds" if feedback_loop else ""
+        )
+        typer.echo(
+            f"Wrote persona pipeline snapshot ({len(snapshot.full_path)} path nodes, "
+            f"{len(snapshot.personalized_path_concept_ids)} personalized{rounds_note}) "
+            f"to {resolved_output}"
+        )
+
+
+@app.command("persona-pipeline-verify")
+def persona_pipeline_verify(
+    snapshot_file: Annotated[Path, typer.Option(exists=True, dir_okay=False)],
+    project_root: Annotated[
+        Path | None,
+        typer.Option(exists=True, file_okay=False),
+    ] = None,
+    output_file: Annotated[Path | None, typer.Option()] = None,
+) -> None:
+    """Run deterministic, no-external-ground-truth checks against a snapshot
+    written by persona-pipeline-run: full_path matches the catalog, no
+    hard-prerequisite ordering violations, resource_mode agrees with
+    generation_gate, every formal node has counted evidence, every
+    candidate_draft carries an audit report, feedback_rounds are internally
+    consistent. Prints the report as JSON and exits non-zero if any check
+    failed.
+    """
+    from skillforge_kb.evaluation.persona_verification import verify_persona_snapshot
+    from skillforge_kb.ontology.validation import validate_catalog
+    from skillforge_kb.platform.runtime import (
+        DefaultPlatformPaths,
+        validate_default_platform_paths,
+    )
+
+    root = (project_root or Path.cwd()).expanduser().resolve()
+    try:
+        raw_snapshot = json.loads(snapshot_file.read_text(encoding="utf-8"))
+        paths = DefaultPlatformPaths.from_project_root(root)
+        validate_default_platform_paths(paths)
+        catalog = OntologyCatalog.load(paths.course_file, paths.relations_file)
+        validate_catalog(catalog)
+        report = verify_persona_snapshot(catalog, raw_snapshot)
+    except (OSError, ValueError, ValidationError, yaml.YAMLError, json.JSONDecodeError) as exc:
+        raise typer.BadParameter(f"persona pipeline verification failed: {exc}") from exc
+
+    payload = report.model_dump_json(indent=2)
+    if output_file is not None:
+        resolved_output = _output_path_outside_inputs(output_file, snapshot_file)
+        resolved_output.parent.mkdir(parents=True, exist_ok=True)
+        resolved_output.write_text(payload + "\n", encoding="utf-8")
+    typer.echo(payload)
+    failed = [check.code for check in report.checks if not check.passed]
+    if failed:
+        typer.echo(f"FAILED checks: {', '.join(failed)}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"All {len(report.checks)} checks passed.")
+
+
+@app.command("persona-hard-metrics")
+def persona_hard_metrics(
+    persona_label: Annotated[
+        list[str],
+        typer.Option("--persona-label", help="Repeat once per persona, paired by position."),
+    ],
+    coverage_snapshot: Annotated[
+        list[Path],
+        typer.Option(
+            "--coverage-snapshot",
+            exists=True,
+            dir_okay=False,
+            help=(
+                "One per --persona-label, same order. Must come from "
+                "persona-pipeline-run --feedback-loop run to natural completion "
+                "(no --max-rounds): a one-shot run only unlocks nodes whose "
+                "prerequisites the current profile already satisfies and "
+                "severely understates coverage."
+            ),
+        ),
+    ],
+    hallucination_snapshot: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--hallucination-snapshot",
+            exists=True,
+            dir_okay=False,
+            help=(
+                "Optional, one per --persona-label if given. Should come from "
+                "persona-pipeline-run --feedback-loop against a configured real "
+                "adapter: the hallucination rate only counts nodes a real model "
+                "(not FakeLLMAdapter) generated."
+            ),
+        ),
+    ] = None,
+    output_file: Annotated[Path | None, typer.Option()] = None,
+) -> None:
+    """Aggregate the three XH-202630 hard metrics (hallucination rate, learner-
+    resource difficulty adaptation accuracy, core-concept coverage) across one
+    or more persona-pipeline snapshots. See ``evaluation/persona_metrics.py``
+    for exactly what is measured and what is a disclosed proxy/sample versus
+    an exact count -- this command does not itself run generation or audit.
+    """
+    from skillforge_kb.evaluation.persona_metrics import (
+        aggregate_hard_metrics,
+        compute_persona_hard_metrics,
+    )
+
+    if len(coverage_snapshot) != len(persona_label):
+        raise typer.BadParameter("--coverage-snapshot count must match --persona-label count")
+    if hallucination_snapshot is not None and len(hallucination_snapshot) != len(persona_label):
+        raise typer.BadParameter(
+            "--hallucination-snapshot count must match --persona-label count when given"
+        )
+
+    def _load_snapshot(path: Path) -> dict[str, object]:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise typer.BadParameter(
+                f"{path}: expected a JSON object snapshot, got {type(payload).__name__}"
+            )
+        return payload
+
+    try:
+        per_persona = []
+        for index, label in enumerate(persona_label):
+            coverage_payload = _load_snapshot(coverage_snapshot[index])
+            hallucination_payload = (
+                _load_snapshot(hallucination_snapshot[index])
+                if hallucination_snapshot is not None
+                else None
+            )
+            per_persona.append(
+                compute_persona_hard_metrics(label, coverage_payload, hallucination_payload)
+            )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        raise typer.BadParameter(f"persona hard metrics computation failed: {exc}") from exc
+
+    report = aggregate_hard_metrics(per_persona)
+    payload = report.model_dump_json(indent=2)
+    if output_file is not None:
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file.write_text(payload + "\n", encoding="utf-8")
+    typer.echo(payload)
+    typer.echo(
+        "hallucination_rate="
+        f"{report.aggregate_hallucination.hallucination_rate:.1%} "
+        f"(n={report.aggregate_hallucination.total_claims} claims over "
+        f"{report.aggregate_hallucination.sampled_node_count} sampled nodes), "
+        f"adaptation_accuracy(proxy)={report.aggregate_adaptation.adaptation_accuracy:.1%} "
+        f"(n={report.aggregate_adaptation.checked_nodes}), "
+        f"coverage_rate={report.aggregate_coverage.coverage_rate:.1%} "
+        f"(n={report.aggregate_coverage.attempted_nodes})"
+    )
+    for code, met in report.thresholds_met.items():
+        typer.echo(f"{'PASS' if met else 'FAIL'}: {code}")
+
+
 if __name__ == "__main__":
     app()

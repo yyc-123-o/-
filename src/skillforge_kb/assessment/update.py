@@ -161,6 +161,7 @@ def apply_assessment_event(
     profile_payload = ledger.profile.model_dump()
     profile_payload["knowledge_mastery"] = mastery
     profile_payload["error_patterns"] = error_patterns
+    profile_payload["generated_at"] = event.timestamp
     updated_profile = LearnerProfileSnapshot.model_validate(profile_payload)
     updated_ledger = AssessmentLedger(
         profile=updated_profile,
