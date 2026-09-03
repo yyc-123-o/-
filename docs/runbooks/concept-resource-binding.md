@@ -47,3 +47,27 @@ editing the candidate JSONL does not publish an edge.
 
 Candidate bindings must not be used to create prerequisite relations. A prerequisite is
 a curriculum decision and remains governed by `ai_relations_v1.yaml`.
+
+## Evidence Governance Queue
+
+For rich teammate rows that already contain source, license, locator, hash, concept and
+content-kind metadata, build the candidate-only governance queue:
+
+```powershell
+python scripts/build_evidence_review_queue.py `
+  --input-file 'D:\path\to\ai_learning_pilot_review_300.jsonl' `
+  --output-file 'reports/generated/evidence-governance-pilot-v1.json' `
+  --core-concept-id 'dl.cnn.convolution' `
+  --core-concept-id 'dl.feedforward.mlp'
+```
+
+The queue checks graph membership, provenance fields, HTTP(S) source URLs, content
+hashes, license state, language, content kind and difficulty. It reports missing
+`definition`, `code` and `exercise` kinds per core concept. Its output is always
+`publishable=false` and `review_status=candidate`; it must not be copied directly into
+`resources/evidence/evidence_manifest_v1.yaml`.
+
+The human review step must independently confirm professional correctness, source
+traceability, license applicability and concept scope. Only after that review may a
+separate publication change create `EvidenceRecord` entries with `review_status=published`
+and `license_status=allowed`.
