@@ -17,5 +17,11 @@ export const planningApi = {
     api.post<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}/start-node`, { concept_id: conceptId, path_mode: pathMode }, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
   completeNode: (runId: string, conceptId: string) =>
     api.post<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}/complete-node`, { concept_id: conceptId }, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
+  recordLectureProgress: (runId: string, conceptId: string, progress: number) =>
+    api.post<PlatformRun>(
+      `/api/v1/runs/${encodeURIComponent(runId)}/lecture-progress`,
+      { concept_id: conceptId, progress },
+      { timeout: RESOURCE_GENERATION_TIMEOUT_MS },
+    ).then((r) => r.data),
   runById: (runId: string) => api.get<PlatformRun>(`/api/v1/runs/${encodeURIComponent(runId)}`).then((r) => r.data),
 };

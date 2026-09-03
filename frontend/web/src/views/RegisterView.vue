@@ -28,7 +28,7 @@ function handleSubmit() {
       <section class="auth-page__copy">
         <span class="auth-page__eyebrow"><Sparkles :size="16" /> 创建你的平台空间</span>
         <h1>把课程资料、知识图谱和学习反馈接到同一个工作流里</h1>
-        <p>注册后即可进入工作台，开始管理课程知识库、查看学情诊断、生成个性化课程路径和学习资源。</p>
+        <p>注册后即可进入我的学习，开始查看个性化课程路径、学习任务和反馈。</p>
         <div class="auth-page__points">
           <span><CheckCircle2 :size="15" /> 课程建设者、教师、学习者都能使用</span>
           <span><CheckCircle2 :size="15" /> 支持知识库与路径协同</span>

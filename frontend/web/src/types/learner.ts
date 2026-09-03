@@ -112,6 +112,16 @@ export interface DiagnosisProfile {
   }>;
   evidence?: Array<{ claim: string; source: string; detail: string; confidence: number }>;
   diagnosis_summary?: { short?: string; full?: string; profile_confidence?: string };
+  prior_chapters?: Array<{
+    chapter_id: string;
+    chapter_name: string;
+    accuracy?: number | null;
+    time_spent_hours?: number | null;
+    depth_assigned?: string;
+    kps_covered?: string[];
+    completed_at?: string | null;
+    conclusion?: string;
+  }>;
   learning_scope?: {
     chapter_id?: string;
     chapter_name?: string;
@@ -120,7 +130,11 @@ export interface DiagnosisProfile {
     target_depth?: string;
     estimated_hours?: number;
   };
-  meta?: { total_test_count?: number; total_interaction_count?: number };
+  meta?: {
+    total_test_count?: number;
+    total_interaction_count?: number;
+    diagnosed_at?: string | null;
+  };
 }
 
 export interface OutcomeMetric {

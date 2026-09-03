@@ -1,5 +1,6 @@
 import { computed, ref, watch } from "vue";
 import { defineStore } from "pinia";
+import { AxiosError } from "axios";
 import { planningApi } from "@/api/planning";
 import type { PlatformRun, PathNode, PathRecommendation } from "@/types/planning";
 import { useLearnerStore } from "./learner";
@@ -122,6 +123,35 @@ export const useLearningPathStore = defineStore("learningPath", () => {
     persistRun();
   }
 
+  async function completeLearningContent(conceptId = currentNode.value?.concept_id || "") {
+    if (!run.value?.run_id || !conceptId) throw new Error("当前资源尚未关联知识点");
+    const updated = await planningApi.recordLectureProgress(run.value.run_id, conceptId, 1);
+    setRun(updated);
+    return updated;
+  }
+
+  function friendlyError(reason: unknown, fallback = "操作失败") {
+    if (reason instanceof AxiosError) {
+      const detail = reason.response?.data?.detail;
+      const code = typeof detail?.code === "string" ? detail.code : "";
+      const message = typeof detail?.message === "string" ? detail.message : "";
+      if (reason.response?.status === 409) {
+        if (code === "invalid_lecture_progress") {
+          return "当前学习资源状态已变化，请返回学习路径确认下一步后再继续。";
+        }
+        if (code === "invalid_learning_transition") {
+          return "当前知识点还未满足完成条件，请先完成学习内容、练习和测评。";
+        }
+        return message || "当前学习状态已更新，请稍后重试。";
+      }
+      if (reason.response?.status && reason.response.status >= 500) {
+        return "暂时无法连接平台服务，当前数据将在连接恢复后自动加载。";
+      }
+      return message || fallback;
+    }
+    return reason instanceof Error ? reason.message : fallback;
+  }
+
   function setRun(next: PlatformRun) {
     run.value = next;
     persistRun();
@@ -143,6 +173,6 @@ export const useLearningPathStore = defineStore("learningPath", () => {
 
   return {
     run, loading, error, pathMode, personalizedNodes, fullNodes, nodes, recommendations, currentNode,
-    generate, setPathMode, startNode, completeNode, setRun,
+    generate, setPathMode, startNode, completeNode, completeLearningContent, friendlyError, setRun,
   };
 });

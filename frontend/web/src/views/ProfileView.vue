@@ -1,112 +1,556 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { ArrowRight, BookOpenCheck, BrainCircuit, CalendarClock, CheckCircle2, ChevronRight, CircleAlert, Filter, RefreshCcw, Save, ShieldCheck, Sparkles, Target, TrendingUp } from "lucide-vue-next";
-import { useRouter } from "vue-router";
-import ProgressRing from "@/components/ProgressRing.vue";
+import { computed } from "vue";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Download,
+  RefreshCcw,
+  Save,
+  ShieldCheck,
+  Target,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-vue-next";
+import { useRoute, useRouter } from "vue-router";
+import AbilityRadarChart from "@/components/AbilityRadarChart.vue";
+import LearningTrendChart from "@/components/LearningTrendChart.vue";
 import MasteryChart from "@/components/MasteryChart.vue";
-import AIInsightCard from "@/components/AIInsightCard.vue";
 import StateBlocks from "@/components/StateBlocks.vue";
 import { useLearnerStore } from "@/stores/learner";
-import { useLearningPathStore } from "@/stores/learningPath";
-import type { MasteryPoint } from "@/types/learner";
+import { useLearningRecordsStore } from "@/stores/learningRecords";
+import { formatMastery, getMasteryColor } from "@/utils/mastery";
 
-type LearningSort = "weak" | "recent" | "all";
-type LearningRow = MasteryPoint & { delta: number | null; isNew: boolean };
+const route = useRoute();
 const router = useRouter();
 const learner = useLearnerStore();
-const path = useLearningPathStore();
-const learningSort = ref<LearningSort>("weak");
-const showAllLearning = ref(false);
+const records = useLearningRecordsStore();
+const profileRange = computed(() => String(route.query.range || "30d"));
+
 const profile = computed(() => learner.profile);
-const points = computed(() => Object.values(profile.value?.knowledge_mastery?.points || {}));
 const knowledgeMastery = computed(() => profile.value?.knowledge_mastery);
-const learningSnapshot = computed(() => learner.snapshot);
-const previousSnapshot = computed(() => learner.previousSnapshot);
-const learningMastery = computed(() => (learningSnapshot.value?.knowledge_mastery || []).filter((item) => item.assessment_status === "assessed" && typeof item.mastery_score === "number"));
-const previousByConcept = computed(() => new Map((previousSnapshot.value?.knowledge_mastery || []).map((item) => [item.concept_id, item])));
-const learningRows = computed<LearningRow[]>(() => learningMastery.value.map((item) => {
-  const previous = previousByConcept.value.get(item.concept_id);
-  return { ...item, delta: previous && typeof previous.mastery_score === "number" ? (item.mastery_score || 0) - previous.mastery_score : null, isNew: !previous };
-}));
-const learningChanges = computed(() => learningRows.value.filter((item) => item.delta !== null && Math.abs(item.delta || 0) >= .005));
-const improvedRows = computed(() => learningChanges.value.filter((item) => (item.delta || 0) > 0));
-const declinedRows = computed(() => learningChanges.value.filter((item) => (item.delta || 0) < 0));
-const latestLearningUpdate = computed(() => learningMastery.value.reduce<string | null>((latest, item) => item.observed_at && (!latest || item.observed_at > latest) ? item.observed_at : latest, learningSnapshot.value?.generated_at || null));
-const learningAverage = computed(() => learningMastery.value.length ? learningMastery.value.reduce((total, item) => total + (item.mastery_score || 0), 0) / learningMastery.value.length : null);
-const learningAbilityEntries = computed(() => Object.entries(learningSnapshot.value?.abilities || {}));
-const sortedLearningRows = computed(() => {
-  const rows = [...learningRows.value];
-  if (learningSort.value === "recent") return rows.sort((a, b) => String(b.observed_at || "").localeCompare(String(a.observed_at || "")));
-  if (learningSort.value === "all") return rows.sort((a, b) => conceptTitle(a.concept_id).localeCompare(conceptTitle(b.concept_id), "zh-CN"));
-  return rows.sort((a, b) => (a.mastery_score || 0) - (b.mastery_score || 0) || a.confidence - b.confidence);
+const points = computed(() =>
+  Object.entries(knowledgeMastery.value?.points || {}).map(([id, point]) => ({ id, ...point })),
+);
+const masteryValue = computed(() => {
+  const value = knowledgeMastery.value?.overall_mastery;
+  return typeof value === "number" ? value : null;
 });
-const visibleLearningRows = computed(() => showAllLearning.value ? sortedLearningRows.value : sortedLearningRows.value.slice(0, 8));
-const reviewRows = computed(() => {
-  const overdue = learningRows.value.filter((item) => item.observed_at && (Date.now() - new Date(item.observed_at).getTime()) / 86400000 >= 7);
-  return (overdue.length ? overdue : [...learningRows.value].sort((a, b) => (a.mastery_score || 0) - (b.mastery_score || 0) || a.confidence - b.confidence)).slice(0, 3);
+const abilities = computed(() =>
+  Object.entries(profile.value?.ability_level?.sub_dimensions || {})
+    .map(([key, value]) => ({ key, ...value }))
+    .filter((item) => typeof item.score === "number"),
+);
+const abilityDimensions = computed(() => {
+  const source = Object.fromEntries(abilities.value.map((item) => [item.key, item.score]));
+  const pick = (...keys: string[]) => {
+    const key = keys.find((item) => typeof source[item] === "number");
+    return key ? source[key] : null;
+  };
+  return [
+    { key: "concept_understanding", label: "概念理解", score: pick("concept_understanding", "theoretical_understanding") },
+    { key: "mathematical_foundation", label: "数学基础", score: pick("mathematical_foundation") },
+    { key: "problem_solving", label: "问题解决", score: pick("problem_solving") },
+    { key: "practical_application", label: "实践应用", score: pick("practical_application", "coding_ability") },
+    { key: "knowledge_transfer", label: "知识迁移", score: pick("knowledge_transfer") },
+    { key: "learning_stability", label: "学习稳定性", score: pick("learning_stability", "self_learning") },
+  ];
 });
-const recentLearningRows = computed(() => learningRows.value.filter((item) => item.observed_at && new Date(item.observed_at).getTime() >= Date.now() - 7 * 86400000));
-const stability = computed(() => {
-  const avg = learningRows.value.length ? learningRows.value.reduce((total, item) => total + item.confidence, 0) / learningRows.value.length : 0;
-  if (learningRows.value.length >= 8 && avg >= .65) return { label: "证据稳定", tone: "stable", text: "已有多次、跨知识点的测评证据，当前结论可用于调整学习节奏。" };
-  if (learningRows.value.length >= 3 && avg >= .35) return { label: "初步可用", tone: "limited", text: "已有部分小测证据；能力等级仍以阶段复诊为准，不会因单次答题跳变。" };
-  return { label: "证据仍少", tone: "early", text: "当前结论主要来自少量小测，建议完成本章后再复测一次以提高可靠性。" };
-});
-const nextAction = computed(() => {
-  const node = path.currentNode;
-  const item = (node?.concept_id && learningRows.value.find((row) => row.concept_id === node.concept_id)) || [...learningRows.value].sort((a, b) => (a.mastery_score || 0) - (b.mastery_score || 0) || a.confidence - b.confidence)[0];
-  if (!item) return null;
-  const error = (learningSnapshot.value?.error_patterns || []).find((pattern) => pattern.concept_ids.includes(item.concept_id));
-  return { ...item, title: node?.title || node?.name || conceptTitle(item.concept_id), errorText: error ? errorLabel(error.code) : "当前掌握度或证据强度仍需要巩固", hasReadyResource: Boolean(path.run && node) };
-});
+const abilityValues = computed(() =>
+  Object.fromEntries(abilityDimensions.value.map((item) => [item.key, item.score])),
+);
 const domainSummary = computed(() => knowledgeMastery.value?.domain_summary || {});
-const domainValues = computed(() => Object.fromEntries(Object.entries(domainSummary.value).filter(([, value]) => typeof value.mean_mastery === "number").map(([key, value]) => [key, value.mean_mastery as number])));
-const abilities = computed(() => Object.entries(profile.value?.ability_level?.sub_dimensions || {}));
-const abilityLabels: Record<string, string> = { theoretical_understanding: "理论理解", coding_ability: "代码能力", mathematical_foundation: "数学基础", problem_solving: "问题解决" };
+const domainValues = computed(() =>
+  Object.fromEntries(
+    Object.entries(domainSummary.value)
+      .filter(([, value]) => typeof value.mean_mastery === "number")
+      .map(([key, value]) => [key, value.mean_mastery as number]),
+  ),
+);
+const snapshot = computed(() => learner.snapshot);
+const snapshotMastery = computed(() =>
+  (snapshot.value?.knowledge_mastery || [])
+    .filter((item) => item.assessment_status === "assessed" && typeof item.mastery_score === "number"),
+);
+const snapshotAverage = computed(() => {
+  const values = snapshotMastery.value.map((item) => item.mastery_score as number);
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+});
 const outcomeReport = computed(() => learner.outcomeReport);
-const notableKpChanges = computed(() => (outcomeReport.value?.kp_changes || []).filter((change) => change.category !== "不变").sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 8));
-async function onSaveBaseline() { await learner.saveBaseline(); }
-async function onVerifyOutcome() { await learner.verifyOutcome(); }
-function goToNextAction() { router.push(nextAction.value?.hasReadyResource ? "/resources" : "/learning-path"); }
-function pct(value?: number | null) { return typeof value === "number" ? `${Math.round(value * 100)}%` : "-"; }
-function pctDelta(delta?: number | null) { return delta === null || delta === undefined ? "首次记录" : `${delta > 0 ? "+" : ""}${Math.round(delta * 100)}%`; }
-function deltaClass(delta?: number | null) { return !delta ? "delta-flat" : delta > 0 ? "delta-up" : "delta-down"; }
-function num(value?: number, digits = 2) { return typeof value === "number" ? value.toFixed(digits) : "-"; }
-function evidenceLabel(level?: string) { return ({ preliminary: "初步证据", limited: "证据有限", stable: "证据稳定", self_report: "逐点自评", none: "尚未测评" } as Record<string, string>)[level || "none"] || "尚未测评"; }
-function errorLabel(code: string) { return ({ concept_confusion: "概念辨析容易混淆", logic_gap: "推理步骤存在缺口", calculation_error: "计算过程需要复盘", missed_condition: "题目条件容易遗漏" } as Record<string, string>)[code] || "需要通过复测确认掌握情况"; }
-function conceptTitle(conceptId: string) {
-  const names: Record<string, string> = { scalar: "标量", vector: "向量", matrix: "矩阵", tensor: "张量", "matrix-operations": "矩阵运算", "matrix-multiplication": "矩阵乘法", norm: "范数", determinant: "行列式", "chain-rule": "链式法则", "derivative-gradient": "导数与梯度", "probability-distribution": "概率分布", "bayes-theorem": "贝叶斯定理", "random-variable": "随机变量", overfitting: "过拟合", underfitting: "欠拟合", "cross-validation": "交叉验证", "random-forest": "随机森林", "linear-regression": "线性回归", "logistic-regression": "逻辑回归", "feature-label": "特征与标签", "hyperparameter-tuning": "超参数调优", convolution: "卷积运算", pooling: "池化", embedding: "嵌入表示", "gradient-descent": "梯度下降", relu: "ReLU", adam: "Adam", backpropagation: "反向传播", "learning-rate": "学习率", regularization: "正则化", attention: "注意力机制", transformer: "Transformer", tokenization: "分词", prompting: "提示工程", "retrieval-augmented-generation": "检索增强生成", "hybrid-retrieval": "混合检索", reranking: "重排序" };
-  const key = conceptId.split(".").at(-1) || conceptId;
+const priorChapters = computed(() => profile.value?.prior_chapters || []);
+const trendPoints = computed(() => {
+  const history: Array<{ label: string; mastery: number | null; accuracy: number | null }> = priorChapters.value
+    .filter((chapter) => typeof chapter.accuracy === "number")
+    .map((chapter, index) => ({
+      label: chapter.chapter_name || `阶段 ${index + 1}`,
+      mastery: null,
+      accuracy: chapter.accuracy as number,
+    }));
+  if (typeof knowledgeMastery.value?.overall_accuracy === "number") {
+    history.push({
+      label: "当前",
+      mastery: masteryValue.value,
+      accuracy: knowledgeMastery.value.overall_accuracy,
+    });
+  }
+  return history;
+});
+const latestUpdate = computed(() =>
+  profile.value?.meta?.diagnosed_at || snapshot.value?.generated_at || null,
+);
+const weeklyLearningHours = computed(() => {
+  const hours = profile.value?.learner?.self_assessment?.weekly_hours;
+  return typeof hours === "number" ? hours : null;
+});
+const confidenceScore = computed(() => {
+  const value = profile.value?.knowledge_mastery?.overall_confidence;
+  return typeof value === "number" ? value : null;
+});
+const stageLabel = computed(() => {
+  const stage = profile.value?.ability_level?.overall?.toLowerCase();
+  return stage === "beginner" ? "初阶" : stage === "intermediate" ? "进阶" : stage === "advanced" ? "高阶" : profile.value?.ability_level?.overall || "待评估";
+});
+const strongestAbilities = computed(() =>
+  abilityDimensions.value.filter((item) => typeof item.score === "number").sort((a, b) => (b.score as number) - (a.score as number)).slice(0, 3),
+);
+const priorityAbilities = computed(() =>
+  abilityDimensions.value.filter((item) => typeof item.score === "number").sort((a, b) => (a.score as number) - (b.score as number)).slice(0, 2),
+);
+const recentLearningMinutes = computed(() =>
+  records.records
+    .filter((record) => Date.now() - new Date(record.occurredAt).getTime() <= 7 * 86400000)
+    .reduce((sum, record) => sum + Math.round((record.durationSeconds || 0) / 60), 0),
+);
+const measuredPointLabel = computed(() => {
+  const tested = knowledgeMastery.value?.tested_kps;
+  const total = knowledgeMastery.value?.total_kps;
+  return typeof tested === "number" && typeof total === "number" ? `${tested}/${total}` : "待评估";
+});
+const strengths = computed(() =>
+  [...points.value]
+    .filter((point) => typeof point.mastery === "number")
+    .sort((a, b) => (b.mastery as number) - (a.mastery as number))
+    .slice(0, 3),
+);
+const focusAreas = computed(() =>
+  [...points.value]
+    .filter((point) => typeof point.mastery === "number")
+    .sort((a, b) => (a.mastery as number) - (b.mastery as number))
+    .slice(0, 3),
+);
+const recentChanges = computed(() =>
+  (outcomeReport.value?.kp_changes || [])
+    .filter((change) => change.before !== change.after)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 8),
+);
+const preferences = computed(() => {
+  const selfAssessment = profile.value?.learner?.self_assessment;
+  return [
+    { label: "学习目标", value: selfAssessment?.learning_goal || "尚未填写" },
+    {
+      label: "每周计划",
+      value: selfAssessment?.weekly_hours ? `${selfAssessment.weekly_hours} 小时` : "尚未填写",
+    },
+    { label: "当前课程", value: profile.value?.learning_scope?.chapter_name || "尚未选择" },
+    { label: "能力等级", value: profile.value?.ability_level?.overall || "待评估" },
+  ];
+});
+const name = computed(() => profile.value?.learner?.name || learner.learnerName || "学习者");
+const avatarText = computed(() => name.value.slice(0, 1));
+const educationText = computed(() => {
+  const education = profile.value?.learner?.education;
+  return [education?.level, education?.major].filter(Boolean).join(" · ") || "学习者";
+});
+const profileSummary = computed(() =>
+  profile.value?.diagnosis_summary?.short
+  || "画像会根据诊断、学习记录和测评反馈持续更新，作为下一步学习规划的依据。",
+);
+const selectedPointId = computed(() => typeof route.query.kp === "string" ? route.query.kp : "");
+
+function labelForAbility(key: string) {
+  return abilityDimensions.value.find((item) => item.key === key)?.label || key.replaceAll("_", " ");
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "等待更新";
+  return new Date(value).toLocaleString("zh-CN", { hour12: false });
+}
+
+function updateRange(value: string) {
+  void router.replace({ query: { ...route.query, range: value } });
+}
+
+function pointTitle(point: { id: string; name?: string }) {
+  if (point.name) return point.name;
+  const names: Record<string, string> = {
+    scalar: "标量",
+    vector: "向量",
+    matrix: "矩阵",
+    tensor: "张量",
+    "matrix-operations": "矩阵运算",
+    "matrix-multiplication": "矩阵乘法",
+    convolution: "卷积运算",
+    pooling: "池化",
+    embedding: "嵌入表示",
+    "gradient-descent": "梯度下降",
+    relu: "ReLU",
+    adam: "Adam",
+  };
+  const key = point.id.split(".").at(-1) || point.id;
   return names[key] || key.replaceAll("-", " ");
 }
-function verdictTone(verdict: string) { return verdict.includes("显著") ? "is-up" : verdict.includes("退步") ? "is-down" : verdict.includes("一般") ? "" : "is-flat"; }
-function categoryPill(category: string) { return category.includes("显著") ? "status-pill status-pill-success" : category.includes("提升") ? "status-pill" : category.includes("下降") ? "status-pill status-pill-danger" : "status-pill status-pill-warning"; }
+
+function evidenceLabel(level?: string) {
+  const labels: Record<string, string> = {
+    preliminary: "初步证据",
+    limited: "证据有限",
+    stable: "证据稳定",
+    self_report: "逐点自评",
+    none: "尚未测评",
+  };
+  return labels[level || "none"] || "尚未测评";
+}
+
+function deltaText(delta?: number) {
+  if (typeof delta !== "number" || delta === 0) return "无变化";
+  return `${delta > 0 ? "+" : ""}${Math.round(delta * 100)}%`;
+}
+
+function deltaClass(delta?: number) {
+  if (typeof delta !== "number" || delta === 0) return "profile-delta-flat";
+  return delta > 0 ? "profile-delta-up" : "profile-delta-down";
+}
+
+function verdictClass(verdict: string) {
+  if (verdict.includes("显著") || verdict.includes("提升")) return "is-positive";
+  if (verdict.includes("下降") || verdict.includes("退步")) return "is-negative";
+  return "is-neutral";
+}
+
+async function refreshProfile() {
+  await learner.loadLearners();
+}
+
+function exportReport() {
+  if (!profile.value) return;
+  const blob = new Blob([JSON.stringify(profile.value, null, 2)], {
+    type: "application/json;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `learner-profile-${profile.value.learner_id}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function openPoint(pointId: string) {
+  void router.push({ path: "/learning-path", query: { kp: pointId } });
+}
+
+async function saveBaseline() {
+  await learner.saveBaseline();
+}
+
+async function verifyOutcome() {
+  await learner.verifyOutcome();
+}
 </script>
 
 <template>
-  <div class="page-stack">
-    <div class="page-intro"><div><span class="eyebrow">LEARNER PROFILE</span><h2>你的学习画像</h2><p>每次小测更新的是可追溯的学习证据，而不是一次答题定下的标签。</p></div><button class="button button-primary" @click="router.push('/learning-path')">查看个性化路径 <ArrowRight :size="17" /></button></div>
-    <div v-if="!profile && !learningSnapshot"><section class="panel"><StateBlocks type="empty" title="还没有学习画像" message="完成学情诊断后，这里会展示掌握度、能力维度和学习偏好。" /><button class="button button-primary" @click="router.push('/diagnosis')">开始诊断</button></section></div>
+  <div class="profile-reference-page page-stack">
+    <header class="profile-reference-header">
+      <div>
+        <h2>学习者画像</h2>
+        <p>基于学习记录、测评结果和路径进度持续更新。</p>
+      </div>
+      <div class="profile-header-actions">
+        <select class="profile-range-select" :value="profileRange" aria-label="画像时间范围" @change="updateRange(($event.target as HTMLSelectElement).value)">
+          <option value="30d">近30天</option>
+          <option value="7d">近7天</option>
+          <option value="90d">近90天</option>
+          <option value="semester">本学期</option>
+        </select>
+        <button type="button" class="button button-secondary" :disabled="learner.loading" @click="refreshProfile">
+          <RefreshCcw :size="16" /> 更新画像
+        </button>
+        <button type="button" class="profile-export-link" :disabled="!profile" @click="exportReport">
+          <Download :size="15" /> 导出报告
+        </button>
+        <span class="profile-update-time">更新于 {{ formatDate(latestUpdate) }}</span>
+      </div>
+    </header>
+
+    <p v-if="learner.error" class="profile-inline-error">
+      画像数据暂时未同步，部分内容可能延迟显示。
+      <button type="button" class="text-link" @click="refreshProfile">重新同步</button>
+    </p>
+
+    <section v-if="!profile && !snapshot" class="panel profile-empty-panel">
+      <StateBlocks
+        type="empty"
+        title="还没有学习者画像"
+        message="完成学情诊断后，这里会展示掌握度、能力结构和学习建议。"
+      />
+      <button type="button" class="button button-primary" @click="router.push('/diagnosis')">
+        开始诊断 <ArrowRight :size="16" />
+      </button>
+    </section>
+
     <template v-else>
-      <section v-if="learningSnapshot" class="panel learning-profile-panel">
-        <div class="panel-heading"><div><span class="eyebrow">LIVE LEARNING PROFILE</span><h2>学习后画像</h2><p>小测结果会与前一版快照对比，帮助你判断改变来自哪里。</p></div><span class="status-pill" :class="`profile-stability-${stability.tone}`"><CheckCircle2 :size="13" /> {{ stability.label }}</span></div>
-        <div class="learning-profile-summary"><div><strong>{{ learningMastery.length }}</strong><span>累计已测知识点</span></div><div><strong>{{ pct(learningAverage) }}</strong><span>当前已测均值</span></div><div><strong>{{ latestLearningUpdate ? new Date(latestLearningUpdate).toLocaleString('zh-CN', { hour12: false }) : '等待小测' }}</strong><span>最近更新</span></div></div>
-        <div class="learning-change-strip"><div><span>本次提升</span><b class="delta-up">{{ improvedRows.length }} 个</b></div><div><span>需要巩固</span><b :class="declinedRows.length ? 'delta-down' : 'delta-flat'">{{ declinedRows.length }} 个</b></div><div><span>首次记录</span><b>{{ learningRows.filter((item) => item.isNew).length }} 个</b></div><p>{{ learningChanges.length ? '前后变化只比较相邻两次学习快照；首次测到的知识点会单独标记。' : '下一次完成小测后，这里会显示与本次快照的逐点变化。' }}</p></div>
-        <div v-if="nextAction" class="next-action-card"><div class="next-action-icon"><Sparkles :size="19" /></div><div><span class="eyebrow">NEXT BEST ACTION</span><h3>下一步：{{ nextAction.title }}</h3><p>掌握度 {{ pct(nextAction.mastery_score) }}，置信度 {{ pct(nextAction.confidence) }}。{{ nextAction.errorText }}。</p></div><button class="button button-primary" @click="goToNextAction">{{ nextAction.hasReadyResource ? '继续学习' : '查看路径' }} <ChevronRight :size="16" /></button></div>
-        <div class="learning-toolbar"><div class="segmented-control" aria-label="知识点排序"><button v-for="item in [{ key: 'weak', label: '薄弱优先' }, { key: 'recent', label: '最近更新' }, { key: 'all', label: '全部名称' }]" :key="item.key" :class="{ active: learningSort === item.key }" @click="learningSort = item.key as LearningSort"><Filter v-if="item.key === 'weak'" :size="13" />{{ item.label }}</button></div><span>{{ sortedLearningRows.length }} 个已测知识点</span></div>
-        <div v-if="visibleLearningRows.length" class="learning-profile-grid"><article v-for="item in visibleLearningRows" :key="item.concept_id" class="mastery-item"><div><strong>{{ conceptTitle(item.concept_id) }}</strong><small>{{ evidenceLabel(item.confidence >= .65 ? 'stable' : item.confidence >= .35 ? 'limited' : 'preliminary') }} · 置信度 {{ pct(item.confidence) }}</small></div><div class="mini-progress"><span :style="{ width: `${(item.mastery_score || 0) * 100}%` }" /></div><div class="mastery-value"><b>{{ pct(item.mastery_score) }}</b><small :class="deltaClass(item.delta)">{{ pctDelta(item.delta) }}</small></div></article></div>
-        <button v-if="sortedLearningRows.length > 8" class="button button-secondary compact-button" @click="showAllLearning = !showAllLearning">{{ showAllLearning ? '收起知识点' : `查看全部 ${sortedLearningRows.length} 个知识点` }}</button>
-        <div v-if="learningAbilityEntries.length" class="learning-ability-list"><span v-for="[key, value] in learningAbilityEntries" :key="key">{{ abilityLabels[key] || key }} {{ pct(value.score) }}</span></div><div class="evidence-note"><CircleAlert :size="16" /><p>{{ stability.text }}</p></div>
+      <section v-if="profile" class="profile-identity-card">
+        <div class="profile-identity">
+          <span class="profile-avatar">{{ avatarText }}</span>
+          <div>
+            <h3>{{ name }}</h3>
+            <p>{{ educationText }}</p>
+            <span class="profile-identity-meta">画像可信度 {{ confidenceScore === null ? "待评估" : formatMastery(confidenceScore) }}</span>
+          </div>
+        </div>
+        <div class="profile-goal">
+          <span>当前学习目标</span>
+          <strong>{{ profile.learner.self_assessment?.learning_goal || "尚未填写学习目标" }}</strong>
+          <small>{{ profile.learning_scope?.chapter_name || "尚未选择课程" }}</small>
+        </div>
+        <div class="profile-header-metric">
+          <span>学习阶段</span>
+          <strong>{{ stageLabel }}</strong>
+        </div>
+        <div class="profile-header-metric">
+          <span>已测知识点</span>
+          <strong>{{ measuredPointLabel }}</strong>
+        </div>
+        <div class="profile-header-metric">
+          <span>平均掌握度</span>
+          <strong>{{ masteryValue === null ? "待评估" : formatMastery(masteryValue) }}</strong>
+        </div>
+        <div class="profile-header-metric">
+          <span>本周学习</span>
+          <strong>{{ weeklyLearningHours === null ? `${recentLearningMinutes}分钟` : `${weeklyLearningHours}小时` }}</strong>
+        </div>
+        <button type="button" class="profile-goal-link" @click="router.push('/diagnosis/basic')">编辑学习目标</button>
       </section>
 
-      <div v-if="learningSnapshot" class="content-grid content-grid-main"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">REVIEW QUEUE</span><h2>建议复习</h2><p>按遗忘风险和薄弱程度排序，复习后应再做一次短测确认。</p></div><CalendarClock :size="20" class="icon-purple" /></div><div class="review-list"><article v-for="item in reviewRows" :key="item.concept_id"><div><strong>{{ conceptTitle(item.concept_id) }}</strong><small>掌握度 {{ pct(item.mastery_score) }} · 置信度 {{ pct(item.confidence) }}</small></div><button class="icon-button" :title="`复习${conceptTitle(item.concept_id)}`" @click="router.push('/learning-path')"><ArrowRight :size="16" /></button></article></div><p class="muted-text">超过 7 天未复测的知识点优先进入复习队列；不足 7 天时优先提示掌握度或置信度最低的内容。</p></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">WEEKLY PLAN</span><h2>本周学习计划</h2><p>把画像转成可执行的小目标，而不是只记录分数。</p></div><BookOpenCheck :size="20" class="icon-success" /></div><div class="weekly-plan"><div><strong>{{ recentLearningRows.length }}</strong><span>本周已更新知识点</span></div><div><strong>{{ profile?.learner.self_assessment?.weekly_hours || learningSnapshot.preferences.pace_hours_per_week || 5 }}h</strong><span>每周可投入时间</span></div><p>优先完成「{{ nextAction?.title || '当前推荐知识点' }}」的讲解与练习，再对「{{ reviewRows[0] ? conceptTitle(reviewRows[0].concept_id) : '本章薄弱点' }}」进行一次间隔复测。</p></div></section></div>
+      <div class="profile-reference-grid">
+        <main class="profile-reference-main">
+          <div class="profile-chart-grid">
+            <section class="panel profile-ability-card">
+              <div class="profile-section-heading">
+                <div>
+                  <h3>六维能力画像</h3>
+                </div>
+                <select class="profile-view-select" aria-label="能力视图"><option>综合能力</option></select>
+              </div>
+              <div v-if="abilityDimensions.length === 6" class="profile-ability-layout">
+                <AbilityRadarChart :values="abilityValues" />
+                <div class="profile-ability-list">
+                  <div v-for="ability in abilityDimensions" :key="ability.key">
+                    <span><i />{{ ability.label }}</span>
+                    <strong>{{ ability.score === null ? "待评估" : formatMastery(ability.score) }}</strong>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="profile-chart-empty">当前能力证据不足，完成更多诊断后会显示能力结构。</div>
+            </section>
 
-      <template v-if="profile">
-        <div class="profile-overview-grid"><section class="panel profile-score-panel"><div class="panel-heading"><div><span class="eyebrow">OVERALL MASTERY</span><h2>总体掌握度</h2></div><ShieldCheck :size="20" class="icon-success" /></div><div class="profile-score-body"><ProgressRing :value="learner.mastery" :size="142" /><div><strong>{{ profile.ability_level?.overall || 'beginner' }}</strong><span>当前能力等级</span><p>能力等级只在阶段复诊时更新；单次小测只更新对应知识点，避免无关维度随一次答题跳变。</p><div class="tag-list"><span class="tag">已测 {{ knowledgeMastery?.tested_kps || 0 }}/{{ knowledgeMastery?.total_kps || points.length }} 个</span><span class="tag">证据覆盖 {{ pct(knowledgeMastery?.coverage_ratio) }}</span><span class="tag">综合置信度 {{ pct(knowledgeMastery?.overall_confidence) }}</span><span class="tag">theta {{ num(knowledgeMastery?.global_theta) }}</span></div></div></div></section><AIInsightCard :body="profile.diagnosis_summary?.full || `已取得 ${knowledgeMastery?.tested_kps || 0} 个知识点的测试证据，建议优先处理薄弱环节。`" suggestion="学习后画像会持续保留小测证据，阶段复诊再汇总为能力结论。" action="生成学习路径" @action="router.push('/learning-path')" /></div>
-        <div class="content-grid content-grid-main"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">ABILITY DIMENSIONS</span><h2>能力维度</h2></div><BrainCircuit :size="20" class="icon-purple" /></div><div class="ability-list"><div v-for="[key, item] in abilities" :key="key" class="ability-row"><div><strong>{{ abilityLabels[key] || key }}</strong><small>{{ item.level === 'insufficient_evidence' ? '证据不足' : item.level }} · 置信度 {{ pct(item.confidence) }}</small></div><template v-if="typeof item.score === 'number'"><div class="progress-track"><span :style="{ width: `${item.score * 100}%` }" /></div><b>{{ pct(item.score) }}</b></template><template v-else><div class="progress-track"><span style="width: 0" /></div><b>证据不足</b></template></div></div></section><section class="panel"><div class="panel-heading"><div><span class="eyebrow">DOMAIN MASTERY</span><h2>领域掌握度</h2></div><TrendingUp :size="20" class="icon-success" /></div><MasteryChart v-if="Object.keys(domainValues).length" :values="domainValues" /><p v-else class="muted-text">尚无可用于领域比较的知识点证据。</p><div class="domain-list"><div v-for="(item, name) in domainSummary" :key="name" class="domain-row"><span>{{ name }}</span><small>已覆盖 {{ item.kps_covered }}/{{ item.total_kps || 0 }} · 已测 {{ item.tested_kps || 0 }} · 置信度 {{ pct(item.evidence_confidence) }}</small></div></div></section></div>
-        <div class="content-grid content-grid-main"><section class="panel"><div class="panel-heading"><div><span class="eyebrow">KNOWLEDGE POINTS</span><h2>诊断知识点详情</h2></div><span class="status-pill">已测 {{ knowledgeMastery?.tested_kps || 0 }}/{{ knowledgeMastery?.total_kps || points.length }}</span></div><div class="mastery-cards"><article v-for="point in points.slice(0, 12)" :key="point.name" class="mastery-item"><div><strong>{{ point.name }}</strong><small>{{ point.domain }} · {{ point.test_count ? `测试 ${point.test_count} 题` : point.mastery === null ? '尚未测评' : '逐点自评' }} · {{ evidenceLabel(point.evidence_level) }} · 置信度 {{ pct(point.confidence) }}</small></div><div class="mini-progress"><span :style="{ width: `${(point.mastery || 0) * 100}%` }" /></div><b>{{ pct(point.mastery) }}</b></article></div></section><section class="panel goal-panel"><div class="panel-heading"><div><span class="eyebrow">GOAL & PREFERENCE</span><h2>学习目标与偏好</h2></div><Target :size="20" class="icon-blue" /></div><div class="goal-box"><strong>{{ profile.learner.self_assessment?.learning_goal || '掌握核心课程' }}</strong><span>每周约 {{ profile.learner.self_assessment?.weekly_hours || 5 }} 小时</span></div><div class="tag-list"><span v-for="item in ['分步讲解', '示例优先', '练习巩固', '知识图谱']" :key="item" class="tag">{{ item }}</span></div></section></div>
-        <section class="panel outcome-panel"><div class="panel-heading"><div><span class="eyebrow">OUTCOME VERIFICATION</span><h2>阶段成果检验</h2><p>保存基线后继续学习，再复诊对比整体能力变化。它与每次小测的即时更新互补。</p></div><RefreshCcw :size="20" class="icon-purple" /></div><div class="outcome-toolbar"><button class="button button-secondary" :disabled="learner.loading" @click="onSaveBaseline"><Save :size="16" /> 保存基线画像</button><button class="button button-primary" :disabled="learner.loading || !learner.baselineProfileId" @click="onVerifyOutcome"><RefreshCcw :size="16" /> 复诊并检验成果</button><span v-if="learner.baselineProfileId" class="status-pill status-pill-success"><CheckCircle2 :size="13" /> 基线已保存 · ...{{ learner.baselineProfileId.slice(-6) }}</span><span v-else class="status-pill status-pill-warning">尚未保存基线</span></div><StateBlocks v-if="learner.error" type="error" title="操作失败" :message="learner.error" /><template v-if="outcomeReport"><div class="outcome-verdict" :class="verdictTone(outcomeReport.overall_verdict)"><div><span class="eyebrow">OVERALL VERDICT · {{ outcomeReport.chapter_id }}</span><h3>{{ outcomeReport.overall_verdict }}</h3><p v-if="outcomeReport.recommendation">{{ outcomeReport.recommendation }}</p></div><TrendingUp :size="26" class="icon-success" /></div><div class="outcome-columns"><div class="outcome-sub"><h4>领域掌握度变化</h4><div v-for="change in outcomeReport.domain_changes" :key="change.domain" class="outcome-row"><div><strong>{{ change.domain }}</strong><small>{{ pct(change.before) }} → {{ pct(change.after) }}</small></div><div class="mini-progress"><span :style="{ width: pct(change.after) }" /></div><b :class="deltaClass(change.delta)">{{ pctDelta(change.delta) }}</b></div></div><div class="outcome-sub"><h4>知识点显著变化</h4><div v-if="notableKpChanges.length"><div v-for="change in notableKpChanges" :key="change.kp_id" class="outcome-row outcome-row-kp"><div><strong>{{ change.name }}</strong><small>{{ change.domain }} · {{ pct(change.before) }} → {{ pct(change.after) }}</small></div><span :class="categoryPill(change.category)">{{ change.category }}</span></div></div><p v-else class="muted-text">本轮没有知识点出现显著变化。</p></div></div></template><div v-else-if="!learner.error" class="outcome-hint"><p>保存当前画像作为基线，完成一段学习后复诊，查看长期能力是否真实提升。</p></div></section>
-      </template>
+            <section class="panel profile-domain-card">
+              <div class="profile-section-heading">
+                <div>
+                <h3>知识领域掌握</h3>
+                </div>
+                <span class="profile-threshold">建议掌握线 75%</span>
+              </div>
+              <MasteryChart v-if="Object.keys(domainValues).length" :values="domainValues" />
+              <div v-else class="profile-chart-empty">当前没有足够的领域掌握证据。</div>
+            </section>
+          </div>
+
+          <section class="panel profile-rhythm-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>学习节奏</h3>
+              </div>
+              <div class="profile-rhythm-metrics">
+                <span>连续学习 <b>{{ records.records.length ? "—" : "暂无" }}</b></span>
+                <span>高效时段 <b>{{ records.records.length ? "待分析" : "暂无" }}</b></span>
+                <span>平均单次 <b>{{ records.records.length ? "待分析" : "暂无" }}</b></span>
+              </div>
+            </div>
+            <div v-if="records.records.length" class="profile-rhythm-note">已记录 {{ records.records.length }} 条学习活动，更多节奏分析将在数据积累后展示。</div>
+            <div v-else class="profile-chart-empty">学习记录不足，完成更多学习后可识别稳定节奏。</div>
+          </section>
+
+          <section class="panel profile-trend-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>掌握度与测评趋势</h3>
+                <p>基于已有阶段测评结果，不补造缺失的周期数据。</p>
+              </div>
+              <div class="profile-chart-legend">
+                <span><i class="legend-line legend-line--blue" />平均掌握度</span>
+                <span><i class="legend-line legend-line--teal" />测评正确率</span>
+              </div>
+            </div>
+            <LearningTrendChart v-if="trendPoints.length >= 2" :points="trendPoints" />
+            <div v-else class="profile-chart-empty profile-chart-empty--large">
+              <TrendingUp :size="21" />
+              <span>暂无足够的阶段数据，完成更多学习与测评后会形成趋势。</span>
+            </div>
+            <div class="profile-trend-summary">
+              <div><span>当前已测均值</span><b>{{ formatMastery(snapshotAverage) }}</b></div>
+              <div><span>学习稳定性</span><b>{{ priorChapters.length >= 2 ? "已有阶段记录" : "等待更多记录" }}</b></div>
+              <div><span>最近连续记录</span><b>{{ profile?.meta?.total_interaction_count ?? "—" }} 次</b></div>
+            </div>
+          </section>
+
+          <section class="panel profile-change-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>近期知识变化</h3>
+              </div>
+              <button type="button" class="profile-table-link" @click="router.push('/assessment')">
+                查看全部记录 <ArrowRight :size="14" />
+              </button>
+            </div>
+            <div v-if="recentChanges.length" class="profile-change-table">
+              <div class="profile-change-row profile-change-row--head">
+                <span>知识点</span><span>上次掌握</span><span>当前掌握</span><span>变化</span><span>来源</span>
+              </div>
+              <button v-for="change in recentChanges" :key="change.kp_id" type="button" class="profile-change-row" @click="openPoint(change.kp_id)">
+                <strong>{{ change.name }}</strong>
+                <span>{{ formatMastery(change.before) }}</span>
+                <span>{{ formatMastery(change.after) }}</span>
+                <b :class="deltaClass(change.delta)">{{ deltaText(change.delta) }}</b>
+                <small>{{ change.category || "测评更新" }}</small>
+              </button>
+            </div>
+            <div v-else class="profile-chart-empty profile-chart-empty--table">完成一次学习和测评后，这里会记录知识点掌握度变化。</div>
+          </section>
+
+          <section v-if="profile" class="panel profile-points-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>知识点掌握详情</h3>
+              </div>
+              <span class="profile-count-label">显示 {{ Math.min(points.length, 24) }} / {{ points.length }}</span>
+            </div>
+            <div class="profile-point-list">
+              <button
+                v-for="point in points.slice(0, 24)"
+                :key="point.id"
+                type="button"
+                class="profile-point-row"
+                :class="{ 'is-selected': point.id === selectedPointId }"
+                @click="openPoint(point.id)"
+              >
+                <span class="profile-point-copy">
+                  <strong>{{ pointTitle(point) }}</strong>
+                  <small>
+                    {{ point.domain }} ·
+                    {{ point.test_count ? `测评 ${point.test_count} 题` : point.mastery === null ? "尚未测评" : "逐点自评" }}
+                    · {{ evidenceLabel(point.evidence_level) }}
+                  </small>
+                </span>
+                <span class="profile-point-bar">
+                  <i :style="{ width: typeof point.mastery === 'number' ? `${point.mastery * 100}%` : '0%', backgroundColor: getMasteryColor(point.mastery) }" />
+                </span>
+                <b>{{ formatMastery(point.mastery) }}</b>
+              </button>
+            </div>
+          </section>
+
+          <section v-if="profile" class="panel profile-outcome-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>学习成果检验</h3>
+                <p>保存基线后继续学习，再比较前后画像。</p>
+              </div>
+              <RefreshCcw :size="19" class="profile-muted-icon" />
+            </div>
+            <div class="profile-outcome-toolbar">
+              <button type="button" class="button button-secondary" :disabled="learner.loading" @click="saveBaseline">
+                <Save :size="15" /> 保存基线画像
+              </button>
+              <button type="button" class="button button-primary" :disabled="learner.loading || !learner.baselineProfileId" @click="verifyOutcome">
+                <RefreshCcw :size="15" /> 复诊并检验成果
+              </button>
+              <span v-if="learner.baselineProfileId" class="profile-baseline-state"><CheckCircle2 :size="14" /> 基线已保存</span>
+              <span v-else class="profile-baseline-state is-pending">尚未保存基线</span>
+            </div>
+            <div v-if="outcomeReport" class="profile-outcome-result" :class="verdictClass(outcomeReport.overall_verdict)">
+              <div>
+                <span>本轮结果</span>
+                <strong>{{ outcomeReport.overall_verdict }}</strong>
+                <p>{{ outcomeReport.recommendation }}</p>
+              </div>
+              <TrendingUp v-if="verdictClass(outcomeReport.overall_verdict) === 'is-positive'" :size="23" />
+              <TrendingDown v-else-if="verdictClass(outcomeReport.overall_verdict) === 'is-negative'" :size="23" />
+              <ShieldCheck v-else :size="23" />
+            </div>
+            <p v-else class="profile-outcome-hint">完成一段学习并提交测评后，可以回来查看能力和知识点的真实变化。</p>
+          </section>
+        </main>
+
+        <aside class="profile-reference-aside">
+          <section class="panel profile-summary-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>画像摘要</h3>
+              </div>
+              <ShieldCheck :size="18" class="profile-success-icon" />
+            </div>
+            <p class="profile-summary-copy">{{ profileSummary }}</p>
+            <div class="profile-aside-section">
+              <h4>学习优势</h4>
+              <div v-if="strengths.length" class="profile-ranked-list">
+                <button v-for="point in strengths" :key="point.id" type="button" @click="openPoint(point.id)">
+                  <i /><span>{{ pointTitle(point) }}</span><b>{{ formatMastery(point.mastery) }}</b>
+                </button>
+              </div>
+              <span v-else class="profile-aside-empty">暂无足够数据</span>
+            </div>
+            <div class="profile-aside-section">
+              <h4>重点提升</h4>
+              <div v-if="focusAreas.length" class="profile-ranked-list profile-ranked-list--focus">
+                <button v-for="point in focusAreas" :key="point.id" type="button" @click="openPoint(point.id)">
+                  <i /><span>{{ pointTitle(point) }}</span><b>{{ formatMastery(point.mastery) }}</b>
+                </button>
+              </div>
+              <span v-else class="profile-aside-empty">暂无足够数据</span>
+            </div>
+          </section>
+
+          <section class="panel profile-preference-card">
+            <div class="profile-section-heading">
+              <div>
+                <h3>学习偏好</h3>
+              </div>
+              <Target :size="18" class="profile-muted-icon" />
+            </div>
+            <dl class="profile-preference-list">
+              <div v-for="preference in preferences" :key="preference.label">
+                <dt>{{ preference.label }}</dt>
+                <dd>{{ preference.value }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="profile-recommendation">
+            <h3>当前建议</h3>
+            <p>
+              {{
+                focusAreas.length
+                  ? `优先复习${pointTitle(focusAreas[0])}，完成后再进入下一项课程任务。`
+                  : "完成学情诊断后，系统会给出第一条个性化建议。"
+              }}
+            </p>
+            <div class="profile-recommendation-actions">
+              <button type="button" @click="router.push('/learning-path')">查看推荐路径</button>
+              <button type="button" @click="router.push('/diagnosis/basic')">调整学习目标</button>
+            </div>
+          </section>
+        </aside>
+      </div>
     </template>
   </div>
 </template>

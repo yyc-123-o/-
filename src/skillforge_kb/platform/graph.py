@@ -722,22 +722,25 @@ class PlatformService:
             if (
                 existing.status is not PlatformRunStatus.COMPLETED
                 or existing.resources is None
+                or existing.handoff is None
                 or planning is None
                 or planning.current_node is None
             ):
                 raise ValueError(
                     "lecture progress is only available for a ready learning node"
                 )
-            if planning.current_node.concept_id != submission.concept_id:
+            if existing.handoff.concept_id != submission.concept_id:
                 raise ValueError(
-                    "lecture progress concept does not match the current learning node"
+                    "lecture progress concept does not match the current learning resource"
                 )
             prior = existing.learning_progress
             if prior is not None and prior.concept_id != submission.concept_id:
                 prior = None
-            progress = LearningProgress(
-                concept_id=submission.concept_id,
-                lecture_progress=max(
+            submitted_completion = submission.progress >= 1.0
+            lecture_progress = (
+                1.0
+                if submitted_completion
+                else max(
                     min(
                         submission.progress,
                         prior.max_next_lecture_progress
@@ -745,7 +748,12 @@ class PlatformService:
                         else 0.25,
                     ),
                     prior.lecture_progress if prior is not None else 0.0,
-                ),
+                )
+            )
+            progress = LearningProgress(
+                concept_id=submission.concept_id,
+                lecture_progress=lecture_progress,
+                lecture_completed=submitted_completion or (prior.lecture_completed if prior is not None else False),
                 practice_completed=prior.practice_completed if prior is not None else False,
                 assessment_passed=prior.assessment_passed if prior is not None else False,
                 assessment_attempts=prior.assessment_attempts if prior is not None else 0,

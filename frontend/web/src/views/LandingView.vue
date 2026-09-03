@@ -23,6 +23,7 @@ import {
 import HomeNavbar from "@/components/layout/HomeNavbar.vue";
 import BrandWordmark from "@/components/layout/BrandWordmark.vue";
 import GuideFigure from "@/components/illustrations/GuideFigure.vue";
+import mountainPath from "@/assets/landing/hero-mountain-path.webp";
 
 type RoleKey = "builder" | "teacher" | "learner" | "institution";
 type StepKey = "materials" | "organize" | "understand" | "plan" | "generate" | "feedback";
@@ -49,7 +50,90 @@ interface WorkflowStep {
   icon: typeof FileText;
 }
 
+interface HomeScene {
+  id: string;
+  image: string;
+  alt: string;
+  top: string;
+  height: string;
+  position: string;
+  scale: number;
+  opacity: number;
+  loading: "eager" | "lazy";
+  fetchPriority?: "high" | "low" | "auto";
+}
+
 const heroTags = ["知识库治理", "智能课程规划", "多智能体协作"];
+
+const HOME_SCENES: HomeScene[] = [
+  {
+    id: "hero",
+    image: mountainPath,
+    alt: "",
+    top: "0vh",
+    height: "138vh",
+    position: "68% center",
+    scale: 1.02,
+    opacity: 1,
+    loading: "eager",
+    fetchPriority: "high",
+  },
+  {
+    id: "knowledge",
+    image: mountainPath,
+    alt: "",
+    top: "96vh",
+    height: "142vh",
+    position: "58% center",
+    scale: 1.06,
+    opacity: 0.96,
+    loading: "lazy",
+  },
+  {
+    id: "learner",
+    image: mountainPath,
+    alt: "",
+    top: "198vh",
+    height: "146vh",
+    position: "62% center",
+    scale: 1.07,
+    opacity: 0.94,
+    loading: "lazy",
+  },
+  {
+    id: "route",
+    image: mountainPath,
+    alt: "",
+    top: "304vh",
+    height: "148vh",
+    position: "66% center",
+    scale: 1.05,
+    opacity: 0.95,
+    loading: "lazy",
+  },
+  {
+    id: "feedback",
+    image: mountainPath,
+    alt: "",
+    top: "414vh",
+    height: "146vh",
+    position: "58% center",
+    scale: 1.06,
+    opacity: 0.94,
+    loading: "lazy",
+  },
+  {
+    id: "ending",
+    image: mountainPath,
+    alt: "",
+    top: "520vh",
+    height: "160vh",
+    position: "64% bottom",
+    scale: 1.03,
+    opacity: 0.98,
+    loading: "lazy",
+  },
+];
 
 const roleCards: RoleCard[] = [
   {
@@ -159,7 +243,11 @@ const workflowSteps: WorkflowStep[] = [
 
 const activeRoleKey = ref<RoleKey>("builder");
 const activeStepKey = ref<StepKey>("organize");
+const homeRoot = ref<HTMLElement | null>(null);
 const revealCleanup: Array<() => void> = [];
+let scrollCleanup: (() => void) | null = null;
+let knowledgePreloadLink: HTMLLinkElement | null = null;
+let scrollFrame = 0;
 
 const activeRole = computed(() => roleCards.find((item) => item.key === activeRoleKey.value) || roleCards[0]);
 const activeStep = computed(() => workflowSteps.find((item) => item.key === activeStepKey.value) || workflowSteps[0]);
@@ -212,6 +300,38 @@ function setActiveStep(key: StepKey) {
 }
 
 onMounted(() => {
+  if (typeof document !== "undefined") {
+    knowledgePreloadLink = document.createElement("link");
+    knowledgePreloadLink.rel = "preload";
+    knowledgePreloadLink.as = "image";
+    knowledgePreloadLink.href = mountainPath;
+    document.head.appendChild(knowledgePreloadLink);
+  }
+
+  if (typeof window !== "undefined") {
+    const updateBackgroundShift = () => {
+      scrollFrame = 0;
+      const root = homeRoot.value;
+      if (!root) return;
+      const rect = root.getBoundingClientRect();
+      const total = Math.max(1, rect.height - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, -rect.top / total));
+      root.style.setProperty("--home-bg-shift", `${Math.round(progress * -54)}px`);
+    };
+    const requestBackgroundShift = () => {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(updateBackgroundShift);
+    };
+    updateBackgroundShift();
+    window.addEventListener("scroll", requestBackgroundShift, { passive: true });
+    window.addEventListener("resize", requestBackgroundShift);
+    scrollCleanup = () => {
+      window.removeEventListener("scroll", requestBackgroundShift);
+      window.removeEventListener("resize", requestBackgroundShift);
+      if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
+    };
+  }
+
   if (typeof document === "undefined" || typeof IntersectionObserver === "undefined") return;
   const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
   const observer = new IntersectionObserver(
@@ -231,11 +351,38 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   revealCleanup.forEach((cleanup) => cleanup());
+  scrollCleanup?.();
+  knowledgePreloadLink?.remove();
 });
 </script>
 
 <template>
-  <div class="product-home">
+  <div ref="homeRoot" class="product-home">
+    <div class="home-background" aria-hidden="true">
+      <div
+        v-for="scene in HOME_SCENES"
+        :key="scene.id"
+        class="home-background__scene"
+        :class="`home-background__scene--${scene.id}`"
+        :style="{
+          '--scene-top': scene.top,
+          '--scene-height': scene.height,
+          '--scene-position': scene.position,
+          '--scene-scale': scene.scale,
+          '--scene-opacity': scene.opacity,
+        }"
+      >
+        <img
+          :src="scene.image"
+          :alt="scene.alt"
+          :loading="scene.loading"
+          :fetchpriority="scene.fetchPriority"
+          decoding="async"
+        />
+        <span class="home-background__transition" />
+      </div>
+    </div>
+
     <HomeNavbar />
 
     <main>
@@ -569,12 +716,93 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .product-home {
+  position: relative;
   min-height: 100vh;
+  overflow: hidden;
   color: #172b4d;
   background:
-    radial-gradient(circle at 12% 2%, rgba(53, 106, 230, 0.08), transparent 20%),
-    radial-gradient(circle at 88% 8%, rgba(24, 167, 160, 0.08), transparent 18%),
-    linear-gradient(180deg, #f8fbff 0%, #f7f9fc 28%, #f6f8fc 100%);
+    radial-gradient(circle at 80% 18%, rgba(105, 185, 255, 0.1), transparent 34%),
+    radial-gradient(circle at 12% 62%, rgba(38, 183, 165, 0.07), transparent 32%),
+    linear-gradient(180deg, #f9fcff 0%, #f4f9fd 48%, #f8fbfd 100%);
+  isolation: isolate;
+}
+
+.product-home::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(249, 252, 255, 0.7) 0%, rgba(249, 252, 255, 0.32) 42%, rgba(249, 252, 255, 0.1) 100%),
+    linear-gradient(180deg, rgba(249, 252, 255, 0.1) 0%, rgba(244, 249, 253, 0.22) 52%, rgba(248, 251, 253, 0.12) 100%);
+  pointer-events: none;
+}
+
+.product-home > :not(.home-background) {
+  position: relative;
+  z-index: 2;
+}
+
+.home-background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  min-height: 680vh;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.home-background__scene {
+  position: absolute;
+  top: var(--scene-top);
+  left: 0;
+  right: 0;
+  height: var(--scene-height);
+  overflow: visible;
+}
+
+.home-background__scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--scene-position);
+  opacity: var(--scene-opacity);
+  transform: translate3d(0, var(--home-bg-shift, 0px), 0) scale(var(--scene-scale));
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+.home-background__scene:not(.home-background__scene--hero):not(.home-background__scene--ending) img {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 13%, #000 87%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 13%, #000 87%, transparent 100%);
+}
+
+.home-background__scene--hero img {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 82%, transparent 100%);
+}
+
+.home-background__scene--ending img {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%);
+}
+
+.home-background__transition {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -15vh;
+  z-index: 1;
+  height: 30vh;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(247, 251, 255, 0.18),
+    rgba(247, 251, 255, 0.38),
+    transparent
+  );
 }
 
 .product-home__container {
@@ -587,12 +815,42 @@ onBeforeUnmount(() => {
 }
 
 .hero {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1.05fr);
   gap: 56px;
   align-items: center;
-  min-height: 760px;
+  min-height: 108svh;
   padding: 72px 0 72px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hero::before {
+  position: absolute;
+  inset: -72px calc((100vw - min(1240px, calc(100vw - 48px))) / -2);
+  z-index: 0;
+  content: "";
+  background:
+    radial-gradient(circle at 82% 20%, rgba(255, 255, 255, 0.18), transparent 28%),
+    linear-gradient(90deg, rgba(248, 251, 255, 0.1) 0%, rgba(248, 251, 255, 0.04) 54%, transparent 100%);
+  opacity: 0.34;
+  pointer-events: none;
+}
+
+.hero::after {
+  position: absolute;
+  inset: auto calc((100vw - min(1240px, calc(100vw - 48px))) / -2) -1px;
+  z-index: 1;
+  height: 150px;
+  content: "";
+  background: linear-gradient(180deg, transparent, rgba(248, 251, 255, 0.98));
+  pointer-events: none;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 2;
 }
 
 .eyebrow {
@@ -886,13 +1144,52 @@ onBeforeUnmount(() => {
 }
 
 .section {
+  position: relative;
+  min-height: 86svh;
   padding: 86px 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.section + .section {
+  margin-top: -84px;
+}
+
+.section::before {
+  position: absolute;
+  inset: -9% 0;
+  z-index: 0;
+  content: "";
+  background:
+    radial-gradient(circle at 15% 22%, rgba(255, 255, 255, 0.1), transparent 25%),
+    radial-gradient(circle at 86% 58%, rgba(255, 255, 255, 0.08), transparent 28%);
+  opacity: 0.24;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 82%, transparent 100%);
+}
+
+.section::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(248, 251, 255, 0.38), rgba(248, 251, 255, 0.12) 48%, rgba(248, 251, 255, 0.22)),
+    radial-gradient(circle at 16% 20%, rgba(53, 106, 230, 0.08), transparent 26%),
+    radial-gradient(circle at 86% 72%, rgba(24, 167, 160, 0.08), transparent 24%);
+  pointer-events: none;
+}
+
+.section > .product-home__container {
+  position: relative;
+  z-index: 2;
 }
 
 .section--soft {
-  background: #fff;
-  border-top: 1px solid #edf1f6;
-  border-bottom: 1px solid #edf1f6;
+  background: rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(223, 241, 246, 0.46);
+  border-bottom: 1px solid rgba(223, 241, 246, 0.46);
 }
 
 .section-grid {
@@ -1373,11 +1670,38 @@ onBeforeUnmount(() => {
 }
 
 .cta-section {
+  position: relative;
   padding: 78px 0;
+  overflow: hidden;
   background: #172b4d;
+  isolation: isolate;
+}
+
+.cta-section::before {
+  position: absolute;
+  inset: -18% 0;
+  z-index: 0;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(23, 43, 77, 0.9), rgba(23, 43, 77, 0.62));
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.cta-section::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  content: "";
+  background:
+    radial-gradient(circle at 78% 26%, rgba(87, 160, 255, 0.24), transparent 28%),
+    radial-gradient(circle at 12% 90%, rgba(38, 183, 165, 0.16), transparent 24%);
+  pointer-events: none;
 }
 
 .cta-section__inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1471,9 +1795,70 @@ onBeforeUnmount(() => {
     width: min(100% - 32px, 1240px);
   }
 
+  .product-home::after {
+    background:
+      linear-gradient(90deg, rgba(249, 252, 255, 0.78) 0%, rgba(249, 252, 255, 0.42) 56%, rgba(249, 252, 255, 0.2) 100%),
+      linear-gradient(180deg, rgba(249, 252, 255, 0.12) 0%, rgba(244, 249, 253, 0.26) 52%, rgba(248, 251, 253, 0.18) 100%);
+  }
+
+  .home-background {
+    min-height: 720vh;
+  }
+
+  .home-background__scene {
+    left: -18vw;
+    right: -40vw;
+  }
+
+  .home-background__scene img {
+    object-position: 62% center;
+    opacity: 0.76;
+    transform: translate3d(0, var(--home-bg-shift, 0px), 0) scale(1.18);
+  }
+
+  .home-background__scene--hero img {
+    object-position: 64% center;
+  }
+
+  .home-background__scene--knowledge img,
+  .home-background__scene--feedback img {
+    object-position: 56% center;
+  }
+
+  .home-background__scene--ending img {
+    object-position: 58% bottom;
+  }
+
   .hero {
     gap: 28px;
     padding: 34px 0 52px;
+  }
+
+  .hero::before {
+    inset: -34px -16px;
+    background:
+      radial-gradient(circle at 58% 24%, rgba(255, 255, 255, 0.26), transparent 30%),
+      linear-gradient(180deg, rgba(248, 251, 255, 0.58) 0%, rgba(248, 251, 255, 0.36) 46%, rgba(248, 251, 255, 0.72) 100%);
+    opacity: 0.7;
+  }
+
+  .section::before {
+    inset: -5% -18%;
+    background-position: var(--section-bg-position-mobile, center bottom);
+    background-size: var(--section-bg-size-mobile, auto 70%);
+    opacity: var(--section-bg-opacity-mobile, 0.18);
+  }
+
+  .section::after {
+    background: linear-gradient(180deg, rgba(248, 251, 255, 0.58), rgba(248, 251, 255, 0.72));
+  }
+
+  .section + .section {
+    margin-top: -54px;
+  }
+
+  .cta-section::before {
+    background: linear-gradient(180deg, rgba(23, 43, 77, 0.92), rgba(23, 43, 77, 0.72));
   }
 
   .hero-copy h1 {

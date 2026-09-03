@@ -29,6 +29,18 @@ export interface PathRecommendation {
   reason_codes: string[];
 }
 
+export interface LearningProgress {
+  concept_id: string;
+  lecture_progress: number;
+  lecture_completed: boolean;
+  practice_completed: boolean;
+  assessment_passed: boolean;
+  assessment_attempts: number;
+  failed_attempts: number;
+  remediation_required: boolean;
+  can_complete?: boolean;
+}
+
 export interface PlatformRun {
   run_id: string;
   profile_id: string;
@@ -42,10 +54,11 @@ export interface PlatformRun {
   };
   resources?: Record<string, unknown> | null;
   adaptation_trace?: string[];
-  handoff?: Record<string, unknown> | null;
+  handoff?: { concept_id?: string; chapter_id?: string; [key: string]: unknown } | null;
   retrieval?: Record<string, unknown> | null;
   evidence_gap?: Record<string, unknown> | null;
   failure?: { code: string; message: string; retryable?: boolean };
   steps?: Array<{ stage: string; status: string; failure?: unknown }>;
+  learning_progress?: LearningProgress | null;
 }
 import type { LearnerSnapshot } from "./learner";

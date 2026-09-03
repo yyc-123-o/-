@@ -1,62 +1,420 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
-import { ArrowRight, CheckCircle2, Clock3, LockKeyhole, Network, Play, RefreshCw, Sparkles } from "lucide-vue-next";
-import { useRouter } from "vue-router";
-import LearningPathMap from "@/components/LearningPathMap.vue";
-import KnowledgeNode from "@/components/KnowledgeNode.vue";
+import { computed, onMounted, ref, watch } from "vue";
+import {
+  ArrowRight,
+  Filter,
+  Maximize2,
+  Network,
+  Play,
+  RefreshCw,
+  Search,
+} from "lucide-vue-next";
+import { useRoute, useRouter } from "vue-router";
+import KnowledgeGraphCanvas from "@/components/KnowledgeGraphCanvas.vue";
 import StateBlocks from "@/components/StateBlocks.vue";
 import { useLearningPathStore } from "@/stores/learningPath";
 import { useLearnerStore } from "@/stores/learner";
-import { renderInlineMath } from "@/utils/math";
+import type { KnowledgeNode, KnowledgeStatus } from "@/types/knowledgeGraph";
+import { formatMastery } from "@/utils/mastery";
+import {
+  adaptPathNodes,
+  canonicalCourseId,
+  courseIdFromProfile,
+  courseTitle,
+  knowledgeTitle,
+} from "@/utils/knowledgeGraph";
 
+type ViewMode = "recommended" | "all" | "learned";
+
+const route = useRoute();
 const router = useRouter();
 const path = useLearningPathStore();
 const learner = useLearnerStore();
-const selectedId = ref("");
-const selectedNode = computed(() => path.nodes.find((item) => item.concept_id === selectedId.value) || path.currentNode);
-const reasonLabels: Record<string, string> = {
-  mastery_missing: "该知识点还缺少测评证据",
-  mastery_low_confidence: "当前掌握度置信度较低",
-  ready_for_intro: "按当前掌握度从基础讲解开始",
-  ready_for_intermediate: "当前掌握度支持中阶讲解",
-  ready_for_advanced: "当前掌握度支持进阶讲解",
-  mastery_skip_threshold_met: "该知识点已达到跳过阈值",
-  hard_prerequisite_unassessed: "需要先完成未测评的先修知识",
-  hard_prerequisite_below_threshold: "需要先补齐掌握度不足的先修知识",
-  hard_prerequisite_low_confidence: "需要先补齐置信度不足的先修知识",
-  ability_incomplete: "能力画像证据尚不完整，采用保守难度",
-  ability_low_confidence: "能力画像置信度较低，采用保守难度",
-  target_focus: "与当前学习目标直接相关",
-  mastery_gap: "掌握度缺口较大，优先补齐",
-  error_risk: "存在相关错因记录，需要针对性练习",
-  prerequisite_ready: "必要先修条件已满足",
-  foundational_order: "按课程先修顺序安排",
-  next_in_path: "路径中的下一项学习内容",
-};
-const personalizationReason = computed(() => {
-  const reasons = path.currentNode?.reason_codes || [];
-  return reasons.map((reason) => reasonLabels[reason] || reason).join("；");
+const savedCourseId = typeof window !== "undefined" ? window.localStorage.getItem("zhijing.learning-path.course") || "" : "";
+const selectedId = ref(typeof route.query.kp === "string" ? route.query.kp : "");
+const selectedCourseId = ref(typeof route.query.course === "string" ? route.query.course : savedCourseId);
+const viewMode = ref<ViewMode>("recommended");
+const searchQuery = ref("");
+const domainFilter = ref("all");
+const zoom = ref(1);
+const fitKey = ref(0);
+
+const profile = computed(() => learner.profile);
+const profileCourseId = computed(() => courseIdFromProfile(profile.value));
+const courseOptions = computed(() => {
+  const ids = new Set<string>();
+  if (profileCourseId.value) ids.add(canonicalCourseId(profileCourseId.value));
+  path.fullNodes.forEach((node) => {
+    if (node.chapter_id) ids.add(canonicalCourseId(node.chapter_id));
+  });
+  return [...ids]
+    .filter(Boolean)
+    .map((id) => ({
+      id,
+      title: id === canonicalCourseId(profileCourseId.value)
+        ? profile.value?.learning_scope?.chapter_name || courseTitle(id)
+        : courseTitle(id),
+    }));
 });
-onMounted(() => { if ((learner.snapshot || learner.profile) && !path.run) path.generate(); });
-async function selectNode(id: string) {
+const courseId = computed(() => selectedCourseId.value || canonicalCourseId(profileCourseId.value));
+const courseName = computed(() => courseTitle(courseId.value));
+const courseTarget = computed(() => profile.value?.learning_scope?.primary_kp_name || "完成学情诊断后生成");
+const normalizedPath = computed(() => adaptPathNodes(path.fullNodes, {
+  courseId: courseId.value,
+  profile: profile.value,
+  snapshot: learner.snapshot,
+  learningProgress: path.run?.learning_progress,
+}));
+const graphNodes = computed(() => normalizedPath.value.nodes);
+const graphEdges = computed(() => normalizedPath.value.edges);
+const summary = computed(() => normalizedPath.value.summary);
+const recommendedNode = computed(() =>
+  graphNodes.value.find((node) => node.id === summary.value.recommendedNodeId) || null,
+);
+const currentNode = computed(() => recommendedNode.value);
+const selectedNode = computed(() => {
+  if (selectedId.value) {
+    const selected = graphNodes.value.find((node) => node.id === selectedId.value);
+    if (selected) return selected;
+  }
+  return recommendedNode.value;
+});
+const selectedNodeStatus = computed<KnowledgeStatus | "">(() => selectedNode.value?.status || "");
+const selectedMastery = computed(() => formatMastery(selectedNode.value?.mastery));
+const domainOptions = computed(() => [...new Set(graphNodes.value.map((node) => node.domain))]);
+const recommendedPathIds = computed(() => new Set(summary.value.recommendedPathNodeIds));
+const visibleIds = computed(() => {
+  if (viewMode.value === "all") return new Set(graphNodes.value.map((node) => node.id));
+  if (viewMode.value === "learned") {
+    return new Set(graphNodes.value.filter((node) => node.status === "mastered").map((node) => node.id));
+  }
+  const ids = new Set(summary.value.recommendedPathNodeIds);
+  let frontier = [...ids];
+  for (let depth = 0; depth < 2; depth += 1) {
+    const next: string[] = [];
+    graphEdges.value.forEach((edge) => {
+      if (frontier.includes(edge.source) && !ids.has(edge.target)) {
+        ids.add(edge.target);
+        next.push(edge.target);
+      }
+    });
+    frontier = next;
+  }
+  return ids;
+});
+const filteredNodes = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+  return graphNodes.value.filter((node) => {
+    if (!visibleIds.value.has(node.id)) return false;
+    if (domainFilter.value !== "all" && node.domain !== domainFilter.value) return false;
+    if (!query) return true;
+    return `${node.title} ${node.domain} ${node.stage}`.toLowerCase().includes(query);
+  });
+});
+const filteredNodeIds = computed(() => new Set(filteredNodes.value.map((node) => node.id)));
+const filteredEdges = computed(() =>
+  graphEdges.value.filter((edge) => filteredNodeIds.value.has(edge.source) && filteredNodeIds.value.has(edge.target)),
+);
+const selectedPrerequisites = computed(() =>
+  (selectedNode.value?.prerequisiteIds || [])
+    .map((id) => graphNodes.value.find((node) => node.id === id))
+    .filter((node): node is KnowledgeNode => Boolean(node)),
+);
+const unlockedNodes = computed(() =>
+  selectedNode.value
+    ? graphNodes.value
+      .filter((node) => node.prerequisiteIds.includes(selectedNode.value?.id || ""))
+      .slice(0, 3)
+    : [],
+);
+const missingPrerequisites = computed(() =>
+  (selectedNode.value?.prerequisiteIds || [])
+    .filter((id) => !graphNodes.value.some((node) => node.id === id))
+    .map((id) => knowledgeTitle(id)),
+);
+const graphStatusText = computed(() => {
+  if (path.loading) return "正在生成学习路径";
+  if (path.error) return "路径规划暂时失败，原有数据仍然保留";
+  if (!courseId.value) return "完成诊断后生成";
+  if (!graphNodes.value.length) return "当前课程的知识图谱尚未生成";
+  return `${summary.value.masteredNodes} / ${summary.value.totalNodes} 个知识点已掌握`;
+});
+const recommendationReason = computed(() => {
+  const node = selectedNode.value;
+  if (!node) return "完成学情诊断并生成路径后，这里会显示推荐依据。";
+  const readyPrerequisites = selectedPrerequisites.value.filter((item) => (item.mastery ?? 0) >= 0.6).length;
+  if (node.status === "recommended" && readyPrerequisites) {
+    return `你已掌握${selectedPrerequisites.value.slice(0, 2).map((item) => item.title).join("、")}，该节点的先修条件已经满足。`;
+  }
+  if (node.status === "recommended" && node.mastery !== null && node.mastery < 0.6) {
+    return `最近记录中，该知识点掌握度为 ${formatMastery(node.mastery)}，系统建议优先补强。`;
+  }
+  if (node.status === "locked") {
+    return missingPrerequisites.value.length
+      ? `需要先完成${missingPrerequisites.value.slice(0, 2).join("、")}等前置内容。`
+      : "一个或多个先修知识尚未达到解锁阈值。";
+  }
+  if (unlockedNodes.value.length) {
+    return `完成后可继续学习${unlockedNodes.value.slice(0, 2).map((item) => item.title).join("、")}。`;
+  }
+  return node.reasonCodes.includes("mastery_missing")
+    ? "当前还没有足够的测评证据，建议先完成一次诊断或预学习。"
+    : "该节点属于当前课程知识网络，路径会根据学习反馈继续调整。";
+});
+const actionLabel = computed(() => {
+  if (!selectedNode.value) return "开始诊断";
+  if (selectedNodeStatus.value === "locked") return "先完成前置内容";
+  if (selectedNodeStatus.value === "mastered") return "复习知识点";
+  if (selectedNodeStatus.value === "completed") return "去完成测评";
+  if (selectedNodeStatus.value === "learning") return "继续学习";
+  if (selectedNodeStatus.value === "unevaluated") return "开始诊断";
+  return "开始学习";
+});
+const actionDisabled = computed(() => !selectedNode.value || selectedNodeStatus.value === "locked");
+
+function selectNode(id: string) {
   selectedId.value = id;
-  const node = path.nodes.find((item) => item.concept_id === id);
-  if (!node || !path.run) return;
-  if (node.status === "available") await path.startNode(id, path.pathMode);
-  else if (path.pathMode === "full" && node.personalized_skipped) await path.startNode(id, "full");
+  void router.replace({ query: { ...route.query, kp: id } });
+  const node = graphNodes.value.find((item) => item.id === id);
+  if (node?.status === "available" && path.run) void path.startNode(id);
 }
+
+function jumpToNode(id: string) {
+  if (!graphNodes.value.some((node) => node.id === id)) return;
+  selectNode(id);
+  viewMode.value = "all";
+}
+
+function generatePath() {
+  void path.generate();
+}
+
+function selectCourse(value: string) {
+  const nextCourseId = canonicalCourseId(value);
+  if (!nextCourseId || nextCourseId === courseId.value) return;
+  selectedCourseId.value = nextCourseId;
+  selectedId.value = "";
+  viewMode.value = "recommended";
+  searchQuery.value = "";
+  domainFilter.value = "all";
+  void router.replace({
+    query: {
+      ...route.query,
+      course: nextCourseId,
+      kp: undefined,
+    },
+  });
+}
+
+function openPathSettings() {
+  void router.push("/profile");
+}
+
+function openSelectedResource() {
+  if (actionDisabled.value) return;
+  if (selectedNodeStatus.value === "completed") {
+    void router.push("/assessment");
+    return;
+  }
+  void router.push("/resources");
+}
+
+watch(() => route.query.kp, (value) => {
+  selectedId.value = typeof value === "string" ? value : "";
+});
+
+watch(() => route.query.course, (value) => {
+  if (typeof value === "string" && value !== selectedCourseId.value) {
+    selectedCourseId.value = canonicalCourseId(value);
+  }
+});
+
+watch([profileCourseId, () => path.fullNodes.length], () => {
+  if (selectedCourseId.value) return;
+  const fallback = profileCourseId.value || courseOptions.value[0]?.id;
+  if (fallback) selectedCourseId.value = canonicalCourseId(fallback);
+}, { immediate: true });
+
+watch(courseId, (value) => {
+  if (!value) return;
+  if (typeof window !== "undefined") window.localStorage.setItem("zhijing.learning-path.course", canonicalCourseId(value));
+  if (route.query.course !== canonicalCourseId(value)) {
+    void router.replace({ query: { ...route.query, course: canonicalCourseId(value) } });
+  }
+}, { immediate: true });
+
+onMounted(() => {
+  if (learner.snapshot && !path.run) void path.generate();
+});
 </script>
 
 <template>
-  <div class="page-stack">
-    <div class="page-intro"><div><span class="eyebrow">PERSONALIZED PATH</span><h2>你的个性化学习路径</h2><p>系统根据诊断掌握度隐藏已可靠掌握的节点；你也可以展开完整路径，主动复习任意知识点。</p></div><button class="button button-primary" :disabled="path.loading" @click="path.generate"><RefreshCw :size="17" /> {{ path.loading ? "生成中…" : "重新规划" }}</button></div>
-    <section v-if="path.error" class="inline-error">{{ path.error }} <button class="text-link" @click="path.generate">重试</button></section>
-    <section v-if="!path.run && !path.loading" class="panel"><StateBlocks type="empty" title="还没有学习路径" message="先完成诊断并生成学习画像，系统会依据知识图谱创建你的路径。" /><button class="button button-primary" @click="router.push('/diagnosis')">进入学情诊断 <ArrowRight :size="17" /></button></section>
+  <div class="path-reference-page page-stack">
+    <header class="path-reference-header path-reference-header--rebuilt">
+      <div class="path-title-block">
+        <div class="path-breadcrumb">智数助手 <span>/</span> 学习路径</div>
+        <h2>学习路径</h2>
+        <p>根据你的诊断结果、学习目标和学习记录动态生成。</p>
+        <div class="path-course-context">
+          <label for="path-course">当前课程</label>
+          <select
+            id="path-course"
+            :value="courseId || ''"
+            :disabled="courseOptions.length <= 1"
+            @change="selectCourse(($event.target as HTMLSelectElement).value)"
+          >
+            <option v-if="!courseOptions.length" value="">完成诊断后生成</option>
+            <option v-for="course in courseOptions" :key="course.id" :value="course.id">{{ course.title }}</option>
+          </select>
+          <span>课程目标：{{ courseTarget }}</span>
+        </div>
+      </div>
+      <div class="path-header-actions">
+        <button type="button" class="button button-secondary" :disabled="path.loading" @click="generatePath">
+          <RefreshCw :size="16" />
+          {{ path.loading ? "规划中" : "重新规划" }}
+        </button>
+        <button type="button" class="path-settings-link" @click="openPathSettings">路径设置</button>
+      </div>
+    </header>
+
+    <section v-if="path.error" class="path-inline-error">
+      {{ graphStatusText }}
+      <button type="button" class="text-link" @click="generatePath">重试</button>
+    </section>
+
+    <section v-if="!courseId || (!graphNodes.length && !path.loading)" class="panel path-empty-panel">
+      <StateBlocks
+        type="empty"
+        :title="courseId ? '当前课程的知识图谱尚未生成' : '完成诊断后生成学习路径'"
+        :message="courseId ? '当前课程暂时没有可用的知识节点和先修关系。' : '完成学情诊断后，系统会依据当前课程生成个性化路径。'"
+      />
+      <button type="button" class="button button-primary" @click="courseId ? generatePath() : router.push('/diagnosis')">
+        {{ courseId ? "重新生成图谱" : "进入学情诊断" }} <ArrowRight :size="16" />
+      </button>
+    </section>
+
     <template v-else>
-      <section class="path-banner"><div class="path-banner-icon"><Network :size="24" /></div><div><span class="eyebrow">CURRENT RECOMMENDATION</span><h2>{{ path.currentNode?.title || path.currentNode?.name || "正在规划你的下一步" }}</h2><p v-html="renderInlineMath(path.currentNode?.summary || '系统正在根据你的掌握度和先修条件选择当前推荐节点。')" /><small v-if="personalizationReason" class="path-reason">个性化依据：{{ personalizationReason }}</small></div><span class="status-pill status-pill-success">{{ path.run?.status || "规划中" }}</span></section>
-      <section v-if="path.recommendations.length" class="panel recommendation-panel"><div class="panel-heading"><div><span class="eyebrow">THIS WEEK</span><h2>本周推荐队列</h2><p>根据你的目标、掌握度和可投入时间动态排序。</p></div><Sparkles :size="20" class="icon-purple" /></div><div class="recommendation-list"><button v-for="item in path.recommendations" :key="item.concept_id" class="recommendation-item" @click="selectedId = item.concept_id"><span class="recommendation-rank">{{ item.rank }}</span><span class="recommendation-copy"><strong>{{ path.nodes.find((node) => node.concept_id === item.concept_id)?.title || item.concept_id }}</strong><small>{{ item.reason_codes.map((reason) => reasonLabels[reason] || reason).join("；") }}</small></span><span class="recommendation-time"><Clock3 :size="14" /> {{ item.estimated_minutes }} 分钟</span></button></div></section>
-      <section v-if="path.run?.adaptation_trace?.length" class="panel adaptation-trace"><div class="panel-heading"><div><span class="eyebrow">ADAPTATION TRACE</span><h3>反馈后的调整</h3><p>系统根据最近一次测评重新计算了掌握度和推荐队列。</p></div></div><p v-for="item in path.run.adaptation_trace" :key="item" class="muted-text">{{ item }}</p></section>
-      <div class="content-grid content-grid-main"><section class="panel path-panel"><div class="panel-heading"><div><span class="eyebrow">KNOWLEDGE GRAPH</span><h2>课程知识路径</h2></div><div class="path-controls"><button class="path-mode-button" :class="{ active: path.pathMode === 'personalized' }" @click="path.setPathMode('personalized')"><CheckCircle2 :size="14" />个性化路径</button><button class="path-mode-button" :class="{ active: path.pathMode === 'full' }" @click="path.setPathMode('full')"><Network :size="14" />完整路径</button></div></div><div class="path-mode-note">{{ path.pathMode === 'full' ? `完整路径 · ${path.fullNodes.length} 个知识点，已掌握节点可主动复习` : `个性化路径 · ${path.nodes.length} 个待学习知识点` }}</div><div v-if="path.pathMode === 'personalized' && path.nodes.length === path.fullNodes.length" class="path-evidence-note">当前画像暂无达到跳过门槛的知识点，系统将先安排完整基础学习。</div><span class="path-legend"><i class="legend-current" />当前推荐 <i class="legend-done" />已掌握 <i class="legend-locked" />先修阻塞</span><LearningPathMap :nodes="path.nodes" @select="selectNode" /><StateBlocks v-if="!path.nodes.length" type="loading" message="正在载入课程节点。" /></section><aside class="page-stack"><section class="panel node-detail"><div class="panel-heading"><div><span class="eyebrow">NODE DETAIL</span><h3>节点详情</h3></div></div><template v-if="selectedNode"><KnowledgeNode :node="selectedNode" @select="selectNode" /><div v-if="selectedNode.status === 'skipped' || selectedNode.personalized_skipped" class="mastered-note"><CheckCircle2 :size="15" />已掌握，可选学习</div><div class="detail-row"><span>学习深度</span><b>{{ selectedNode.depth || selectedNode.delivery_depth || "intermediate" }}</b></div><div class="detail-row"><span>预计用时</span><b>{{ selectedNode.estimated_minutes || 20 }} 分钟</b></div><div class="detail-row"><span>掌握度</span><b>{{ typeof selectedNode.mastery_score === "number" ? `${Math.round(selectedNode.mastery_score * 100)}%` : "待评估" }}</b></div><div v-if="selectedNode.prerequisite_ids?.length || selectedNode.hard_prerequisite_ids?.length" class="prerequisite-note"><LockKeyhole :size="15" /> 先修节点：{{ (selectedNode.prerequisite_ids || selectedNode.hard_prerequisite_ids || []).join("、") }}</div><button class="button button-primary button-full" :disabled="selectedNode.status === 'blocked'" @click="router.push('/resources')"><Play :size="16" /> 进入学习资源</button></template><StateBlocks v-else message="选择一个知识节点查看详情。" /></section></aside></div>
+      <section class="path-summary-strip path-summary-strip--rebuilt">
+        <div class="path-summary-progress">
+          <span>路径进度</span>
+          <strong>{{ summary.totalNodes ? Math.round(summary.masteredNodes / summary.totalNodes * 100) : 0 }}%</strong>
+          <div class="progress-track"><span :style="{ width: `${summary.totalNodes ? summary.masteredNodes / summary.totalNodes * 100 : 0}%` }" /></div>
+        </div>
+        <div><span>已掌握知识点</span><strong>{{ summary.masteredNodes }} <small>/ {{ summary.totalNodes }}</small></strong></div>
+        <div><span>当前推荐</span><strong>{{ recommendedNode?.title || "暂无推荐" }}</strong></div>
+        <div><span>平均掌握度</span><strong>{{ formatMastery(summary.averageMastery) }}</strong></div>
+        <div><span>预计剩余时间</span><strong>{{ summary.estimatedRemainingMinutes ? `${Math.ceil(summary.estimatedRemainingMinutes / 60)} 小时` : "暂无数据" }}</strong></div>
+      </section>
+
+      <div class="path-reference-layout path-reference-layout--rebuilt">
+        <section id="knowledge-graph" class="panel graph-reference-panel graph-reference-panel--rebuilt">
+          <div class="graph-panel-heading">
+            <div>
+              <h3>知识图谱</h3>
+              <p>节点由当前课程的真实先修关系自动布局，箭头表示学习方向。</p>
+            </div>
+            <span class="path-status-text"><i />{{ graphStatusText }}</span>
+          </div>
+
+          <div class="graph-toolbar graph-toolbar--rebuilt">
+            <div class="graph-view-tabs" role="tablist" aria-label="图谱视图">
+              <button type="button" :class="{ active: viewMode === 'recommended' }" @click="viewMode = 'recommended'">推荐路径</button>
+              <button type="button" :class="{ active: viewMode === 'all' }" @click="viewMode = 'all'">完整图谱</button>
+              <button type="button" :class="{ active: viewMode === 'learned' }" @click="viewMode = 'learned'">已学习</button>
+            </div>
+            <label class="graph-search">
+              <Search :size="15" />
+              <input v-model="searchQuery" type="search" placeholder="搜索知识点" aria-label="搜索知识点" />
+            </label>
+            <label class="graph-filter">
+              <Filter :size="15" />
+              <select v-model="domainFilter" aria-label="筛选知识领域">
+                <option value="all">全部领域</option>
+                <option v-for="domain in domainOptions" :key="domain" :value="domain">{{ domain }}</option>
+              </select>
+            </label>
+            <button type="button" class="graph-tool-button" title="适应画布" aria-label="适应画布" @click="fitKey += 1">
+              <Maximize2 :size="15" />
+            </button>
+          </div>
+
+          <div class="graph-legend graph-legend--rebuilt">
+            <span><i class="legend-dot legend-dot--current" />当前推荐</span>
+            <span><i class="legend-dot legend-dot--available" />未学习 · 可开始</span>
+            <span><i class="legend-dot legend-dot--learning" />学习中</span>
+            <span><i class="legend-dot legend-dot--mastered" />已掌握 · 颜色越深掌握度越高</span>
+            <span><i class="legend-dot legend-dot--blocked" />先修未满足</span>
+          </div>
+
+          <KnowledgeGraphCanvas
+            :nodes="filteredNodes"
+            :edges="filteredEdges"
+            :selected-id="selectedNode?.id"
+            :recommended-path-node-ids="[...recommendedPathIds]"
+            :zoom="zoom"
+            :fit-key="fitKey"
+            @select="selectNode"
+            @update:zoom="zoom = $event"
+          />
+          <p v-if="filteredNodes.length !== graphNodes.length" class="graph-filter-note">
+            当前显示 {{ filteredNodes.length }} / {{ graphNodes.length }} 个节点
+          </p>
+        </section>
+
+        <aside class="path-detail-panel path-detail-panel--rebuilt">
+          <section class="panel path-node-detail path-node-detail--rebuilt">
+            <div class="detail-panel-topline">
+              <span class="path-current-indicator"><i />{{ selectedNodeStatus === "recommended" ? "当前推荐" : selectedNodeStatus === "mastered" ? "已掌握" : selectedNodeStatus === "completed" ? "已完成·待测评" : selectedNodeStatus === "learning" ? "学习中" : selectedNodeStatus === "locked" ? "先修未满足" : "尚未评估" }}</span>
+              <Network :size="18" class="detail-panel-icon" />
+            </div>
+            <h3>{{ selectedNode?.title || "选择一个知识节点" }}</h3>
+            <div v-if="selectedNode" class="detail-node-meta">
+              <span>{{ selectedNode.domain }}</span>
+              <span>{{ selectedNode.difficulty }}</span>
+              <span>{{ selectedNode.stage }}</span>
+            </div>
+            <div v-if="selectedNode" class="detail-mastery">
+              <span>当前掌握度</span>
+              <strong>{{ selectedMastery }}</strong>
+              <div class="progress-track"><span :style="{ width: selectedNode.mastery === null ? '0%' : `${selectedNode.mastery * 100}%` }" /></div>
+              <small>{{ selectedNode.mastery === null ? "尚未形成有效测评证据" : "掌握度来自当前学习者的诊断与测评记录" }}</small>
+            </div>
+            <div class="detail-explanation">
+              <h4>为什么推荐</h4>
+              <p>{{ recommendationReason }}</p>
+            </div>
+            <div v-if="selectedPrerequisites.length || missingPrerequisites.length" class="detail-relation">
+              <h4>先修知识</h4>
+              <button v-for="node in selectedPrerequisites" :key="node.id" type="button" @click="jumpToNode(node.id)">
+                <span>{{ node.title }}</span><small>{{ formatMastery(node.mastery) }}</small>
+              </button>
+              <span v-for="item in missingPrerequisites" :key="item" class="detail-relation-missing">{{ item }} · 课程前置内容</span>
+            </div>
+            <div v-if="unlockedNodes.length" class="detail-relation detail-relation--unlock">
+              <h4>完成后解锁</h4>
+              <button v-for="node in unlockedNodes" :key="node.id" type="button" @click="jumpToNode(node.id)">
+                <span>{{ node.title }}</span><small>{{ node.status === "locked" ? "待解锁" : "可学习" }}</small>
+              </button>
+            </div>
+            <div v-if="selectedNode" class="detail-resource-summary">
+              <div><span>课程讲义</span><b>{{ selectedNode.resourceCount || "暂无数据" }}</b></div>
+              <div><span>练习与测评</span><b>{{ selectedNode.assessmentCount || "暂无数据" }}</b></div>
+              <div><span>预计学习</span><b>{{ selectedNode.estimatedMinutes ? `${selectedNode.estimatedMinutes} 分钟` : "暂无数据" }}</b></div>
+            </div>
+            <button
+              type="button"
+              class="button button-primary button-full"
+              :disabled="actionDisabled"
+              :title="actionDisabled ? '请先完成前置知识' : undefined"
+              @click="openSelectedResource"
+            >
+              <Play :size="16" /> {{ actionLabel }}
+            </button>
+            <p v-if="actionDisabled" class="detail-disabled-hint">完成前置知识后才能开始此节点。</p>
+          </section>
+        </aside>
+      </div>
     </template>
   </div>
 </template>

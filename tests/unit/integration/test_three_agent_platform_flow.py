@@ -217,6 +217,50 @@ def test_completing_current_node_advances_the_existing_learning_run() -> None:
     assert completed.status.value == "completed"
 
 
+def test_marking_learning_content_complete_does_not_create_mastery_score() -> None:
+    project_root = Path(__file__).parents[3]
+    profile = LearnerProfileSnapshot(
+        schema_version="learner-profile.v1",
+        profile_id="PROFILE-CONTENT-COMPLETE-TEST",
+        learner_ref="0" * 64,
+        graph_version="ai-course-v1",
+    )
+    service = build_default_platform_service(project_root)
+    initial = service.run(
+        PlatformRunRequest(
+            profile=profile,
+            target_concept_id="dl.cnn.convolution",
+            idempotency_key="content-complete-preview",
+            execution_mode=ExecutionMode.CANDIDATE_PREVIEW,
+        )
+    )
+
+    updated = service.record_lecture_progress(
+        initial.run_id,
+        {"concept_id": "math.linear-algebra.scalar", "progress": 1.0},
+    )
+    repeated = service.record_lecture_progress(
+        initial.run_id,
+        {"concept_id": "math.linear-algebra.scalar", "progress": 1.0},
+    )
+
+    assert updated.learning_progress is not None
+    assert updated.learning_progress.concept_id == "math.linear-algebra.scalar"
+    assert updated.learning_progress.lecture_progress == 1.0
+    assert updated.learning_progress.lecture_completed is True
+    assert updated.learning_progress.assessment_passed is False
+    assert updated.learning_progress.can_complete is False
+    assert all(
+        item.concept_id != "math.linear-algebra.scalar"
+        or item.mastery_score is None
+        for item in (updated.profile.knowledge_mastery if updated.profile else ())
+    )
+    assert repeated.learning_progress is not None
+    assert repeated.learning_progress.lecture_progress == 1.0
+    assert repeated.learning_progress.lecture_completed is True
+    assert repeated.learning_progress.can_complete is False
+
+
 def test_assessment_updates_profile_and_replans_depth_before_advancing() -> None:
     project_root = Path(__file__).parents[3]
     profile = LearnerProfileSnapshot(
