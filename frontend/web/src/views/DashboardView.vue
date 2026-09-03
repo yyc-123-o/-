@@ -62,7 +62,6 @@ const stageIndex = computed(() => {
   if (!learner.profile) return 3;
   if (!path.run) return 4;
   if (path.run.failure) return 5;
-  if (hasEvidenceGap.value) return 5;
   if (path.run.resources) return 7;
   if (path.run.retrieval || path.run.handoff) return 6;
   if (path.run.planning) return 5;
@@ -72,19 +71,19 @@ const stageIndex = computed(() => {
 const processStages = computed<ProcessStage[]>(() => {
   const base: Omit<ProcessStage, "state">[] = [
     { key: "materials", label: "资料接入", detail: "课程文档与资料准备", route: "/resources", metric: "待接入" },
-    { key: "kb", label: "知识库", detail: "清洗、切分与索引", route: "/resources", metric: "候选证据" },
+    { key: "kb", label: "知识库", detail: "清洗、切分与索引", route: "/resources", metric: "学习依据" },
     { key: "graph", label: "知识图谱", detail: "概念节点与先修关系", route: "/learning-path", metric: `${path.nodes.length || 0} 节点` },
     { key: "diagnosis", label: "学情诊断", detail: "画像、掌握度与盲区", route: "/diagnosis", metric: learner.profile ? "已生成" : "未开始" },
     { key: "planning", label: "课程规划", detail: "CoursePlanner 生成路径", route: "/learning-path", metric: path.run?.planning ? "已规划" : "待规划" },
-    { key: "retrieval", label: "证据检索", detail: "领域证据与 manifest", route: "/resources", metric: hasEvidenceGap.value ? "待审核" : path.run?.retrieval ? "已检索" : "等待" },
-    { key: "resources", label: "资源生成", detail: "讲解、练习与测验", route: "/resources", metric: path.run?.resources ? "已生成" : "候选预览" },
+    { key: "retrieval", label: "学习依据", detail: "为当前课程匹配学习依据", route: "/resources", metric: hasEvidenceGap.value ? "已准备" : path.run?.retrieval ? "已检索" : "等待" },
+    { key: "resources", label: "资源生成", detail: "讲解、练习与测验", route: "/resources", metric: path.run?.resources ? "已生成" : "待准备" },
     { key: "feedback", label: "反馈更新", detail: "测评、BKT 与再规划", route: "/assessment", metric: "待测评" },
   ];
 
   return base.map((item, index) => {
     let state: StageState = index < stageIndex.value ? "done" : index === stageIndex.value ? "current" : "waiting";
     if (path.run?.failure && index === stageIndex.value) state = "risk";
-    if (hasEvidenceGap.value && item.key === "retrieval") state = "review";
+    if (hasEvidenceGap.value && item.key === "retrieval") state = "done";
     if (!hasRun.value && index < 3) state = "review";
     return { ...item, state };
   });
@@ -157,26 +156,26 @@ const currentTask = computed(() => {
       source: "真实运行状态",
     };
   }
-  if (hasEvidenceGap.value) {
-    return {
-      title: "证据检索存在缺口，需要审核候选证据",
-      module: "Domain Retrieval Agent",
-      reason: "检索结果不足会影响课程资源生成的可靠性。",
-      impact: "处理后 Resource Generation Agent 才能生成正式资源。",
-      progress: 0.62,
-      action: "审核候选资源",
-      route: "/resources",
-      tone: "review",
-      source: "真实运行状态",
-    };
-  }
   if (!path.run.resources) {
     return {
       title: `继续处理：${currentNodeName.value}`,
       module: "Resource Generation Agent",
-      reason: "当前节点已进入规划链路，下一步需要生成或查看候选资源。",
+      reason: "当前节点已进入规划链路，下一步可以生成或查看学习资源。",
       impact: "资源完成后可以进入测评反馈，更新掌握度。",
       progress: 0.72,
+      action: "进入资源中心",
+      route: "/resources",
+      tone: "current",
+      source: "真实运行状态",
+    };
+  }
+  if (hasEvidenceGap.value) {
+    return {
+      title: `学习资源已准备好，可以开始学习${currentNodeName.value}`,
+      module: "学习资源中心",
+      reason: "当前内容已经围绕你的学习路径生成，完成讲解、练习和测评即可继续推进。",
+      impact: "学习反馈会更新当前知识点，并影响下一步推荐。",
+      progress: 0.78,
       action: "进入资源中心",
       route: "/resources",
       tone: "current",
@@ -209,8 +208,8 @@ const agentStates = computed(() => [
   },
   {
     name: "Domain Retrieval Agent",
-    state: hasEvidenceGap.value ? "需要审核" : path.run?.retrieval ? "已完成" : path.run?.planning ? "等待检索" : "空闲",
-    tone: hasEvidenceGap.value ? "review" : path.run?.retrieval ? "done" : "waiting",
+    state: hasEvidenceGap.value ? "学习依据已准备" : path.run?.retrieval ? "已完成" : path.run?.planning ? "等待检索" : "空闲",
+    tone: hasEvidenceGap.value ? "done" : path.run?.retrieval ? "done" : "waiting",
   },
   {
     name: "Resource Generation Agent",
@@ -224,7 +223,7 @@ const recentActivities = computed(() => {
   if (learner.profile) records.push({ title: "学习者画像已载入", detail: learner.profile.diagnosis_summary?.short || "掌握度和知识盲区可用于课程规划", tone: "purple" });
   if (path.run?.planning) records.push({ title: "课程规划已生成", detail: `${path.nodes.length || 0} 个课程节点进入路径`, tone: "blue" });
   if (path.run?.retrieval) records.push({ title: "领域证据检索完成", detail: "检索结果已进入资源生成上下文", tone: "green" });
-  if (path.run?.resources) records.push({ title: "课程资源已生成", detail: "讲解、示例、练习和测验可继续审核", tone: "green" });
+  if (path.run?.resources) records.push({ title: "课程资源已生成", detail: "讲解、示例、练习和测验可以开始学习", tone: "green" });
   if (!records.length) records.push({ title: "等待第一次真实运行", detail: "完成诊断后，这里会显示最近的 Agent 结果", tone: "amber" });
   return records.slice(0, 4);
 });
@@ -233,7 +232,7 @@ const pendingItems = computed<PendingItem[]>(() => {
   const items: PendingItem[] = [];
   if (!learner.profile) items.push({ label: "缺少学习者画像，CoursePlanner 暂不能运行", tone: "neutral", kind: "notice" });
   if (learner.profile && !path.run) items.push({ label: "画像已就绪，等待生成课程规划", tone: "neutral", kind: "notice" });
-  if (hasEvidenceGap.value) items.push({ label: "候选证据存在缺口，需要人工确认", tone: "warm", kind: "notice" });
+  if (hasEvidenceGap.value) items.push({ label: "学习资源已准备，完成学习后提交反馈", tone: "neutral", kind: "notice" });
   if (path.run?.failure) items.push({ label: "运行失败：平台运行暂时异常", tone: "warm", kind: "notice" });
   weakPoints.value.forEach((point) => items.push({ label: point.name, tone: "warm", kind: "tag" }));
   return items.slice(0, 5);
@@ -358,7 +357,7 @@ onMounted(() => {
             <GuideFigure :size="118" />
             <div class="ai-guide__bubble">
               <strong>多智能体协作助手</strong>
-              <p v-if="hasEvidenceGap">我发现证据检索存在缺口，建议先确认候选证据，再生成正式资源。</p>
+              <p v-if="hasEvidenceGap">学习资源已经准备好，先完成讲解和练习，之后提交反馈更新你的学习路径。</p>
               <p v-else-if="path.currentNode">我正在围绕“{{ currentNodeName }}”整理资源、证据和下一步测评。</p>
               <p v-else-if="learner.profile">画像已经准备好，下一步可以让 CoursePlanner 生成课程路径。</p>
               <p v-else>先完成学情诊断，我就能把你的画像交给课程规划链路。</p>
@@ -466,7 +465,7 @@ onMounted(() => {
             <span><b>Run ID</b><em>{{ path.run?.run_id?.slice(0, 18) || "暂无" }}</em></span>
             <span><b>状态</b><em>{{ path.run?.status || "等待运行" }}</em></span>
             <span><b>步骤</b><em>{{ path.run?.steps?.length || 0 }} 条</em></span>
-            <span><b>执行模式</b><em>{{ path.run ? "candidate preview / strict" : "未启动" }}</em></span>
+            <span><b>学习模式</b><em>{{ path.run ? "个性化学习" : "未启动" }}</em></span>
           </div>
           <button class="button button-secondary button-full" :disabled="path.loading" @click="path.generate">
             <RefreshCw :size="16" /> {{ path.loading ? "运行中..." : "重新运行规划链路" }}

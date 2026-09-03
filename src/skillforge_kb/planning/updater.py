@@ -58,11 +58,30 @@ class DepthUpdater:
                 merged.append(node.model_copy(update={"status": PathStatus.COMPLETED}))
             else:
                 merged.append(fresh_by_id[node.concept_id])
+        merged_nodes = assign_execution_statuses(merged)
+        merged_by_id = {node.concept_id: node for node in merged_nodes}
+        recommendations = tuple(
+            item.model_copy(update={"rank": rank})
+            for rank, item in enumerate(
+                (
+                    item
+                    for item in fresh.recommendations
+                    if merged_by_id[item.concept_id].status
+                    not in {
+                        PathStatus.BLOCKED,
+                        PathStatus.COMPLETED,
+                        PathStatus.SKIPPED,
+                    }
+                ),
+                start=1,
+            )
+        )
 
         return existing.model_copy(
             update={
                 "generated_at": profile.generated_at,
-                "nodes": assign_execution_statuses(merged),
+                "nodes": merged_nodes,
+                "recommendations": recommendations,
             }
         )
 

@@ -1,0 +1,39 @@
+{
+  "profile_id": "PROFILE-DEMO-LOW",
+  "profile_version": "2.1",
+  "generated_at": "2026-09-02T08:00:00Z",
+  "learner_id": "demo-low",
+  "graph_version": "ai-course-v1",
+  "knowledge_mastery": {
+    "global_theta": -0.8,
+    "overall_accuracy": 0.35,
+    "points": {
+      "kp_004": {"name": "矩阵运算", "mastery": 0.22, "status": "weak", "confidence": 0.86},
+      "kp_005": {"name": "导数与梯度", "mastery": 0.20, "status": "weak", "confidence": 0.82},
+      "kp_011": {"name": "神经网络基础", "mastery": 0.18, "status": "weak", "confidence": 0.88},
+      "kp_012": {"name": "卷积神经网络CNN", "mastery": 0.16, "status": "weak", "confidence": 0.90},
+      "kp_015": {"name": "激活函数", "mastery": 0.25, "status": "weak", "confidence": 0.78}
+    }
+  },
+  "ability_level": {
+    "overall": "beginner",
+    "global_theta": -0.8,
+    "sub_dimensions": {
+      "theoretical_understanding": {"score": 0.25, "confidence": 0.82},
+      "coding_ability": {"score": 0.35, "confidence": 0.80},
+      "mathematical_foundation": {"score": 0.28, "confidence": 0.84},
+      "problem_solving": {"score": 0.30, "confidence": 0.78}
+    }
+  },
+  "error_patterns": {
+    "items": [{"category": "概念混淆", "count": 8, "ratio": 0.8, "involved_kp_ids": ["kp_004", "kp_011", "kp_012"]}]
+  },
+  "learning_preferences": {
+    "format": {"content_order": ["概念直觉理解", "数学推导", "代码实战"], "code_language": "Python", "framework": "PyTorch"},
+    "style": {"prefers_step_by_step": true, "prefers_diagrams": true, "prefers_comparison_tables": true},
+    "pace": {"weekly_hours": 5},
+    "motivation": {"project_driven": true}
+  },
+  "learning_scope": {"scope_type": "chapter", "chapter_id": "ch03_cnn", "primary_kp_id": "kp_012", "target_depth": "入门"},
+  "meta": {"total_test_count": 5}
+}

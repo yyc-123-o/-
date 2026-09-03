@@ -115,16 +115,19 @@ def _resource_items(resource_type: ResourceType, brief: ResourceBrief) -> tuple[
     topic_slug = brief.concept_id.rsplit(".", 1)[-1]
     topic = _TOPIC_LABELS.get(topic_slug, topic_slug.replace("-", " "))
     outcome = brief.learning_outcomes[0]
+    personalization = _personalization_items(brief, topic)
     if resource_type is ResourceType.LECTURE:
         return (
+            *personalization,
             f"学习目标：{outcome}。本节围绕“{topic}”建立从输入、变换到输出的完整解释链。",
             f"核心定义：先明确“{topic}”接收的输入表示、允许的操作和输出含义；任何公式都必须同时满足这些边界条件。",
-            f"推导与示例：选择最小数值例子，逐步写出中间量，再用代码打印输入、关键参数和结果，核对手算与实现是否一致。",
-            f"边界与辨析：比较一个相邻概念或参数变化，说明结果为什么不同；重点检查形状、顺序、步长和边界处理。",
+            "推导与示例：选择最小数值例子，逐步写出中间量，再用代码打印输入、关键参数和结果，核对手算与实现是否一致。",
+            "边界与辨析：比较一个相邻概念或参数变化，说明结果为什么不同；重点检查形状、顺序、步长和边界处理。",
             f"迁移任务：把“{topic}”放入一个稍有变化的应用场景，解释它仍然如何支持学习目标“{outcome}”。",
         )
     if resource_type is ResourceType.PRACTICAL_GUIDE:
         return (
+            *personalization,
             f"实验问题：{topic} 的哪个输入或参数决定输出变化？先写下可证伪的预测，再开始运行。",
             "基线实验：固定输入和默认参数，记录输入形状、关键中间值、输出形状与运行结果。",
             "单变量实验：一次只改变一个参数，至少完成三组对照，并把预测、实际输出和差异原因放入表格。",
@@ -133,19 +136,51 @@ def _resource_items(resource_type: ResourceType, brief: ResourceBrief) -> tuple[
         )
     if resource_type is ResourceType.ASSESSMENT:
         return (
+            *personalization,
             f"概念检查：用自己的话定义“{topic}”，指出输入、核心规则和输出。",
             f"计算检查：为“{topic}”构造一个最小数值例子，写出每一步中间量并核对最终结果。",
-            f"形状推理：修改一个关键参数，重新推导输出形状，说明变化是由哪条规则导致的。",
+            "形状推理：修改一个关键参数，重新推导输出形状，说明变化是由哪条规则导致的。",
             f"代码调试：阅读一段“{topic}”实现，定位一个形状、参数顺序或边界处理错误并给出修复理由。",
             f"综合迁移：说明“{topic}”与前置知识的关系，并给出一个适用与一个不适用的场景。",
         )
     return (
+        *personalization,
         f"项目目标：将“{topic}”应用到一个最小可验证任务，并明确验收标准：{outcome}。",
         "交付物一：提交可复现代码、依赖版本、输入样例和关键参数表。",
         "交付物二：提交结果截图或日志，解释输出形状、指标变化和一次失败尝试。",
         "评审要点：检查实现是否满足输入约束、是否保留中间结果、是否能由他人复现。",
         "复盘要求：说明一个可继续优化的方向，以及该方向可能引入的风险或权衡。",
     )
+
+
+def _personalization_items(brief: ResourceBrief, topic: str) -> tuple[str, ...]:
+    """Materialize the learner policy in formal resources.
+
+    The formal generator is deterministic, but its first item explicitly
+    reflects the same adaptation facts used by planning. This prevents strict
+    resources from collapsing to one template for every learner.
+    """
+    adaptation = brief.node_adaptation
+    allocation = brief.resource_allocation
+    preferences = brief.presentation_preferences
+    support = adaptation.support_intensity.value
+    if support in {"remediation", "scaffolded"}:
+        lead = f"个性化支架（{support}）：围绕“{topic}”先给出分步提示，再逐步减少提示。"
+    elif support == "compact":
+        lead = f"个性化路径（{support}）：已具备“{topic}”基础，压缩重复定义，直接进入关键辨析。"
+    else:
+        lead = f"个性化路径（{support}）：用一个最小例子串联“{topic}”的概念、推导和应用。"
+    items = [lead]
+    if preferences.content_order:
+        items.append("讲解顺序：" + " → ".join(preferences.content_order) + "。")
+    if brief.error_pattern_hints:
+        codes = "、".join(item.code for item in brief.error_pattern_hints)
+        items.append(f"错因针对：本学习者在“{topic}”相关内容中的重点错因是{codes}，增加对比和反例。")
+    items.append(
+        f"资源配额：预计{allocation.estimated_minutes}分钟，安排{allocation.worked_example_count}个示例、"
+        f"{allocation.guided_exercise_count}个引导练习。"
+    )
+    return tuple(items)
 
 
 class ResourceGenerationTool:

@@ -120,6 +120,23 @@ class LectureProgressSubmission(BaseModel):
     progress: float = Field(ge=0, le=1)
 
 
+class LearningCoachQuestion(BaseModel):
+    """A learner question scoped to the current learning node."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    concept_id: str = Field(pattern=CONCEPT_ID_PATTERN)
+    question: str = Field(min_length=1, max_length=2_000)
+
+
+class LearningCoachReply(BaseModel):
+    """A short Socratic response safe to display in the learning UI."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    answer: str = Field(min_length=1, max_length=4_000)
+
+
 class LearningProgress(BaseModel):
     """Auditable completion gates for one concept in one platform run."""
 
@@ -219,6 +236,8 @@ class PlatformRunResult(BaseModel):
     failure: PlatformFailure | None = None
     steps: tuple[PlatformStepRecord, ...] = ()
     learning_progress: LearningProgress | None = None
+    # Human-readable, auditable explanation of what changed after feedback.
+    adaptation_trace: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def validate_terminal_status(self) -> "PlatformRunResult":

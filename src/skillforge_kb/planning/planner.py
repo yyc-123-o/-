@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, deque
 
 from skillforge_kb.ontology.catalog import OntologyCatalog
 from skillforge_kb.ontology.models import (
@@ -14,6 +14,7 @@ from .models import (
     ABILITY_DIMENSIONS,
     PathDecision,
     PathNode,
+    PathRecommendation,
     PathStatus,
     PlannerPolicy,
     ReasonCode,
@@ -73,6 +74,7 @@ class CoursePlanner:
             for sequence, concept_id in enumerate(ordered_ids, start=1)
         ]
         nodes = assign_execution_statuses(initial_nodes)
+        recommendations = self._recommendations(profile, nodes, target_concept_id)
         return PathDecision(
             path_id=build_path_id(
                 profile.profile_id,
@@ -89,7 +91,121 @@ class CoursePlanner:
             target_concept_id=target_concept_id,
             generated_at=profile.generated_at,
             nodes=nodes,
+            recommendations=recommendations,
         )
+
+    def _recommendations(
+        self,
+        profile: LearnerProfileSnapshot,
+        nodes: tuple[PathNode, ...],
+        target_concept_id: str | None,
+    ) -> tuple[PathRecommendation, ...]:
+        """Rank a small, explainable queue without violating prerequisites."""
+        mastery = self._mastery_index(profile)
+        target_distances = self._target_prerequisite_distances(target_concept_id)
+        total_nodes = max(1, len(nodes))
+        scored: list[tuple[int, float, int, PathNode, tuple[str, ...], int]] = []
+        for node in nodes:
+            if node.status in {
+                PathStatus.SKIPPED,
+                PathStatus.COMPLETED,
+                PathStatus.BLOCKED,
+            }:
+                continue
+            record = mastery.get(node.concept_id)
+            gap = 1.0
+            if record is not None and record.mastery_score is not None:
+                gap = 1.0 - record.mastery_score
+            error_risk = min(
+                1.0,
+                sum(
+                    pattern.ratio
+                    for pattern in profile.error_patterns
+                    if node.concept_id in pattern.concept_ids
+                ),
+            )
+            distance = target_distances.get(node.concept_id)
+            if distance is None:
+                target_relevance = (
+                    1.0 - (node.sequence - 1) / total_nodes
+                    if target_concept_id is None
+                    else 0.15
+                )
+            else:
+                target_relevance = max(0.55, 1.0 - distance * 0.12)
+            readiness = 1.0 if node.status is PathStatus.AVAILABLE else 0.65
+            score = min(
+                1.0,
+                0.40 * target_relevance
+                + 0.30 * gap
+                + 0.20 * error_risk
+                + 0.10 * readiness,
+            )
+            reasons: list[str] = []
+            if distance is not None:
+                reasons.append("target_focus")
+            elif target_concept_id is None:
+                reasons.append("foundational_order")
+            if gap >= 0.4:
+                reasons.append("mastery_gap")
+            if error_risk > 0:
+                reasons.append("error_risk")
+            if node.status is PathStatus.AVAILABLE:
+                reasons.append("prerequisite_ready")
+            estimated = {
+                DepthLevel.INTRO: 30,
+                DepthLevel.INTERMEDIATE: 45,
+                DepthLevel.ADVANCED: 60,
+            }[node.delivery_depth or DepthLevel.INTRO]
+            scored.append(
+                (
+                    0 if node.status is PathStatus.AVAILABLE else 1,
+                    score,
+                    node.sequence,
+                    node,
+                    tuple(reasons),
+                    estimated,
+                )
+            )
+
+        # The first item must be actionable now. The remaining independent
+        # nodes still benefit from personalization scoring.
+        scored.sort(key=lambda item: (item[0], -item[1], item[2]))
+        budget = int((profile.preferences.pace_hours_per_week or 3.0) * 60)
+        selected: list[PathRecommendation] = []
+        spent = 0
+        for _, score, _, node, reasons, estimated in scored:
+            if len(selected) >= 5:
+                break
+            if spent + estimated > budget and len(selected) >= 3:
+                continue
+            selected.append(
+                PathRecommendation(
+                    concept_id=node.concept_id,
+                    rank=len(selected) + 1,
+                    score=round(score, 4),
+                    estimated_minutes=estimated,
+                    reason_codes=reasons or ("next_in_path",),
+                )
+            )
+            spent += estimated
+        return tuple(selected)
+
+    def _target_prerequisite_distances(
+        self,
+        target_concept_id: str | None,
+    ) -> dict[str, int]:
+        if target_concept_id is None:
+            return {}
+        distances = {target_concept_id: 0}
+        pending = deque([target_concept_id])
+        while pending:
+            current = pending.popleft()
+            for relation in self._hard_relations[current]:
+                if relation.source not in distances:
+                    distances[relation.source] = distances[current] + 1
+                    pending.append(relation.source)
+        return distances
 
     def _ordered_ids_for_target(self, target_concept_id: str | None) -> list[str]:
         if target_concept_id is None:
@@ -209,6 +325,10 @@ class CoursePlanner:
             if relation.source in completed_concept_ids:
                 continue
             prerequisite = mastery.get(relation.source)
+            # A high-confidence mastered prerequisite is represented as
+            # ``skipped`` in the path and must still unlock its successors.
+            if self._can_skip(prerequisite):
+                continue
             if (
                 prerequisite is None
                 or prerequisite.assessment_status is AssessmentStatus.NOT_ASSESSED

@@ -1,3 +1,5 @@
+import json
+import re
 from enum import StrEnum
 from itertools import chain, repeat
 from typing import Literal
@@ -147,22 +149,27 @@ class ResourceGenerationAgent:
             learner_context=_learner_context(profile, handoff.concept_id),
         )
         fallback_draft = _preview_draft(handoff, policy, selected)
-        # Let the configured model personalize only the lecture. Scope, evidence,
-        # depth and publication status remain controlled locally; invalid responses
-        # fall back to the deterministic evidence-bounded draft.
+        # Let the configured model personalize learner-facing materials. Scope,
+        # evidence, depth and publication status remain controlled locally; invalid
+        # responses fall back to the deterministic evidence-bounded draft.
         adapter = (
-            _LectureFirstAdapter(self._llm_adapter, fallback_draft)
+            _ModelFirstAdapter(self._llm_adapter, fallback_draft)
             if self._llm_adapter is not None
             else FakeLLMAdapter(fallback_draft)
         )
         package = ControlledResourceGenerationService(
             adapter,
             auditor=ResourceAuditor(),
+            # Candidate previews are explicitly non-publishable. A second
+            # model pass cannot repair a missing/uncertain evidence record and
+            # only makes the synchronous learning request much slower.
+            retry_on_audit_failure=False,
         ).generate(brief, notebook_passed=False)
         if package.draft is None and self._llm_adapter is not None:
             package = ControlledResourceGenerationService(
                 FakeLLMAdapter(fallback_draft),
                 auditor=ResourceAuditor(),
+                retry_on_audit_failure=False,
             ).generate(brief, notebook_passed=False)
         if package.publication_status is not PublicationStatus.CANDIDATE_DRAFT:
             raise ValueError("candidate preview unexpectedly received release rights")
@@ -202,8 +209,8 @@ class ResourceGenerationAgent:
             raise ValueError("candidate preview requires only a published-evidence gap")
 
 
-class _LectureFirstAdapter:
-    """Use the external model for lectures while keeping auxiliary materials local."""
+class _ModelFirstAdapter:
+    """Use the external model for learner materials with local fallbacks."""
 
     structured_output_mode = "json_object"
 
@@ -211,14 +218,46 @@ class _LectureFirstAdapter:
         self._model = model
         self._fallback = FakeLLMAdapter(fallback)
         self.model_name = model.model_name
+        self._student_question_ids: tuple[str, ...] = ()
 
     def complete(self, prompt: str, *, repair: str | None = None) -> str:
-        if prompt.startswith("MATERIAL: lecture"):
+        material_match = re.match(r"MATERIAL: ([a-z_]+)", prompt)
+        material = material_match.group(1) if material_match else None
+        if material in {"lecture", "practical_guide", "student_quiz", "teacher_guide"}:
             try:
-                return self._model.complete(prompt, repair=repair)
+                raw = self._model.complete(prompt, repair=repair)
             except Exception:
-                return self._fallback.complete(prompt, repair=repair)
+                raw = self._fallback.complete(prompt, repair=repair)
+            if material == "student_quiz":
+                self._remember_student_ids(raw)
+            elif material == "teacher_guide":
+                raw = self._align_teacher_ids(raw)
+            return raw
         return self._fallback.complete(prompt, repair=repair)
+
+    def _remember_student_ids(self, raw: str) -> None:
+        try:
+            items = json.loads(raw).get("items", [])
+            ids = tuple(item["question_id"] for item in items if item.get("question_id"))
+        except (AttributeError, KeyError, TypeError, json.JSONDecodeError):
+            ids = ()
+        if ids:
+            self._student_question_ids = ids
+
+    def _align_teacher_ids(self, raw: str) -> str:
+        if not self._student_question_ids:
+            return raw
+        try:
+            payload = json.loads(raw)
+            items = payload.get("items")
+            if not isinstance(items, list) or len(items) != len(self._student_question_ids):
+                return raw
+            for item, question_id in zip(items, self._student_question_ids, strict=True):
+                if isinstance(item, dict):
+                    item["question_id"] = question_id
+            return json.dumps(payload, ensure_ascii=False)
+        except (AttributeError, TypeError, json.JSONDecodeError):
+            return raw
 
 
 def _select_candidate_evidence(
@@ -395,7 +434,8 @@ def _preview_draft(
             kind=kind,
             index=index,
             difficulty=difficulty_levels[index - 1],
-            facts=(definition_text, code_text, exercise_text, outcome),
+            # Learning outcomes describe the goal, not evidence for a quiz answer.
+            facts=(definition_text, code_text, exercise_text),
         )
         for index, kind in enumerate(kinds, start=1)
     )
@@ -1154,7 +1194,91 @@ _PREVIEW_QUIZ_BANK: dict[str, tuple[tuple[str, tuple[str, ...], int], ...]] = {
         ("Python 列表 `a = [1, 2]` 与 `b = [3, 4]` 直接执行 `a + b`，为什么不是向量加法？", ("列表的 `+` 会拼接，应用 NumPy 数组再做逐元素加法", "Python 会自动计算内积", "因为向量不能包含整数"), 0),
         ("下列哪个场景最适合用向量表示？", ("用一个数记录当前学习率", "用 [身高, 体重, 年龄] 表示一个样本的三个特征", "用行和列组织整批样本"), 1),
     ),
+    "矩阵": (
+        ("矩阵最恰当的表示是什么？", ("按行和列组织的二维数值表", "只能包含一个数值的变量", "没有维度限制的一段文本"), 0),
+        ("矩阵 A 的形状为 2×3，表示什么？", ("2 个元素组成 3 个矩阵", "2 行 3 列", "3 行 2 列"), 1),
+        ("两个同形状矩阵做逐元素加法时，必须满足什么条件？", ("行数和列数分别相等", "只要元素总数相等", "只要行数相等即可"), 0),
+        ("矩阵转置会怎样变化？", ("元素值全部变成相反数", "行列互换", "矩阵一定变成单位矩阵"), 1),
+        ("在 NumPy 中，矩阵乘法通常使用哪个运算符？", ("`@`", "`//`", "`%`"), 0),
+        ("矩阵的形状主要用于检查什么？", ("输入、运算规则与输出是否匹配", "变量名是否足够长", "代码是否使用了循环"), 0),
+        ("下列哪项可以表示一批样本的特征？", ("一个单独的标量", "按行排列样本、按列排列特征的矩阵", "一个没有数值的字符串"), 1),
+        ("矩阵运算前最应该先做什么？", ("确认矩阵的行列维度和运算类型", "删除所有零元素", "把矩阵转换成文字"), 0),
+    ),
+    "矩阵运算": (
+        ("矩阵运算前最重要的检查是什么？", ("维度和运算类型是否匹配", "矩阵变量名是否相同", "是否所有元素都为正数"), 0),
+        ("同形状矩阵 A、B 的逐元素加法结果是什么？", ("对应位置元素分别相加", "A 的行乘 B 的列", "把 A、B 的元素拼成一行"), 0),
+        ("矩阵转置的结果是？", ("行列互换", "每个元素平方", "只保留主对角线"), 0),
+        ("NumPy 中 `A * B`（同形状）通常表示什么？", ("逐元素乘法", "矩阵乘法", "矩阵求逆"), 0),
+        ("NumPy 中 `A @ B` 表示什么？", ("矩阵乘法", "逐元素比较", "转置"), 0),
+        ("若 A 是 2×3，B 是 3×4，A @ B 的形状是？", ("2×4", "3×3", "4×2"), 0),
+        ("形状不匹配的矩阵乘法通常会怎样？", ("应被拒绝或报维度错误", "自动补零后永远成功", "结果必然是标量"), 0),
+        ("选择矩阵操作时，应依据什么？", ("任务语义与维度约束", "只依据变量名长度", "只依据矩阵元素的颜色"), 0),
+    ),
+    "矩阵乘法": (
+        (
+            "矩阵 A（m×n）与 B（p×q）可以相乘的条件是什么？",
+            ("n = p，左矩阵列数等于右矩阵行数", "m = q，两个外侧维度相等", "两个矩阵必须完全同形状"),
+            0,
+        ),
+        (
+            "A=[[1,2],[3,4]]，B=[[5],[6]]，A @ B 的结果是？",
+            ("[[6,8],[18,24]]", "[[17],[39]]", "[[5,12]]"),
+            1,
+        ),
+        (
+            "若 A 的形状为 2×3，B 的形状为 3×4，则 A @ B 的形状为？",
+            ("3×3", "4×2", "2×4"),
+            2,
+        ),
+        (
+            "矩阵乘法中，结果第 i 行第 j 列的元素如何得到？",
+            ("A 的第 i 行与 B 的第 j 列做内积", "A 的第 i 列与 B 的第 j 行做拼接", "A 与 B 的对应元素相减"),
+            0,
+        ),
+        (
+            "在 NumPy 中，`A * B` 与 `A @ B` 的主要区别是什么？",
+            ("前者是转置，后者是求逆", "前者通常是逐元素乘法，后者是矩阵乘法", "两者永远完全相同"),
+            1,
+        ),
+        (
+            "若 A 为 2×3、B 为 2×4，直接计算 A @ B 会怎样？",
+            ("自动把 B 转置后计算且结果不变", "一定得到 2×4 矩阵", "因 A 的列数 3 不等于 B 的行数 2 而维度不匹配"),
+            2,
+        ),
+        (
+            "为什么一般不能交换矩阵乘法顺序？",
+            ("矩阵只能从右向左读取", "A @ B 与 B @ A 的维度或数值结果可能不同", "交换后只会改变变量名"),
+            1,
+        ),
+        (
+            "矩阵乘法最适合描述哪类操作？",
+            ("用线性变换把输入特征映射到输出特征", "记录一个布尔值", "存储不带结构的文本"),
+            0,
+        ),
+    ),
 }
+
+_GENERIC_QUIZ_PROMPT_TEMPLATES = (
+    "关于“{topic}”，哪项描述最符合本节学习目标？",
+    "学习“{topic}”时，哪项输入或前置条件需要优先确认？",
+    "下面哪种做法最适合验证“{topic}”的结果？",
+    "“{topic}”出现结果异常时，最合理的排查方向是什么？",
+    "改变哪项因素最可能影响“{topic}”的输出？",
+    "关于“{topic}”的输入、规则和输出，哪项说法准确？",
+    "把“{topic}”迁移到新任务时，哪项做法更稳妥？",
+    "哪项实验最能区分“{topic}”与相邻概念？",
+)
+
+_GENERIC_QUIZ_ANSWERS = (
+    "先从输入表示、核心规则和输出含义三部分解释这个概念。",
+    "先确认输入类型、形状和必要的前置条件。",
+    "用一个最小可运行样例打印输入、中间结果和输出进行核对。",
+    "依次比较输入、参数、关键中间量和输出，定位第一个不一致处。",
+    "一次只改变一个关键参数，并记录输出形状或数值的变化。",
+    "同时检查输入约束、运算规则和输出结果，而不是只看接口是否调用成功。",
+    "先明确新任务的目标和验收指标，再选择对应的输入、规则和实现。",
+    "固定其余条件，改变一个能体现语义差异的因素并比较结果。",
+)
 
 
 def _preview_quiz_item(
@@ -1199,17 +1323,21 @@ def _preview_quiz_content(
         topic,
         evidence_facts[0] if evidence_facts else f"{topic}是本节学习的核心概念。",
     )
-    focus = evidence_facts[(index - 1) % len(evidence_facts)] if evidence_facts else explanation
+    focus = (
+        evidence_facts[(index - 1) % len(evidence_facts)]
+        if evidence_facts
+        else _GENERIC_QUIZ_ANSWERS[index - 1]
+    )
     correct_position = (index - 1) % 3
     alternatives = [
         focus,
-        f"{topic}只需记住名称，无需核对输入、操作或结果。",
-        f"{topic}对所有输入都适用，不需要验证边界或约束。",
+        "可以跳过输入输出约束，直接套用同一组参数。",
+        "只要接口调用成功，就不必核对结果形状和数值。",
     ]
     correct = alternatives.pop(0)
     alternatives.insert(correct_position, correct)
     return (
-        f"[{label}] 根据本节的“{topic}”学习材料，下列哪项表述有证据支持？",
+        f"[{label}] {(_GENERIC_QUIZ_PROMPT_TEMPLATES[index - 1]).format(topic=topic)}",
         tuple(alternatives),
         correct_position,
     )

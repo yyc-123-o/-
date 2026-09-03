@@ -14,6 +14,7 @@ const path = useLearningPathStore();
 const active = ref("lecture");
 const md = { render: renderMarkdown, renderInline: renderInlineMath };
 const resources = computed(() => path.run?.resources as Record<string, any> | null);
+const retrieval = computed(() => path.run?.retrieval as Record<string, any> | null);
 const currentConceptTitle = computed(() => {
   const pathTitle = path.currentNode?.title || path.currentNode?.name;
   if (pathTitle) return pathTitle;
@@ -27,21 +28,42 @@ const draft = computed(() => {
   const resourceResult = resources.value;
   return resourceResult?.formal_package?.draft || resourceResult?.preview_package?.draft || resourceResult?.draft || null;
 });
-const resourceStatus = computed(() => resources.value?.formal_package ? "正式资源" : "候选预览");
+const resourceStatus = computed(() => resources.value?.formal_package ? "正式学习资源" : "可学习资源");
 const quizResponses = ref<Record<string, number>>({});
 const quizSubmitting = ref(false);
 const quizSubmitted = ref(false);
 const quizError = ref("");
 const quizRefreshing = ref(false);
 const learningNotice = ref("");
+const coachAnswer = ref("");
+const coachError = ref("");
+const coachLoading = ref(false);
 const quizStartedAt = Date.now();
 const quizItems = computed(() => draft.value?.student_quiz?.items || []);
 const quizReady = computed(() => quizItems.value.length > 0 && quizItems.value.every((item: { question_id: string }) => Number.isInteger(quizResponses.value[item.question_id])));
+const quizNeedsRefresh = computed(() => quizItems.value.some((item: { prompt?: string; choices?: string[] }) => {
+  const text = [item.prompt || "", ...(item.choices || [])].join(" ");
+  return ["根据本节的", "只需记住名称", "对所有输入都适用"].some((marker) => text.includes(marker));
+}));
+const evidenceItems = computed(() => {
+  const formal = Array.isArray(retrieval.value?.evidence) ? retrieval.value.evidence : [];
+  const candidate = Array.isArray(retrieval.value?.candidate_evidence) ? retrieval.value.candidate_evidence : [];
+  return [...formal, ...candidate].slice(0, 4) as Array<{ source_title?: string; locator?: string; source_url?: string; content_kind?: string }>;
+});
+const hasFormalEvidence = computed(() => Number(retrieval.value?.evidence_summary?.formal_count || 0) > 0);
 
-function renderBlocks(blocks: Array<{ title?: string; body?: string; code?: string }> = []) {
+function displayEquations(value: string) {
+  // Worked examples are easier to scan as a calculation line, not a long
+  // paragraph of inline TeX. Keep short values such as `$1/2$` inline.
+  return value.replace(/\$([^$\n]+)\$([，。；])?/g, (match, formula: string) =>
+    formula.includes("=") ? `\n\n$$\n${formula.trim()}\n$$\n` : match,
+  );
+}
+
+function renderBlocks(blocks: Array<{ kind?: string; title?: string; body?: string; code?: string }> = []) {
   return blocks.map((block) => [
     block.title ? `### ${block.title}` : "",
-    block.body || "",
+    block.kind === "example" ? displayEquations(block.body || "") : block.body || "",
     block.code ? `\`\`\`python\n${block.code}\n\`\`\`` : "",
   ].filter(Boolean).join("\n\n")).join("\n\n");
 }
@@ -90,7 +112,23 @@ const resourceCards = [
   { key: "practice", title: "实践练习", description: "动手完成一个小任务，巩固迁移能力。", kind: "练习" },
   { key: "quiz", title: "小测验", description: "用几道题检查是否真的掌握。", kind: "测验" },
 ];
-function ask(value: string) { window.localStorage.setItem("zhijing.last-question", value); }
+async function ask(value: string) {
+  if (!path.run?.run_id || !path.currentNode || coachLoading.value) return;
+  coachLoading.value = true;
+  coachError.value = "";
+  coachAnswer.value = "";
+  try {
+    const reply = await assessmentApi.coach(path.run.run_id, {
+      concept_id: path.currentNode.concept_id,
+      question: value,
+    });
+    coachAnswer.value = String(reply?.answer || "AI 学习顾问暂未返回回答。");
+  } catch (reason) {
+    coachError.value = reason instanceof Error ? reason.message : "AI 学习顾问暂时不可用";
+  } finally {
+    coachLoading.value = false;
+  }
+}
 
 async function submitQuiz() {
   if (!path.run?.run_id || !path.currentNode || !quizReady.value || quizSubmitting.value) return;
@@ -107,7 +145,6 @@ async function submitQuiz() {
       response_time_ms: Math.max(1_000, Date.now() - quizStartedAt),
       hint_count: 0,
       attempt_count: 1,
-      passing_score: 0.6,
     });
     path.setRun(updated);
     const nextConceptId = updated?.planning?.current_node?.concept_id;
@@ -165,7 +202,7 @@ onMounted(() => {
   // The run normally already contains its resource draft. Only request a
   // refresh when the page was opened before resources were attached; checking
   // for a hard-coded phrase caused repeated requests for valid LLM lessons.
-  if (path.run?.run_id && !draft.value) refreshLesson();
+  if (path.run?.run_id && (!draft.value || quizNeedsRefresh.value)) refreshLesson();
 });
 </script>
 
@@ -174,10 +211,10 @@ onMounted(() => {
     <div class="page-intro"><div><span class="eyebrow">LEARNING RESOURCES</span><h2>把知识学进去，而不是只看完</h2><p>当前资源围绕推荐知识点组织，支持讲解、示例、练习和测验的连续学习。</p></div><span class="status-pill status-pill-purple"><Sparkles :size="14" /> AI 辅助学习</span></div>
     <section v-if="!path.run" class="panel"><StateBlocks type="empty" title="还没有当前学习资源" message="生成学习路径后，系统会为当前推荐节点准备资源。" /><button class="button button-primary" @click="router.push('/learning-path')">查看学习路径</button></section>
     <template v-else>
-      <section class="resource-context"><div class="resource-context-icon"><Code2 :size="22" /></div><div><span class="eyebrow">CURRENT NODE</span><h2>{{ currentConceptTitle }}</h2><p>{{ path.currentNode?.summary || "围绕当前推荐节点完成一次讲解、练习和测评。" }}</p></div><span class="status-pill" :class="{ 'status-pill-success': resourceStatus === '正式资源' }">{{ resourceStatus }}</span><button class="button button-secondary compact-button" :disabled="quizRefreshing" @click="refreshLesson"><RefreshCw :size="15" /> {{ quizRefreshing ? "正在生成…" : "按最新画像生成教案" }}</button></section>
+      <section class="resource-context"><div class="resource-context-icon"><Code2 :size="22" /></div><div><span class="eyebrow">CURRENT NODE</span><h2>{{ currentConceptTitle }}</h2><p>{{ path.currentNode?.summary || "围绕当前推荐节点完成一次讲解、练习和测评。" }}</p></div><span class="status-pill" :class="{ 'status-pill-success': resourceStatus === '正式学习资源' }">{{ resourceStatus }}</span><button class="button button-secondary compact-button" :disabled="quizRefreshing" @click="refreshLesson"><RefreshCw :size="15" /> {{ quizRefreshing ? "正在生成…" : "按最新画像生成教案" }}</button></section>
       <p v-if="learningNotice" class="learning-notice">{{ learningNotice }}</p>
       <div class="resource-card-grid"><ResourceCard v-for="item in resourceCards" :key="item.key" :title="item.title" :description="item.description" :kind="item.kind" :status="resourceStatus" @open="active = item.key" /></div>
-      <div class="content-grid content-grid-main"><section class="panel learning-reader"><div class="reader-tabs"><button v-for="item in resourceCards" :key="item.key" :class="{ active: active === item.key }" @click="active = item.key">{{ item.title }}</button></div><article v-if="active !== 'quiz'" class="markdown-content" v-html="md.render(content)" /><section v-else class="quiz-reader"><div><span class="eyebrow">KNOWLEDGE CHECK</span><h2>小测验</h2><p v-html="md.renderInline(draft?.student_quiz?.instructions || '完成所有题目后提交，结果会更新当前知识点掌握度。')" /></div><div v-if="!quizItems.length" class="state-block"><strong>测验准备中</strong><p>当前资源包未包含可作答的小测验。</p></div><form v-else class="quiz-form" @submit.prevent="submitQuiz"><fieldset v-for="(question, questionIndex) in quizItems" :key="question.question_id" class="quiz-question" :disabled="quizSubmitting || quizSubmitted || quizRefreshing"><legend>第 {{ questionIndex + 1 }} 题</legend><p v-html="md.renderInline(question.prompt || '')" /><label v-for="(choice, choiceIndex) in question.choices" :key="choiceIndex" class="quiz-option" :class="{ selected: quizResponses[question.question_id] === choiceIndex }"><input v-model="quizResponses[question.question_id]" type="radio" :name="question.question_id" :value="choiceIndex" /><span>{{ String.fromCharCode(65 + choiceIndex) }}</span><b v-html="md.renderInline(choice)" /></label></fieldset><p v-if="quizError" class="inline-error">{{ quizError }}</p><p v-if="quizSubmitted" class="quiz-success">答案已提交，学习路径已按测验结果更新。</p><div class="quiz-actions"><button class="button button-primary" type="submit" :disabled="!quizReady || quizSubmitting || quizSubmitted || quizRefreshing">{{ quizSubmitting ? "正在评分…" : quizSubmitted ? "已提交" : `提交 ${quizItems.length} 题并更新路径` }}</button><button class="button button-secondary" type="button" :disabled="quizSubmitting || quizRefreshing" @click="refreshQuiz"><RefreshCw :size="16" /> {{ quizRefreshing ? "正在重新生成…" : "重新生成本节小测" }}</button></div></form></section><div class="reader-actions"><button class="button button-secondary" @click="router.push('/assessment')"><FileCheck2 :size="16" /> 去完成测评</button><button class="button button-primary" @click="path.completeNode"><CheckCircle2 :size="16" /> 标记已完成</button></div></section><aside class="page-stack"><AICoachPanel @send="ask" /><section class="panel source-panel"><div class="panel-heading"><div><span class="eyebrow">EVIDENCE MANIFEST</span><h3>知识来源</h3></div><BookOpen :size="18" class="icon-muted" /></div><p>资源生成会区分正式依据和 candidate preview，当前结果以服务端返回的状态为准。</p><div class="source-status"><span class="online-dot" /> 已连接知识检索服务</div></section></aside></div>
+      <div class="content-grid content-grid-main"><section class="panel learning-reader"><div class="reader-tabs"><button v-for="item in resourceCards" :key="item.key" :class="{ active: active === item.key }" @click="active = item.key">{{ item.title }}</button></div><article v-if="active !== 'quiz'" class="markdown-content" v-html="md.render(content)" /><section v-else class="quiz-reader"><div><span class="eyebrow">KNOWLEDGE CHECK</span><h2>小测验</h2><p v-html="md.renderInline(draft?.student_quiz?.instructions || '完成所有题目后提交，结果会更新当前知识点掌握度。')" /></div><div v-if="!quizItems.length" class="state-block"><strong>测验准备中</strong><p>当前资源包未包含可作答的小测验。</p></div><form v-else class="quiz-form" @submit.prevent="submitQuiz"><fieldset v-for="(question, questionIndex) in quizItems" :key="question.question_id" class="quiz-question" :disabled="quizSubmitting || quizSubmitted || quizRefreshing"><legend>第 {{ questionIndex + 1 }} 题</legend><p v-html="md.renderInline(question.prompt || '')" /><label v-for="(choice, choiceIndex) in question.choices" :key="choiceIndex" class="quiz-option" :class="{ selected: quizResponses[question.question_id] === choiceIndex }"><input v-model="quizResponses[question.question_id]" type="radio" :name="question.question_id" :value="choiceIndex" /><span>{{ String.fromCharCode(65 + choiceIndex) }}</span><b v-html="md.renderInline(choice)" /></label></fieldset><p v-if="quizError" class="inline-error">{{ quizError }}</p><p v-if="quizSubmitted" class="quiz-success">答案已提交，学习路径已按测验结果更新。</p><div class="quiz-actions"><button class="button button-primary" type="submit" :disabled="!quizReady || quizSubmitting || quizSubmitted || quizRefreshing">{{ quizSubmitting ? "正在评分…" : quizSubmitted ? "已提交" : `提交 ${quizItems.length} 题并更新路径` }}</button><button class="button button-secondary" type="button" :disabled="quizSubmitting || quizRefreshing" @click="refreshQuiz"><RefreshCw :size="16" /> {{ quizRefreshing ? "正在重新生成…" : "重新生成本节小测" }}</button></div></form></section><div class="reader-actions"><button class="button button-secondary" @click="router.push('/assessment')"><FileCheck2 :size="16" /> 去完成测评</button><button class="button button-primary" @click="path.completeNode"><CheckCircle2 :size="16" /> 标记已完成</button></div></section><aside class="page-stack"><AICoachPanel :answer="coachAnswer" :loading="coachLoading" :error="coachError" @send="ask" /><section class="panel source-panel"><div class="panel-heading"><div><span class="eyebrow">RESOURCE BASIS</span><h3>本节学习依据</h3></div><BookOpen :size="18" class="icon-muted" /></div><p v-if="hasFormalEvidence">本节内容已关联经过确认的学习资料。</p><p v-else-if="evidenceItems.length">本节内容参考了以下资料，正在补充正式学习依据。</p><p v-else>当前节点的学习资料正在准备中。</p><div v-if="evidenceItems.length" class="source-list"><a v-for="item in evidenceItems" :key="`${item.source_title}-${item.locator}`" :href="item.source_url" target="_blank" rel="noreferrer"><strong>{{ item.source_title || "课程资料" }}</strong><span>{{ item.locator || "相关章节" }}</span></a></div><div class="source-status"><span class="online-dot" /> {{ hasFormalEvidence ? "学习依据已绑定" : evidenceItems.length ? "参考资料已找到" : "学习资源准备中" }}</div></section></aside></div>
     </template>
   </div>
 </template>

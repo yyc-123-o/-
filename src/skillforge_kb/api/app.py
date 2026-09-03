@@ -16,6 +16,8 @@ from skillforge_kb.platform.models import (
     PlatformRunResult,
     PlatformStepRecord,
     PracticeReviewSubmission,
+    LearningCoachQuestion,
+    LearningCoachReply,
 )
 from skillforge_kb.platform.practice_review import PracticeReviewResult
 from skillforge_kb.platform.repository import IdempotencyConflict
@@ -54,6 +56,10 @@ class PlatformApplicationService(Protocol):
     def review_practice(
         self, run_id: str, submission: PracticeReviewSubmission | dict[str, object]
     ) -> PracticeReviewResult: ...
+
+    def ask_learning_coach(
+        self, run_id: str, question: LearningCoachQuestion | dict[str, object]
+    ) -> LearningCoachReply: ...
 
     def evaluate_profile_knowledge_tracing(
         self,
@@ -325,6 +331,18 @@ def create_app(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "invalid_practice_submission", "message": str(exc)},
+            ) from exc
+
+    @app.post("/api/v1/runs/{run_id}/coach", response_model=LearningCoachReply)
+    def ask_learning_coach(run_id: str, question: LearningCoachQuestion) -> LearningCoachReply:
+        try:
+            return service.ask_learning_coach(run_id, question)
+        except KeyError as exc:
+            raise _run_not_found(run_id) from exc
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "invalid_coach_question", "message": str(exc)},
             ) from exc
 
     @app.post("/api/v1/runs/{run_id}/start-node", response_model=PlatformRunResult)

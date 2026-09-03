@@ -8,6 +8,7 @@ from skillforge_kb.ontology.models import (
     DepthLevel,
     KnowledgeMastery,
     LearnerProfileSnapshot,
+    LearningPreferences,
 )
 from skillforge_kb.planning.models import PathDecision, PathStatus, ReasonCode
 from skillforge_kb.planning.ordering import PlanningError
@@ -82,6 +83,32 @@ def test_zero_data_profile_gets_complete_conservative_path(catalog) -> None:
     assert sum(node.status is PathStatus.AVAILABLE for node in decision.nodes) == 1
 
 
+def test_recommendations_are_ranked_and_prerequisite_safe(catalog) -> None:
+    decision = CoursePlanner(catalog).plan(make_profile(catalog))
+
+    assert 1 <= len(decision.recommendations) <= 5
+    assert [item.rank for item in decision.recommendations] == list(
+        range(1, len(decision.recommendations) + 1)
+    )
+    node_by_id = {node.concept_id: node for node in decision.nodes}
+    assert all(
+        node_by_id[item.concept_id].status
+        not in {PathStatus.BLOCKED, PathStatus.COMPLETED, PathStatus.SKIPPED}
+        for item in decision.recommendations
+    )
+    assert "prerequisite_ready" in decision.recommendations[0].reason_codes
+
+
+def test_recommendation_budget_keeps_a_minimum_actionable_queue(catalog) -> None:
+    profile = make_profile(catalog).model_copy(
+        update={"preferences": LearningPreferences(pace_hours_per_week=0.5)}
+    )
+
+    decision = CoursePlanner(catalog).plan(profile)
+
+    assert len(decision.recommendations) >= min(3, len(decision.nodes))
+
+
 def test_planned_node_exposes_chinese_concept_title(catalog) -> None:
     decision = CoursePlanner(catalog).plan(make_profile(catalog))
 
@@ -105,6 +132,22 @@ def test_high_confidence_mastery_keeps_node_as_skipped(catalog) -> None:
     assert node.status is PathStatus.SKIPPED
     assert node.delivery_depth is None
     assert node.reason_codes == (ReasonCode.MASTERY_SKIP_THRESHOLD_MET,)
+
+
+def test_mastered_prerequisite_unlocks_successor(catalog) -> None:
+    profile = make_profile(
+        catalog,
+        mastery=[assessed("math.linear-algebra.scalar", 0.90)],
+        ability=0.90,
+    )
+
+    decision = CoursePlanner(catalog).plan(profile)
+
+    scalar = node_for(decision, "math.linear-algebra.scalar")
+    vector = node_for(decision, "math.linear-algebra.vector")
+    assert scalar.status is PathStatus.SKIPPED
+    assert vector.status is PathStatus.AVAILABLE
+    assert vector.blocking_prerequisite_ids == ()
 
 
 def test_complete_high_readiness_can_select_advanced(catalog) -> None:

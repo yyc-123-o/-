@@ -1,3 +1,4 @@
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -57,6 +58,8 @@ from .models import (
     PlatformStepRecord,
     PlatformStepStatus,
     PracticeReviewSubmission,
+    LearningCoachQuestion,
+    LearningCoachReply,
     build_payload_digest,
     build_request_digest,
     build_run_id,
@@ -134,6 +137,53 @@ class PlatformService:
             close()
         for callback in self._close_callbacks:
             callback()
+
+    def ask_learning_coach(
+        self,
+        run_id: str,
+        question: LearningCoachQuestion | dict[str, object],
+    ) -> LearningCoachReply:
+        """Answer a learner question with the configured Qwen adapter."""
+        with self._lock:
+            existing = self._repository.get(run_id)
+            if existing is None:
+                raise KeyError(f"platform run not found: {run_id}")
+            question = LearningCoachQuestion.model_validate(question)
+            planning = existing.planning
+            if (
+                existing.status is not PlatformRunStatus.COMPLETED
+                or planning is None
+                or planning.current_node is None
+            ):
+                raise ValueError("AI 学习顾问仅在当前学习节点准备好后可用")
+            if planning.current_node.concept_id != question.concept_id:
+                raise ValueError("问题知识点与当前学习节点不一致")
+            adapter = self._dependencies.practice_llm
+            if adapter is None or not callable(getattr(adapter, "complete", None)):
+                return LearningCoachReply(answer="当前 AI 学习顾问尚未配置模型服务，请先完成千问 API 配置。")
+            node = planning.current_node
+            draft = (
+                existing.resources.preview_package.draft
+                if existing.resources and existing.resources.preview_package
+                else None
+            )
+            lecture = getattr(getattr(draft, "lecture", None), "sections", ()) if draft else ()
+            context = "\n".join(str(item) for item in lecture)[:6_000]
+            prompt = (
+                "你是学习平台中的苏格拉底式 AI 学习顾问。只围绕当前知识点回答，先给一个简短提示，"
+                "再提出一个引导问题，不直接替学生完成作业。使用中文，控制在 180 字以内。"
+                "只返回 JSON 对象：{\"answer\": \"你的回答\"}。"
+                f"\n当前知识点：{node.title or node.concept_id}"
+                f"\n讲义上下文：{context}\n学生问题：{question.question}"
+            )
+            try:
+                raw_answer = str(adapter.complete(prompt)).strip()
+                answer = str(json.loads(raw_answer)["answer"]).strip()
+            except Exception as exc:
+                raise ValueError("AI 学习顾问暂时不可用，请稍后重试") from exc
+            if not answer:
+                raise ValueError("AI 学习顾问未返回有效回答")
+            return LearningCoachReply(answer=answer[:4_000])
 
     def run(self, request: PlatformRunRequest) -> PlatformRunResult:
         request = PlatformRunRequest.model_validate(request.model_dump())
@@ -397,6 +447,16 @@ class PlatformService:
                 previous_steps=existing.steps,
                 previous_progress=progress,
             )
+            refreshed = refreshed.model_copy(
+                update={
+                    "adaptation_trace": _build_adaptation_trace(
+                        existing.planning,
+                        refreshed.planning,
+                        submission.concept_id,
+                        is_passing,
+                    )
+                }
+            )
             if not progress.can_complete:
                 self._repository.save(refreshed)
                 self._repository.save_assessment(
@@ -422,6 +482,11 @@ class PlatformService:
                 planning_event=completed_event,
                 previous_steps=refreshed.steps,
                 previous_progress=refreshed.learning_progress,
+            )
+            result = result.model_copy(
+                update={
+                    "adaptation_trace": refreshed.adaptation_trace,
+                }
             )
             self._repository.save(result)
             self._repository.save_assessment(
@@ -499,9 +564,14 @@ class PlatformService:
             if planning.current_node.concept_id != submission.concept_id:
                 raise ValueError("practice concept does not match the current learning node")
             preview = existing.resources.preview_package
-            practical = preview.draft.practical_guide if preview is not None and preview.draft is not None else None
+            practical = (
+                preview.draft.practical_guide
+                if preview is not None and preview.draft is not None
+                else None
+            )
             exercise = (
-                practical.project_exercise if practical is not None and submission.exercise_kind == "project"
+                practical.project_exercise
+                if practical is not None and submission.exercise_kind == "project"
                 else practical.exercise if practical is not None
                 else None
             )
@@ -1179,6 +1249,36 @@ def _build_retrieval_scope(
         handoff.delivery_depth.value,
     ]
     return " ".join(part for part in parts if part)
+
+
+def _build_adaptation_trace(
+    before: CoursePlanningAgentResult | None,
+    after: CoursePlanningAgentResult | None,
+    concept_id: str,
+    passed: bool,
+) -> tuple[str, ...]:
+    """Summarize the feedback-to-replanning decision for the UI and audit log."""
+    before_queue = (
+        tuple(item.concept_id for item in before.path.recommendations)
+        if before is not None and before.path is not None
+        else ()
+    )
+    after_queue = (
+        tuple(item.concept_id for item in after.path.recommendations)
+        if after is not None and after.path is not None
+        else ()
+    )
+    changed = tuple(item for item in after_queue if item not in before_queue)
+    removed = tuple(item for item in before_queue if item not in after_queue)
+    outcome = "通过" if passed else "未通过"
+    trace = [f"{concept_id} 测评{outcome}，已更新掌握度并重新规划。"]
+    if changed:
+        trace.append("新增推荐：" + "、".join(changed) + "。")
+    if removed:
+        trace.append("移出推荐：" + "、".join(removed) + "。")
+    if not changed and not removed:
+        trace.append("推荐队列顺序保持不变，但资源深度和支架策略已重新计算。")
+    return tuple(trace)
 
 
 def _result_from_state(state: PlatformGraphState) -> PlatformRunResult:
