@@ -90,7 +90,9 @@ export const useLearnerStore = defineStore("learner", () => {
       // Persisted profiles may use an older diagnostic schema. Refresh the
       // selected learner on app start so legacy local storage cannot keep
       // presenting obsolete, hard-coded-looking results.
-      if (profile.value?.learner_id) {
+      // Imported/demo profiles are local and are not registered in diagnosis.
+      // Only refresh profiles created by the diagnosis service.
+      if (source.value === "real" && profile.value?.learner_id) {
         try {
           profile.value = await diagnosisApi.profile(profile.value.learner_id);
           selectedLearnerId.value = profile.value.learner_id;

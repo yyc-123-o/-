@@ -27,6 +27,10 @@ export const useLearningPathStore = defineStore("learningPath", () => {
     try {
       const snapshot = learner.snapshot || await learner.adaptProfile();
       if (!snapshot) throw new Error("请先完成学习画像");
+      if (run.value && run.value.profile_id !== snapshot.profile_id) {
+        run.value = null;
+        persistRun();
+      }
       run.value = await planningApi.run(snapshot);
       persistRun();
     } catch (reason) {

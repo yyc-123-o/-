@@ -244,7 +244,7 @@ watch(courseId, (value) => {
 }, { immediate: true });
 
 onMounted(() => {
-  if (learner.snapshot && !path.run) void path.generate();
+  if (learner.snapshot && path.run?.profile_id !== learner.snapshot.profile_id) void path.generate();
 });
 </script>
 
