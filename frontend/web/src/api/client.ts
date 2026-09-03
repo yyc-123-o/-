@@ -9,6 +9,7 @@ export const api = axios.create({
 // timeout short for ordinary API requests and opt into this budget only for
 // operations that synchronously generate learning materials.
 export const RESOURCE_GENERATION_TIMEOUT_MS = 180_000;
+export const PLATFORM_RUN_TIMEOUT_MS = 180_000;
 
 export async function withRetry<T>(
   request: () => Promise<T>,

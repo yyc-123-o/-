@@ -26,6 +26,9 @@ import BrandWordmark from "@/components/layout/BrandWordmark.vue";
 import { useLearnerStore } from "@/stores/learner";
 import { useLearningPathStore } from "@/stores/learningPath";
 import { adaptPathNodes, courseIdFromProfile } from "@/utils/knowledgeGraph";
+import { catalogApi } from "@/api/catalog";
+import { applyCourseCatalog } from "@/data/courseKnowledgeBase";
+import { refreshGlobalKnowledgeGraph } from "@/data/globalKnowledgeGraph";
 
 type NavIcon = typeof Home;
 
@@ -177,6 +180,12 @@ function toggleSidebar() {
 onMounted(() => {
   document.body.classList.add("app-shell-active");
   void learner.loadLearners();
+  void catalogApi.get().then((catalog) => {
+    applyCourseCatalog(catalog);
+    refreshGlobalKnowledgeGraph();
+  }).catch(() => {
+    // Keep the bundled catalog available when the API is temporarily offline.
+  });
 });
 
 onUnmounted(() => {

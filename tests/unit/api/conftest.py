@@ -87,6 +87,15 @@ class StubPlatformService:
             raise ValueError("no prediction observations")
         return self.evaluation_reports
 
+    def get_course_catalog(self) -> dict[str, object]:
+        return {
+            "version": "ai-course-v1",
+            "course": {"id": "course.demo", "title": "演示课程"},
+            "chapters": [],
+            "concepts": [],
+            "relations": [],
+        }
+
 
 @pytest.fixture
 def service() -> StubPlatformService:

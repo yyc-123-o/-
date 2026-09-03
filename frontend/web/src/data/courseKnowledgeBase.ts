@@ -1,3 +1,5 @@
+import { reactive } from "vue";
+
 export interface CourseKnowledgeNode {
   id: string;
   title: string;
@@ -19,7 +21,7 @@ export interface CourseChapter {
   nodes: CourseKnowledgeNode[];
 }
 
-export const courseKnowledgeBase = {
+export const courseKnowledgeBase = reactive({
   id: "course.ai-foundations-to-llm.v1",
   title: "人工智能基础课程",
   currentTrack: "卷积神经网络（CNN）",
@@ -67,4 +69,42 @@ export const courseKnowledgeBase = {
     { id: "chapter.05.cnn-representation", order: 5, title: "模型训练与优化", subtitle: "训练循环、优化器与调参", nodes: [] },
     { id: "chapter.06.embeddings-and-sequences", order: 6, title: "综合实践", subtitle: "端到端视觉任务与结果分析", nodes: [] },
   ] satisfies CourseChapter[],
-};
+});
+
+export function applyCourseCatalog(catalog: {
+  course: { id: string; title: string };
+  chapters: Array<{ id: string; order: number; title: string; subtitle: string }>;
+  concepts: Array<{ id: string; title: string; summary: string; chapter_id: string; prerequisites: string[] }>;
+}) {
+  const conceptsByChapter = new Map<string, CourseKnowledgeNode[]>();
+  for (const concept of catalog.concepts) {
+    const nodes = conceptsByChapter.get(concept.chapter_id) || [];
+    nodes.push({
+      id: concept.id,
+      title: concept.title,
+      chapterId: concept.chapter_id,
+      summary: concept.summary,
+      prerequisites: [...concept.prerequisites],
+      lectures: 2,
+      examples: 1,
+      exercises: 4,
+      assessments: 1,
+      estimatedMinutes: 20,
+    });
+    conceptsByChapter.set(concept.chapter_id, nodes);
+  }
+  courseKnowledgeBase.id = catalog.course.id;
+  courseKnowledgeBase.title = catalog.course.title;
+  courseKnowledgeBase.currentTrack = catalog.course.title;
+  courseKnowledgeBase.chapters.splice(
+    0,
+    courseKnowledgeBase.chapters.length,
+    ...catalog.chapters.map((chapter) => ({
+      id: chapter.id,
+      order: chapter.order,
+      title: chapter.title,
+      subtitle: chapter.subtitle,
+      nodes: conceptsByChapter.get(chapter.id) || [],
+    })),
+  );
+}

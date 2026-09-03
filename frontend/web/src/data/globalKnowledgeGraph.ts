@@ -1,3 +1,4 @@
+import { reactive } from "vue";
 import { courseKnowledgeBase } from "./courseKnowledgeBase";
 
 export type SystemNodeType = "subject" | "course" | "chapter" | "knowledge_point";
@@ -206,9 +207,94 @@ const applicationEdges: SystemKnowledgeEdge[] = [
   description: "源知识可用于理解或应用目标知识。",
 }));
 
-export const globalKnowledgeGraph = {
+export const globalKnowledgeGraph = reactive({
   subjects: subjectOptions,
   courses: courseOptions,
   nodes: objectiveNodes,
   edges: [...containsEdges, ...prerequisiteEdges, ...relatedEdges, ...applicationEdges],
-};
+});
+
+export function refreshGlobalKnowledgeGraph() {
+  const chapterNodes: SystemKnowledgeNode[] = courseKnowledgeBase.chapters.map((chapter) => ({
+    id: chapter.id,
+    name: `第${String(chapter.order).padStart(2, "0")}章 · ${chapter.title}`,
+    type: "chapter",
+    subjectId: "ai",
+    courseId: courseKnowledgeBase.id,
+    chapterId: chapter.id,
+    description: chapter.subtitle,
+    tags: ["章节", chapter.title],
+    aliases: [chapter.subtitle],
+    position: point(chapter.id),
+  }));
+  const knowledgeNodes: SystemKnowledgeNode[] = courseKnowledgeBase.chapters.flatMap((chapter) =>
+    chapter.nodes.map((node, index) => ({
+      id: node.id,
+      name: node.title,
+      type: "knowledge_point" as const,
+      subjectId: subjectForKnowledge(node.id),
+      courseId: courseKnowledgeBase.id,
+      chapterId: chapter.id,
+      description: node.summary,
+      tags: [chapter.title, node.title],
+      aliases: [node.summary],
+      position: point(node.id, index),
+      resourceCount: node.lectures + node.examples + node.exercises,
+      assessmentCount: node.assessments,
+      estimatedMinutes: node.estimatedMinutes,
+    })),
+  );
+  const nodes: SystemKnowledgeNode[] = [
+    ...subjectOptions.filter((item) => item.id !== "all").map((subject) => ({
+      id: subject.id,
+      name: subject.name,
+      type: "subject" as const,
+      subjectId: subject.id,
+      description: `${subject.name}相关课程与知识点集合。`,
+      tags: ["学科"],
+      aliases: [],
+      position: point(subject.id),
+    })),
+    {
+      id: courseKnowledgeBase.id,
+      name: courseKnowledgeBase.currentTrack,
+      type: "course" as const,
+      subjectId: "ai",
+      courseId: courseKnowledgeBase.id,
+      description: courseKnowledgeBase.subtitle,
+      tags: ["课程"],
+      aliases: [courseKnowledgeBase.title],
+      position: point(courseKnowledgeBase.id),
+    },
+    ...chapterNodes,
+    ...knowledgeNodes,
+  ];
+  const contains: SystemKnowledgeEdge[] = [
+    { id: "ai-contains-course", sourceId: "ai", targetId: courseKnowledgeBase.id, relation: "contains", description: "人工智能学科包含课程。" },
+    ...courseKnowledgeBase.chapters.map((chapter) => ({
+      id: `${courseKnowledgeBase.id}-contains-${chapter.id}`,
+      sourceId: courseKnowledgeBase.id,
+      targetId: chapter.id,
+      relation: "contains" as const,
+      description: "课程包含章节。",
+    })),
+    ...courseKnowledgeBase.chapters.flatMap((chapter) => chapter.nodes.map((node) => ({
+      id: `${chapter.id}-contains-${node.id}`,
+      sourceId: chapter.id,
+      targetId: node.id,
+      relation: "contains" as const,
+      description: "章节包含知识点。",
+    }))),
+  ];
+  const prerequisites: SystemKnowledgeEdge[] = courseKnowledgeBase.chapters.flatMap((chapter) =>
+    chapter.nodes.flatMap((node) => node.prerequisites.map((sourceId) => ({
+      id: `${sourceId}-prerequisite-${node.id}`,
+      sourceId,
+      targetId: node.id,
+      relation: "prerequisite" as const,
+      description: `${sourceId} 是 ${node.title} 的先修知识。`,
+    }))),
+  );
+  globalKnowledgeGraph.nodes.splice(0, globalKnowledgeGraph.nodes.length, ...nodes);
+  globalKnowledgeGraph.edges.splice(0, globalKnowledgeGraph.edges.length, ...contains, ...prerequisites, ...relatedEdges, ...applicationEdges);
+}

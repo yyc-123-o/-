@@ -551,7 +551,7 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
             <span>{{ courseKnowledgeBase.currentTrack }}</span>
             <ChevronDown :size="16" />
           </button>
-          <p>{{ courseKnowledgeBase.subtitle }} · 6章 · {{ courseStats.total }}个知识点</p>
+        <p>{{ courseKnowledgeBase.subtitle }} · {{ courseKnowledgeBase.chapters.length }}章 · {{ courseStats.total }}个知识点</p>
           <div class="course-progress-line">
             <span>课程进度</span>
             <div class="progress-track"><i :style="{ width: `${courseStats.progress}%` }" /></div>

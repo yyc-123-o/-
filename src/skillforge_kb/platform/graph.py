@@ -139,6 +139,70 @@ class PlatformService:
         for callback in self._close_callbacks:
             callback()
 
+    def get_course_catalog(self) -> dict[str, object]:
+        """Return the same canonical ontology that drives path planning."""
+        catalog = self._dependencies.catalog
+        if catalog is None:
+            raise ValueError("course catalog is not configured")
+        assignments = {item.concept_id: item for item in catalog.course_document.teaches}
+        chapter_by_id = {item.id: item for item in catalog.chapters()}
+        sections_by_chapter: dict[str, list[dict[str, object]]] = {}
+        for section in catalog.course_document.sections:
+            sections_by_chapter.setdefault(section.chapter_id, []).append({
+                "id": section.id,
+                "order": section.order,
+                "title": section.title.zh,
+            })
+        prerequisites: dict[str, list[str]] = {}
+        for relation in catalog.relations():
+            if relation.kind.value in {"hard_prerequisite", "soft_prerequisite"}:
+                prerequisites.setdefault(relation.target, []).append(relation.source)
+        concepts = []
+        for concept in catalog.concepts():
+            assignment = assignments.get(concept.id)
+            section = catalog.section_for(concept.id)
+            concepts.append({
+                "id": concept.id,
+                "title": concept.names.zh,
+                "title_en": concept.names.en,
+                "summary": concept.summary,
+                "difficulty": concept.difficulty,
+                "chapter_id": chapter_by_id[section.chapter_id].id,
+                "section_id": section.id,
+                "order": assignment.order if assignment is not None else 0,
+                "required": concept.required,
+                "prerequisites": sorted(prerequisites.get(concept.id, [])),
+            })
+        return {
+            "version": catalog.course_document.version,
+            "course": {
+                "id": catalog.course_document.course.id,
+                "title": catalog.course_document.course.title.zh,
+                "audience": catalog.course_document.course.audience,
+            },
+            "chapters": [
+                {
+                    "id": chapter.id,
+                    "order": chapter.order,
+                    "title": chapter.title.zh,
+                    "subtitle": chapter.summary,
+                    "core": chapter.core,
+                    "sections": sorted(sections_by_chapter.get(chapter.id, []), key=lambda item: int(item["order"])),
+                }
+                for chapter in catalog.chapters()
+            ],
+            "concepts": concepts,
+            "relations": [
+                {
+                    "source": relation.source,
+                    "target": relation.target,
+                    "kind": relation.kind.value,
+                    "min_mastery": relation.min_mastery,
+                }
+                for relation in catalog.relations()
+            ],
+        }
+
     def ask_learning_coach(
         self,
         run_id: str,

@@ -74,6 +74,8 @@ class PlatformApplicationService(Protocol):
 
     def search_evidence(self, query: str, top_k: int = 5) -> KnowledgeRetrievalResult: ...
 
+    def get_course_catalog(self) -> dict[str, object]: ...
+
 
 class ProfileAdaptationService(Protocol):
     def adapt(self, raw: Mapping[str, object]) -> AdaptedLearnerProfile: ...
@@ -132,6 +134,17 @@ def create_app(
             "status": "ok",
             "execution_modes": ["strict", "candidate_preview"],
         }
+
+    @app.get("/api/v1/course-catalog")
+    def get_course_catalog() -> dict[str, object]:
+        """Expose the canonical course ontology used by planning and retrieval."""
+        try:
+            return service.get_course_catalog()
+        except (AttributeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": "course_catalog_unavailable", "message": str(exc)},
+            ) from exc
 
     @app.post("/api/v1/retrieval/search")
     def search_evidence(payload: dict[str, object]) -> dict[str, object]:

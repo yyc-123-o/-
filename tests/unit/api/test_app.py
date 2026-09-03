@@ -31,6 +31,15 @@ def test_health_lists_enabled_execution_modes(client: TestClient) -> None:
     }
 
 
+def test_course_catalog_returns_canonical_graph_metadata(client: TestClient) -> None:
+    response = client.get("/api/v1/course-catalog")
+
+    assert response.status_code == 200
+    assert response.json()["version"] == "ai-course-v1"
+    assert "chapters" in response.json()
+    assert "concepts" in response.json()
+
+
 def test_app_closes_service_when_test_client_exits() -> None:
     class ClosingService:
         closed = False
