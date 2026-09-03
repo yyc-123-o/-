@@ -7,26 +7,15 @@ export interface PathNode {
   name?: string;
   summary?: string;
   status: string;
+  delivery_depth?: string;
   mastery_score?: number | null;
   confidence?: number;
   depth?: string;
-  delivery_depth?: string | null;
   estimated_minutes?: number;
   prerequisite_ids?: string[];
+  hard_prerequisite_ids?: string[];
   blocking_prerequisite_ids?: string[];
   reason_codes?: string[];
-  hard_prerequisite_ids?: string[];
-  mastery_confidence?: number;
-  mastery_source?: string;
-  personalized_skipped?: boolean;
-}
-
-export interface PathRecommendation {
-  concept_id: string;
-  rank: number;
-  score: number;
-  estimated_minutes: number;
-  reason_codes: string[];
 }
 
 export interface LearningProgress {
@@ -47,13 +36,11 @@ export interface PlatformRun {
   profile?: LearnerSnapshot | null;
   status: string;
   planning?: {
-    path?: { nodes: PathNode[]; profile_id?: string; recommendations?: PathRecommendation[] };
-    full_path?: { nodes: PathNode[]; profile_id?: string };
+    path?: { nodes: PathNode[]; profile_id?: string };
     current_node?: PathNode;
     adaptations?: Record<string, unknown>;
   };
   resources?: Record<string, unknown> | null;
-  adaptation_trace?: string[];
   handoff?: { concept_id?: string; chapter_id?: string; [key: string]: unknown } | null;
   retrieval?: Record<string, unknown> | null;
   evidence_gap?: Record<string, unknown> | null;

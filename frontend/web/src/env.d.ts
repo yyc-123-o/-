@@ -1,1 +1,7 @@
 /// <reference types="vite/client" />
+
+declare module "markdown-it-katex" {
+  import type MarkdownIt from "markdown-it";
+  const plugin: (md: MarkdownIt, options?: Record<string, unknown>) => void;
+  export default plugin;
+}

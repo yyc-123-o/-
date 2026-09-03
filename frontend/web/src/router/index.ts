@@ -14,11 +14,8 @@ const router = createRouter({
     { path: "/dashboard", redirect: "/app" },
     { path: "/workspace", name: "workspace", component: () => import("@/views/DashboardView.vue"), meta: { title: "工作台" } },
     { path: "/knowledge-base", redirect: "/resources#knowledge-base" },
-    // The learning-path view is backed by the active platform run. Keeping all
-    // graph entry points here prevents an outdated static course demo from
-    // being presented as the learner's generated knowledge graph.
-    { path: "/knowledge-graph", redirect: "/learning-path" },
-    { path: "/course-center/knowledge-graph", redirect: "/learning-path" },
+    { path: "/knowledge-graph", redirect: "/course-center/knowledge-graph" },
+    { path: "/course-center/knowledge-graph", name: "knowledge-graph", component: () => import("@/views/KnowledgeGraphView.vue"), meta: { title: "知识图谱", breadcrumb: "课程中心 / 知识图谱" } },
     { path: "/planning", redirect: "/learning-path" },
     { path: "/diagnosis", name: "diagnosis", component: () => import("@/views/DiagnosisView.vue"), meta: { title: "学情诊断" } },
     { path: "/diagnosis/basic", name: "diagnosis-basic", component: () => import("@/views/DiagnosisBasicView.vue"), meta: { title: "基础信息" } },

@@ -44,7 +44,7 @@ const profileCourseId = computed(() => courseIdFromProfile(profile.value));
 const courseOptions = computed(() => {
   const ids = new Set<string>();
   if (profileCourseId.value) ids.add(canonicalCourseId(profileCourseId.value));
-  path.fullNodes.forEach((node) => {
+  path.nodes.forEach((node) => {
     if (node.chapter_id) ids.add(canonicalCourseId(node.chapter_id));
   });
   return [...ids]
@@ -59,7 +59,7 @@ const courseOptions = computed(() => {
 const courseId = computed(() => selectedCourseId.value || canonicalCourseId(profileCourseId.value));
 const courseName = computed(() => courseTitle(courseId.value));
 const courseTarget = computed(() => profile.value?.learning_scope?.primary_kp_name || "完成学情诊断后生成");
-const normalizedPath = computed(() => adaptPathNodes(path.fullNodes, {
+const normalizedPath = computed(() => adaptPathNodes(path.nodes, {
   courseId: courseId.value,
   profile: profile.value,
   snapshot: learner.snapshot,
@@ -229,7 +229,7 @@ watch(() => route.query.course, (value) => {
   }
 });
 
-watch([profileCourseId, () => path.fullNodes.length], () => {
+watch([profileCourseId, () => path.nodes.length], () => {
   if (selectedCourseId.value) return;
   const fallback = profileCourseId.value || courseOptions.value[0]?.id;
   if (fallback) selectedCourseId.value = canonicalCourseId(fallback);

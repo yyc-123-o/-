@@ -51,7 +51,6 @@ export interface LearnerSnapshot {
 export interface DiagnosisProfile {
   profile_id: string;
   profile_version?: string;
-  generated_at?: string | null;
   learner_id: string;
   learner: {
     name: string;

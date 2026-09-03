@@ -23,7 +23,6 @@ import {
 import HomeNavbar from "@/components/layout/HomeNavbar.vue";
 import BrandWordmark from "@/components/layout/BrandWordmark.vue";
 import GuideFigure from "@/components/illustrations/GuideFigure.vue";
-import mountainPath from "@/assets/landing/hero-mountain-path.webp";
 
 type RoleKey = "builder" | "teacher" | "learner" | "institution";
 type StepKey = "materials" | "organize" | "understand" | "plan" | "generate" | "feedback";
@@ -68,7 +67,7 @@ const heroTags = ["知识库治理", "智能课程规划", "多智能体协作"]
 const HOME_SCENES: HomeScene[] = [
   {
     id: "hero",
-    image: mountainPath,
+    image: "/assets/landing/hero-mountain-path-v1-4k.webp",
     alt: "",
     top: "0vh",
     height: "138vh",
@@ -80,7 +79,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "knowledge",
-    image: mountainPath,
+    image: "/assets/landing/knowledge-weave.webp",
     alt: "",
     top: "96vh",
     height: "142vh",
@@ -91,7 +90,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "learner",
-    image: mountainPath,
+    image: "/assets/landing/learner-beacon.webp",
     alt: "",
     top: "198vh",
     height: "146vh",
@@ -102,7 +101,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "route",
-    image: mountainPath,
+    image: "/assets/landing/learning-route.webp",
     alt: "",
     top: "304vh",
     height: "148vh",
@@ -113,7 +112,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "feedback",
-    image: mountainPath,
+    image: "/assets/landing/feedback-loop.webp",
     alt: "",
     top: "414vh",
     height: "146vh",
@@ -124,7 +123,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "ending",
-    image: mountainPath,
+    image: "/assets/landing/horizon-growth.webp",
     alt: "",
     top: "520vh",
     height: "160vh",
@@ -304,7 +303,7 @@ onMounted(() => {
     knowledgePreloadLink = document.createElement("link");
     knowledgePreloadLink.rel = "preload";
     knowledgePreloadLink.as = "image";
-    knowledgePreloadLink.href = mountainPath;
+    knowledgePreloadLink.href = "/assets/landing/knowledge-weave.webp";
     document.head.appendChild(knowledgePreloadLink);
   }
 
@@ -1683,7 +1682,8 @@ onBeforeUnmount(() => {
   z-index: 0;
   content: "";
   background:
-    linear-gradient(90deg, rgba(23, 43, 77, 0.9), rgba(23, 43, 77, 0.62));
+    linear-gradient(90deg, rgba(23, 43, 77, 0.9), rgba(23, 43, 77, 0.62)),
+    url("/assets/landing/horizon-growth.webp") 64% bottom / cover no-repeat;
   opacity: 0.92;
   pointer-events: none;
 }
@@ -1858,7 +1858,9 @@ onBeforeUnmount(() => {
   }
 
   .cta-section::before {
-    background: linear-gradient(180deg, rgba(23, 43, 77, 0.92), rgba(23, 43, 77, 0.72));
+    background:
+      linear-gradient(180deg, rgba(23, 43, 77, 0.92), rgba(23, 43, 77, 0.72)),
+      url("/assets/landing/horizon-growth.webp") center bottom / auto 100% no-repeat;
   }
 
   .hero-copy h1 {

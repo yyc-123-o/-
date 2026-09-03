@@ -5,8 +5,6 @@ export const assessmentApi = {
     api.post(`/api/v1/runs/${encodeURIComponent(runId)}/assessment`, payload, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
   practiceReview: (runId: string, payload: Record<string, unknown>) =>
     api.post(`/api/v1/runs/${encodeURIComponent(runId)}/practice-review`, payload).then((r) => r.data),
-  coach: (runId: string, payload: Record<string, unknown>) =>
-    api.post(`/api/v1/runs/${encodeURIComponent(runId)}/coach`, payload).then((r) => r.data),
   refreshResources: (runId: string) =>
     api.post(`/api/v1/runs/${encodeURIComponent(runId)}/refresh-resources`, undefined, { timeout: RESOURCE_GENERATION_TIMEOUT_MS }).then((r) => r.data),
 };

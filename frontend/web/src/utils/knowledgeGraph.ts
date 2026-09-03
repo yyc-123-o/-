@@ -311,7 +311,7 @@ export function adaptPathNodes(
       description: node.summary,
       domain: domainTitle(node.concept_id),
       stage: stageTitle(node.chapter_id, node.sequence),
-      difficulty: difficultyTitle(node.depth || node.delivery_depth || undefined),
+      difficulty: difficultyTitle(node.depth || node.delivery_depth),
       estimatedMinutes: node.estimated_minutes,
       mastery,
       status: "unevaluated",

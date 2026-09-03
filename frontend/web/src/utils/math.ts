@@ -1,98 +1,62 @@
 import MarkdownIt from "markdown-it";
-import katex from "katex";
+import markdownItKatex from "markdown-it-katex";
 import "katex/dist/katex.min.css";
 
-function mathPlugin(md: MarkdownIt): void {
-  md.inline.ruler.before("escape", "math_inline", (state, silent) => {
-    const start = state.pos;
-    if (state.src[start] !== "$" || state.src[start + 1] === "$") return false;
-    let end = start + 1;
-    while (end < state.posMax) {
-      if (state.src[end] === "\\") {
-        end += 2;
-        continue;
-      }
-      if (state.src[end] === "$") break;
-      end += 1;
-    }
-    if (end >= state.posMax || end === start + 1) return false;
-    if (silent) return true;
-    const token = state.push("math_inline", "span", 0);
-    token.content = state.src.slice(start + 1, end);
-    token.markup = "$";
-    state.pos = end + 1;
-    return true;
-  });
+const markdown = new MarkdownIt({ html: false, breaks: true }).use(markdownItKatex);
 
-  md.block.ruler.before("paragraph", "math_block", (state, startLine, endLine, silent) => {
-    const start = state.bMarks[startLine] + state.tShift[startLine];
-    const firstLine = state.src.slice(start, state.eMarks[startLine]).trim();
-    if (firstLine !== "$$") return false;
-    let nextLine = startLine + 1;
-    while (nextLine < endLine) {
-      const lineStart = state.bMarks[nextLine] + state.tShift[nextLine];
-      const line = state.src.slice(lineStart, state.eMarks[nextLine]).trim();
-      if (line === "$$") break;
-      nextLine += 1;
-    }
-    if (nextLine >= endLine) return false;
-    if (silent) return true;
-    const contentStart = state.eMarks[startLine] + 1;
-    const contentEnd = state.bMarks[nextLine];
-    const token = state.push("math_block", "div", 0);
-    token.block = true;
-    token.content = state.src.slice(contentStart, contentEnd).trim();
-    token.map = [startLine, nextLine + 1];
-    token.markup = "$$";
-    state.line = nextLine + 1;
-    return true;
-  });
-
-  md.renderer.rules.math_inline = (tokens, index) =>
-    katex.renderToString(tokens[index].content, {
-      displayMode: false,
-      throwOnError: false,
-      strict: "ignore",
-    });
-  md.renderer.rules.math_block = (tokens, index) =>
-    `<div class="katex-display">${katex.renderToString(tokens[index].content, {
-      displayMode: true,
-      throwOnError: false,
-      strict: "ignore",
-    })}</div>`;
-}
-
-const markdown = new MarkdownIt({ html: false, breaks: true }).use(mathPlugin);
-
-/** Render declared TeX delimiters without rewriting valid lesson formulas. */
+/** Convert common TeX delimiters while leaving executable code fences untouched. */
 export function normalizeMath(value: string, promoteComplex = true): string {
   const source = String(value);
   const segments = source.split(/(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]+`)/g);
   return segments.map((segment, index) => {
     if (index % 2 === 1) {
-      return segment;
+      const textFence = segment.match(/^(?:```|~~~)text\s*\n([\s\S]*?)\n(?:```|~~~)$/i);
+      return textFence ? `\n\n$$\n${normalizeLegacyMath(textFence[1])}\n$$\n\n` : segment;
     }
-    const protectedMath: string[] = [];
-    const protectedText = segment.replace(/\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$/g, (part) => {
-      const placeholder = `\uE000${protectedMath.length}\uE001`;
-      protectedMath.push(part);
-      return placeholder;
-    });
-    const normalized = normalizeLegacyMath(protectedText)
+    const normalized = normalizeBareTex(normalizeLegacyMath(segment))
       .replace(/\\\(([^\n]*?)\\\)/g, (_match, body: string) => "$" + body + "$")
-      .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body: string) => promoteComplex ? `\n\n$$\n${body.trim()}\n$$\n\n` : "$" + body + "$");
-    const restored = normalized
-      .replace(/\u0000(\d+)\u0000/g, (_match, placeholderIndex: string) => protectedMath[Number(placeholderIndex)])
-      .replace(/\uE000(\d+)\uE001/g, (_match, placeholderIndex: string) => protectedMath[Number(placeholderIndex)]);
-    return promoteComplex ? normalizeDisplayMath(restored) : restored;
+      .replace(/\\\[([\s\S]*?)\\\]/g, (_match, body: string) => promoteComplex ? "\n\n$$\n" + body + "\n$$\n\n" : "$" + body + "$");
+    return promoteComplex ? promoteComplexMath(normalized) : normalized;
   }).join("");
 }
 
-/** Markdown-it-katex requires display delimiters to occupy their own paragraph. */
-function normalizeDisplayMath(value: string): string {
-  return value.replace(/\$\$([\s\S]*?)\$\$/g, (_match, body: string) =>
+/** Keep tall TeX constructs out of paragraph line boxes. */
+function promoteComplexMath(value: string): string {
+  const blockSafe = value.replace(/\$\$([\s\S]*?)\$\$/g, (_match, body: string) =>
     `\n\n$$\n${body.trim()}\n$$\n\n`,
   );
+  return blockSafe.replace(/\$(?!\$)([^$\n]*?)\$/g, (match, body: string) => {
+    if (!/(?:\\begin\{|\\end\{|\\matrix|\\frac|\\sum|\\prod|\\left|\\right)/.test(body)) {
+      return match;
+    }
+    return `\n\n$$\n${body}\n$$\n\n`;
+  });
+}
+
+/** Recover common TeX commands emitted without dollar delimiters. */
+function normalizeBareTex(value: string): string {
+  const protectedParts: string[] = [];
+  const protectedText = value.replace(/\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$/g, (part) => {
+    const index = protectedParts.push(part) - 1;
+    return `\u0001${index}\u0002`;
+  });
+  const normalized = protectedText
+    .replace(
+      /(?<![$\\])((?:\\(?:mathbb|mathbf|mathrm|mathcal)\{[^{}\n]+\}(?:[_^][A-Za-z0-9{}]+)?)(?:\s*(?:=|∈|\\(?:in|dots|cdot|times)|[A-Za-z0-9_{}\[\],+\-*/^]))*)/g,
+      (_match, body: string) => `$${body.trim()}$`,
+    );
+  const formulaParts: string[] = [];
+  const formulaSafe = normalized.replace(/\$\$[\s\S]*?\$\$|\$(?:\\.|[^$\n])+\$/g, (part) => {
+    const index = formulaParts.push(part) - 1;
+    return `\u0003${index}\u0004`;
+  });
+  const withCommands = formulaSafe.replace(
+      /(?<![$\\])(\\(?:alpha|beta|gamma|theta|lambda|mu|sigma|in|notin|cdot|times|dots)\b)/g,
+      (_match, command: string) => `$${command}$`,
+    );
+  return withCommands
+    .replace(/\u0003(\d+)\u0004/g, (_match, index: string) => formulaParts[Number(index)])
+    .replace(/\u0001(\d+)\u0002/g, (_match, index: string) => protectedParts[Number(index)]);
 }
 
 function normalizeLegacyMath(value: string): string {
