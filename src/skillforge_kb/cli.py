@@ -745,11 +745,14 @@ def persona_hard_metrics(
     )
 
     if len(coverage_snapshot) != len(persona_label):
-        raise typer.BadParameter("--coverage-snapshot count must match --persona-label count")
+        typer.echo("--coverage-snapshot count must match --persona-label count", err=True)
+        raise typer.Exit(code=1)
     if hallucination_snapshot is not None and len(hallucination_snapshot) != len(persona_label):
-        raise typer.BadParameter(
-            "--hallucination-snapshot count must match --persona-label count when given"
+        typer.echo(
+            "--hallucination-snapshot count must match --persona-label count when given",
+            err=True,
         )
+        raise typer.Exit(code=1)
 
     def _load_snapshot(path: Path) -> dict[str, object]:
         payload = json.loads(path.read_text(encoding="utf-8"))

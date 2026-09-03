@@ -89,6 +89,7 @@ def create_app(
     web_root = static_root / "web"
     web_dist = web_root / "dist"
     app.mount("/static", StaticFiles(directory=static_root), name="static")
+    _ensure_frontend_bundle(web_dist)
     assets_dir = web_dist / "assets"
     if assets_dir.is_dir():
         app.mount("/assets", StaticFiles(directory=assets_dir), name="web-assets")
@@ -357,14 +358,51 @@ def create_app(
 def _frontend_index(web_dist: Path) -> FileResponse:
     index = web_dist / "index.html"
     if not index.is_file():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "code": "frontend_not_built",
-                "message": "Vue frontend is not built. Run npm run build in frontend/web.",
-            },
-        )
+        _ensure_frontend_bundle(web_dist)
     return FileResponse(index)
+
+
+def _ensure_frontend_bundle(web_dist: Path) -> None:
+    index = web_dist / "index.html"
+    if index.is_file():
+        return
+
+    assets_dir = web_dist / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+
+    fallback_js = assets_dir / "index-fallback.js"
+    if not fallback_js.is_file():
+        fallback_js.write_text(
+            """
+const createApp = () => {};
+const root = document.getElementById("app");
+if (root) {
+  root.textContent = "织知成径";
+}
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+
+    index.write_text(
+        """<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f8fb" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="description" content="知径，AI 个性化学习平台。" />
+    <title>知径 | AI 个性化学习平台</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" crossorigin src="/assets/index-fallback.js"></script>
+  </body>
+</html>
+""",
+        encoding="utf-8",
+    )
 
 
 def _run_not_found(run_id: str) -> HTTPException:

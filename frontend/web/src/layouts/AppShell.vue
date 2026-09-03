@@ -20,7 +20,6 @@ import {
   ScanSearch,
   Settings2,
   UserRound,
-  X,
   Route,
 } from "lucide-vue-next";
 import BrandWordmark from "@/components/layout/BrandWordmark.vue";
@@ -203,9 +202,6 @@ watch(
     <aside class="sidebar" :class="{ 'is-open': mobileOpen }">
       <div class="sidebar-head">
         <BrandWordmark to="/app" compact class="brand-link" @click="mobileOpen = false" />
-        <button class="icon-button sidebar-close" title="关闭导航" @click="mobileOpen = false">
-          <X :size="18" />
-        </button>
       </div>
 
       <div class="sidebar-content">

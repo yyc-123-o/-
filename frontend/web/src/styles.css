@@ -89,7 +89,7 @@ a { color: inherit; text-decoration: none; }
   height: 100vh;
   overflow: hidden;
   overflow-x: hidden;
-  padding: 0 8px 14px;
+  padding: 12px 8px 14px; /* 让 logo 和主导航整体下移一点 */
   background: linear-gradient(180deg, rgba(248, 251, 255, .84), rgba(244, 247, 255, .72));
   border-right: 1px solid rgba(148, 163, 184, .18);
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, .55);
@@ -115,7 +115,12 @@ a { color: inherit; text-decoration: none; }
   overflow-x: hidden;
   scrollbar-width: thin;
 }
-.side-nav { display: grid; flex: 0 0 auto; gap: 5px; }
+.side-nav {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 5px;
+  margin-top: 10px; /* 让上方主导航整体下移一点，和 Logo 拉开距离 */
+}
 .sidebar-spacer {
   flex: 1 1 auto;
   min-height: 24px;
