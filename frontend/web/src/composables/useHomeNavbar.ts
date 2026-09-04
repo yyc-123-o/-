@@ -5,6 +5,8 @@ export interface HomeNavItem {
   label: string;
 }
 
+const HOME_CAROUSEL_EVENT = "home-carousel-go";
+
 export const homeNavItems: HomeNavItem[] = [
   { key: "capability", label: "产品能力" },
   { key: "planning", label: "智能课程规划" },
@@ -22,6 +24,7 @@ export function useHomeNavbar() {
   let observer: IntersectionObserver | null = null;
   let onScroll: (() => void) | null = null;
   let onResize: (() => void) | null = null;
+  let onCarouselChange: ((event: Event) => void) | null = null;
 
   const updateScrolledState = () => {
     if (typeof window === "undefined") return;
@@ -42,6 +45,9 @@ export function useHomeNavbar() {
     if (target) {
       activeKey.value = key;
       target.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (typeof window !== "undefined") {
+      activeKey.value = key;
+      window.dispatchEvent(new CustomEvent(HOME_CAROUSEL_EVENT, { detail: key }));
     }
     closeMobileMenu();
   };
@@ -55,6 +61,13 @@ export function useHomeNavbar() {
       if (window.innerWidth >= 960) closeMobileMenu();
     };
     window.addEventListener("resize", onResize);
+    onCarouselChange = (event: Event) => {
+      const key = (event as CustomEvent<string>).detail;
+      if (typeof key === "string" && homeNavItems.some((item) => item.key === key)) {
+        activeKey.value = key;
+      }
+    };
+    window.addEventListener(HOME_CAROUSEL_EVENT, onCarouselChange);
 
     const sections = homeNavItems
       .map((item) => document.getElementById(item.key))
@@ -77,6 +90,8 @@ export function useHomeNavbar() {
     observer = null;
     if (onScroll) window.removeEventListener("scroll", onScroll);
     if (onResize) window.removeEventListener("resize", onResize);
+    if (onCarouselChange) window.removeEventListener(HOME_CAROUSEL_EVENT, onCarouselChange);
+    onCarouselChange = null;
     onScroll = null;
     onResize = null;
   };

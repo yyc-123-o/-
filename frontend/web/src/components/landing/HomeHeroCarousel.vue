@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { ArrowLeft, ArrowRight, Pause, Play, Sparkles } from "lucide-vue-next";
 
 interface BannerSlide {
+  navKey: string;
   eyebrow: string;
   titleLines: string[];
   subtitle: string;
@@ -24,22 +25,24 @@ const AUTO_PLAY_DELAY = 5000;
 
 const slides: BannerSlide[] = [
   {
+    navKey: "capability",
     eyebrow: "织知成径 · AI 辅助学习平台",
-    titleLines: ["从课程知识库，", "到每个人的", "智能学习路径"],
-    subtitle: "将课程资料、知识图谱与学习反馈连接起来，为每一次学习找到更合适的下一步。",
+    titleLines: ["把课程知识，", "组织成每个人", "走得通的学习路径。"],
+    subtitle: "连接课程资料、知识关系、学习记录与测评反馈，让每一次学习都成为下一步规划的依据。",
     primaryText: "开始学习",
     primaryTo: "/register",
     secondaryText: "了解平台如何工作",
     secondaryHref: "#workflow",
     tone: "blue",
     image: "/assets/landing/homepage-carousel/01-student-collaboration-unsplash.webp",
-    imagePosition: "center center",
+    imagePosition: "58% center",
     alt: "学生围坐协作学习的场景",
     infoTitle: "下一步学习",
     infoBody: "知识关系与路径正在生成",
     infoFoot: "72% 掌握度 · 实时更新",
   },
   {
+    navKey: "planning",
     eyebrow: "课程知识库治理",
     titleLines: ["把分散课程资料，", "整理成可追溯的", "知识资产"],
     subtitle: "教材、课件、讲义与练习不再散落，平台会保留来源、审核状态和知识归属。",
@@ -49,13 +52,14 @@ const slides: BannerSlide[] = [
     secondaryHref: "#governance",
     tone: "cyan",
     image: "/assets/landing/homepage-carousel/09-modern-library-unsplash.webp",
-    imagePosition: "center center",
+    imagePosition: "62% center",
     alt: "现代图书馆与知识空间场景",
     infoTitle: "知识库治理",
     infoBody: "课程资料已完成清洗与审核",
     infoFoot: "来源可追溯 · 结构清晰",
   },
   {
+    navKey: "governance",
     eyebrow: "知识图谱驱动",
     titleLines: ["让系统知道", "先学什么，", "再学什么"],
     subtitle: "知识节点、先修关系和薄弱点共同约束学习顺序，避免重复学习和盲目推进。",
@@ -65,13 +69,14 @@ const slides: BannerSlide[] = [
     secondaryHref: "#capability",
     tone: "green",
     image: "/assets/landing/homepage-carousel/10-digital-study-unsplash.webp",
-    imagePosition: "center center",
+    imagePosition: "66% center",
     alt: "数字化学习与知识连接的场景",
     infoTitle: "知识图谱",
     infoBody: "先修关系已连接",
     infoFoot: "路径将据此自动规划",
   },
   {
+    navKey: "agents",
     eyebrow: "学习者画像",
     titleLines: ["画像来自", "真实学习行为，", "而不是静态问卷"],
     subtitle: "诊断、练习、资源完成状态和测评结果会回流更新掌握度，推动下一轮规划。",
@@ -81,13 +86,14 @@ const slides: BannerSlide[] = [
     secondaryHref: "#planning",
     tone: "gold",
     image: "/assets/landing/homepage-carousel/02-asian-student-laptop-pexels.webp",
-    imagePosition: "center center",
+    imagePosition: "68% center",
     alt: "学生在笔记本电脑前专注学习",
     infoTitle: "学习者画像",
     infoBody: "当前掌握度 72%",
     infoFoot: "待补强：梯度下降",
   },
   {
+    navKey: "scenarios",
     eyebrow: "多 Agent 协同",
     titleLines: ["复杂智能过程，", "最终收束成", "清晰下一步"],
     subtitle: "诊断、检索、规划与资源生成协同工作，但学习者看到的是可执行、可理解的学习建议。",
@@ -97,7 +103,7 @@ const slides: BannerSlide[] = [
     secondaryHref: "#agents",
     tone: "navy",
     image: "/assets/landing/homepage-carousel/04-collaborative-learning-pexels.webp",
-    imagePosition: "center center",
+    imagePosition: "60% center",
     alt: "多人协作进行学习讨论的场景",
     infoTitle: "多 Agent 协同",
     infoBody: "诊断、检索、规划已串联",
@@ -112,6 +118,7 @@ const isDocumentHidden = ref(false);
 const prefersReducedMotion = ref(false);
 let timer: number | undefined;
 let mediaQuery: MediaQueryList | undefined;
+let onCarouselRequest: ((event: Event) => void) | undefined;
 
 const trackStyle = computed(() => ({
   transform: `translate3d(-${activeIndex.value * 100}%, 0, 0)`,
@@ -123,6 +130,9 @@ const shouldAutoplay = computed(
 
 function goTo(index: number) {
   activeIndex.value = (index + slides.length) % slides.length;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("home-carousel-change", { detail: slides[activeIndex.value].navKey }));
+  }
 }
 
 function goNext() {
@@ -173,6 +183,12 @@ onMounted(() => {
   handleMotionPreference(mediaQuery);
   mediaQuery.addEventListener("change", handleMotionPreference);
   document.addEventListener("visibilitychange", handleVisibilityChange);
+  onCarouselRequest = (event: Event) => {
+    const key = (event as CustomEvent<string>).detail;
+    const index = slides.findIndex((slide) => slide.navKey === key);
+    if (index >= 0) goTo(index);
+  };
+  window.addEventListener("home-carousel-go", onCarouselRequest);
   startTimer();
 });
 
@@ -180,6 +196,7 @@ onBeforeUnmount(() => {
   clearTimer();
   mediaQuery?.removeEventListener("change", handleMotionPreference);
   document.removeEventListener("visibilitychange", handleVisibilityChange);
+  if (onCarouselRequest) window.removeEventListener("home-carousel-go", onCarouselRequest);
 });
 
 watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion], startTimer);
@@ -214,11 +231,11 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
             </div>
           </div>
 
-          <div class="home-hero-carousel__poster" aria-hidden="true">
+          <div class="home-hero-carousel__poster">
             <img
               class="home-hero-carousel__poster-image"
               :src="slide.image"
-              :alt="slide.alt"
+              :alt="activeIndex === index ? slide.alt : ''"
               decoding="async"
               :loading="index === 0 ? 'eager' : 'lazy'"
               :style="{ objectPosition: slide.imagePosition }"
@@ -262,6 +279,10 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 
 <style scoped>
 .home-hero-carousel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   width: min(92vw, 1680px);
   margin: 0 auto;
   padding: 22px 0 12px;
@@ -269,10 +290,11 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 
 .home-hero-carousel__viewport {
   position: relative;
-  min-height: min(720px, calc(100dvh - 170px));
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(190, 205, 224, 0.75);
-  border-radius: 28px;
+  border-radius: 20px;
   background: linear-gradient(135deg, rgba(248, 251, 255, 0.98), rgba(236, 246, 255, 0.92));
   box-shadow: 0 18px 50px rgba(40, 75, 120, 0.1);
 }
@@ -280,20 +302,17 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 .home-hero-carousel__track {
   display: flex;
   width: 100%;
-  min-height: inherit;
+  height: 100%;
   transition: transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
 .home-hero-carousel__slide {
   position: relative;
-  display: grid;
   flex: 0 0 100%;
-  grid-template-columns: minmax(0, 0.43fr) minmax(0, 0.57fr);
-  gap: clamp(24px, 3vw, 48px);
-  align-items: center;
+  height: 100%;
   min-width: 0;
-  padding: clamp(34px, 4vw, 58px) clamp(30px, 4vw, 54px);
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -346,16 +365,17 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 }
 
 .home-hero-carousel__slide--navy {
-  background: linear-gradient(135deg, #0c2342, #154575 58%, #0a2e4f);
+  background: linear-gradient(135deg, #f7fbff, #edf5ff 58%, #f5fbfb);
 }
 
 .home-hero-carousel__slide--navy::before {
   background: linear-gradient(
     90deg,
-    rgba(8, 27, 53, 0.82) 0%,
-    rgba(12, 37, 69, 0.54) 40%,
-    rgba(12, 37, 69, 0.18) 58%,
-    rgba(12, 37, 69, 0) 80%
+    #ffffff 0%,
+    #f7fbff 40%,
+    rgba(247, 251, 255, 0.88) 48%,
+    rgba(247, 251, 255, 0.2) 64%,
+    rgba(247, 251, 255, 0) 78%
   );
 }
 
@@ -363,6 +383,20 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 .home-hero-carousel__poster {
   position: relative;
   z-index: 1;
+}
+
+.home-hero-carousel__copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  width: min(40%, 650px);
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(54px, 8vh, 96px) 0 clamp(92px, 11vh, 132px) clamp(32px, 5vw, 86px);
 }
 
 .home-hero-carousel__eyebrow {
@@ -374,18 +408,12 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
   font-weight: 800;
 }
 
-.home-hero-carousel__slide--navy .home-hero-carousel__eyebrow,
-.home-hero-carousel__slide--navy h1,
-.home-hero-carousel__slide--navy p {
-  color: #fff;
-}
-
 .home-hero-carousel h1 {
-  max-width: 13ch;
+  max-width: 620px;
   margin: 20px 0 18px;
   color: #102746;
   font-family: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
-  font-size: clamp(40px, 3.2vw, 64px);
+  font-size: clamp(40px, 3vw, 60px);
   font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.025em;
@@ -412,29 +440,81 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 }
 
 .home-hero-carousel__poster {
-  min-height: 420px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 68%;
+  min-height: 0;
   overflow: hidden;
-  border: 1px solid rgba(220, 229, 241, 0.74);
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.42);
+  border-radius: 0 20px 20px 0;
+  background: transparent;
+  pointer-events: none;
 }
 
 .home-hero-carousel__poster-image {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 420px;
+  min-height: 0;
+  max-width: none;
   object-fit: cover;
-  object-position: center center;
+  object-position: var(--hero-object-position, center center);
+  filter: saturate(0.88) contrast(0.97) brightness(1.03);
+  transform: scale(1.005);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.04) 7%,
+    rgba(0, 0, 0, 0.16) 14%,
+    rgba(0, 0, 0, 0.38) 23%,
+    rgba(0, 0, 0, 0.7) 34%,
+    #000 46%,
+    #000 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.04) 7%,
+    rgba(0, 0, 0, 0.16) 14%,
+    rgba(0, 0, 0, 0.38) 23%,
+    rgba(0, 0, 0, 0.7) 34%,
+    #000 46%,
+    #000 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  transition: opacity 560ms ease, transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .home-hero-carousel__poster-overlay {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(248, 252, 255, 0.04), rgba(248, 252, 255, 0.02) 35%, rgba(14, 36, 68, 0.1) 100%),
-    linear-gradient(90deg, rgba(249, 252, 255, 0.14), rgba(249, 252, 255, 0.04) 40%, rgba(249, 252, 255, 0));
+    linear-gradient(
+      90deg,
+      #fbfcff 0%,
+      #fbfcff 9%,
+      rgba(251, 252, 255, 0.92) 22%,
+      rgba(251, 252, 255, 0.56) 36%,
+      rgba(251, 252, 255, 0.12) 52%,
+      rgba(251, 252, 255, 0) 62%
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(14, 36, 68, 0.08));
   pointer-events: none;
+}
+
+.home-hero-carousel__slide:not(.is-active) .home-hero-carousel__poster-image {
+  opacity: 0;
+  transform: scale(1.018);
+}
+
+.home-hero-carousel__slide.is-active .home-hero-carousel__poster-image {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .home-hero-carousel__info-card {
@@ -533,19 +613,29 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
   font-weight: 700;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1199px) and (min-width: 761px) {
   .home-hero-carousel__slide {
-    grid-template-columns: 1fr;
-    padding: 36px 28px 28px;
+    height: 100%;
   }
 
-  .home-hero-carousel__viewport {
-    min-height: auto;
+  .home-hero-carousel__copy {
+    width: 48%;
+    padding-left: clamp(28px, 5vw, 56px);
   }
 
-  .home-hero-carousel__poster,
+  .home-hero-carousel__copy {
+    padding-top: 44px;
+    padding-bottom: 78px;
+  }
+
+  .home-hero-carousel__poster {
+    width: 62%;
+    border-radius: 0 20px 20px 0;
+  }
+
   .home-hero-carousel__poster-image {
-    min-height: 330px;
+    height: 100%;
+    min-height: 0;
   }
 }
 
@@ -556,8 +646,27 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
   }
 
   .home-hero-carousel__slide {
+    display: grid;
+    height: auto;
     gap: 22px;
     padding: 28px 18px 24px;
+  }
+
+  .home-hero-carousel__copy {
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding: 0;
+  }
+
+  .home-hero-carousel__poster {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    height: 250px;
+    border-radius: 16px;
   }
 
   .home-hero-carousel h1 {
@@ -601,7 +710,40 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 
   .home-hero-carousel__poster,
   .home-hero-carousel__poster-image {
-    min-height: 250px;
+    height: 250px;
+    min-height: 0;
+  }
+
+  .home-hero-carousel__poster-image {
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 66%,
+      rgba(0, 0, 0, 0.5) 82%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 66%,
+      rgba(0, 0, 0, 0.5) 82%,
+      transparent 100%
+    );
+  }
+
+  .home-hero-carousel__poster-overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(251, 252, 255, 0) 0%,
+      rgba(251, 252, 255, 0) 62%,
+      rgba(251, 252, 255, 0.42) 84%,
+      #fbfcff 100%
+    );
+  }
+
+  .home-hero-carousel__poster {
+    height: 250px;
+    border-radius: 16px;
   }
 
   .home-hero-carousel__info-card span {
@@ -611,8 +753,27 @@ watch([activeIndex, isPaused, isHovered, isDocumentHidden, prefersReducedMotion]
 
 @media (prefers-reduced-motion: reduce) {
   .home-hero-carousel__track,
-  .home-hero-carousel__dot {
+  .home-hero-carousel__dot,
+  .home-hero-carousel__poster-image {
     transition: none !important;
+  }
+}
+
+@supports not ((mask-image: linear-gradient(#000, transparent)) or (-webkit-mask-image: linear-gradient(#000, transparent))) {
+  .home-hero-carousel__poster-image {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .home-hero-carousel__poster-overlay {
+    background: linear-gradient(
+      90deg,
+      #fbfcff 0%,
+      #fbfcff 34%,
+      rgba(251, 252, 255, 0.96) 42%,
+      rgba(251, 252, 255, 0.68) 50%,
+      rgba(251, 252, 255, 0) 64%
+    );
   }
 }
 </style>

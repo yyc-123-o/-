@@ -73,7 +73,9 @@ const agentLinks = [
 
 .home-page {
   position: relative;
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
