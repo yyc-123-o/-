@@ -23,6 +23,7 @@ import {
 import HomeNavbar from "@/components/layout/HomeNavbar.vue";
 import BrandWordmark from "@/components/layout/BrandWordmark.vue";
 import GuideFigure from "@/components/illustrations/GuideFigure.vue";
+import HomeHeroCarousel from "@/components/landing/HomeHeroCarousel.vue";
 
 type RoleKey = "builder" | "teacher" | "learner" | "institution";
 type StepKey = "materials" | "organize" | "understand" | "plan" | "generate" | "feedback";
@@ -63,6 +64,14 @@ interface HomeScene {
 }
 
 const heroTags = ["知识库治理", "智能课程规划", "多智能体协作"];
+const capabilityFeatures = [
+  { title: "课程资料治理", icon: FileText },
+  { title: "知识关系组织", icon: GitBranch },
+  { title: "学情诊断", icon: BrainCircuit },
+  { title: "路径规划", icon: Route },
+  { title: "资源生成", icon: Layers3 },
+  { title: "反馈回流", icon: RefreshCw },
+];
 
 const HOME_SCENES: HomeScene[] = [
   {
@@ -385,132 +394,20 @@ onBeforeUnmount(() => {
     <HomeNavbar />
 
     <main>
-      <section class="hero product-home__container">
-        <div class="hero-copy" data-reveal>
-          <span class="eyebrow"><Sparkles :size="16" /> AI 课程知识库治理与智能规划平台</span>
-          <h1>从课程知识库，到每个人的智能学习路径</h1>
-          <p>
-            织知成径把课程资料、知识图谱、学习者画像和多智能体能力连接起来，
-            让课程建设、学情理解和资源生成在同一条工作链路上持续推进。
-          </p>
-          <div class="hero-actions">
-            <RouterLink to="/register" class="button button-primary">
-              开始使用 <ArrowRight :size="17" />
-            </RouterLink>
-            <a href="#workflow" class="button button-secondary">了解平台如何工作</a>
-          </div>
-          <div class="hero-tags">
-            <span v-for="tag in heroTags" :key="tag">{{ tag }}</span>
-          </div>
-          <div class="hero-notes">
-            <span><ShieldCheck :size="15" /> 知识库可追溯</span>
-            <span><Workflow :size="15" /> Agent 协同</span>
-            <span><FileSearch :size="15" /> 证据优先</span>
-          </div>
-        </div>
-
-        <div class="hero-visual" data-reveal>
-          <div class="scene-card scene-card--wide">
-            <div class="scene-card__top">
-              <span>平台正在运行的界面预览</span>
-              <strong>课程知识、路径与反馈同步工作</strong>
-            </div>
-            <div class="scene-grid">
-              <div class="scene-column scene-column--left">
-                <div class="mini-panel">
-                  <span>课程知识库</span>
-                  <strong>知识单元 / 来源 / 审核</strong>
-                </div>
-                <div class="mini-panel mini-panel--soft">
-                  <span>学习者画像</span>
-                  <strong>掌握度 72% · 重点补救 3 项</strong>
-                </div>
-              </div>
-
-              <div class="scene-core">
-                <div class="scene-core__glow" />
-                <GuideFigure :size="190" />
-                <div class="scene-core__caption">
-                  <span>课程规划智能体</span>
-                  <strong>正在连接知识、学习与证据</strong>
-                </div>
-              </div>
-
-              <div class="scene-column scene-column--right">
-                <div class="mini-panel mini-panel--accent">
-                  <span>当前 Agent</span>
-                  <strong>CoursePlanner</strong>
-                </div>
-                <div class="mini-panel">
-                  <span>证据卡片</span>
-                  <strong>正式证据 / 候选证据 / 许可证</strong>
-                </div>
-              </div>
-            </div>
-            <div class="scene-flow">
-              <span>知识</span>
-              <MoveRight :size="15" />
-              <span>图谱</span>
-              <MoveRight :size="15" />
-              <span>诊断</span>
-              <MoveRight :size="15" />
-              <span>规划</span>
-              <MoveRight :size="15" />
-              <span>资源</span>
-              <MoveRight :size="15" />
-              <span>反馈</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeHeroCarousel />
 
       <section id="capability" class="section section--soft">
-        <div class="product-home__container section-grid" data-reveal>
-          <div class="section-copy section-copy--hero">
-            <span class="eyebrow">产品核心价值</span>
-            <h2>不是普通课程管理工具，而是让课程知识真正流动起来的平台。</h2>
-            <p>
-              课程资料、知识图谱、学情诊断、多智能体协作和资源生成不再彼此割裂，而是形成一条连续的产品链路。
-            </p>
-          </div>
+        <div class="product-home__container section-copy section-copy--center" data-reveal>
+          <span class="eyebrow">产品核心价值</span>
+          <h2>不是把功能放在一起，而是让知识真正流动起来。</h2>
+          <p>课程资料、知识图谱、学情诊断、多智能体协作和资源生成，组成一条连续、可追踪、可反馈的产品链路。</p>
+        </div>
 
-          <div class="capability-grid">
-            <article class="capability-card capability-card--large">
-              <span class="capability-card__icon"><Database :size="20" /></span>
-              <h3>课程资料变成可信知识库</h3>
-              <p>把分散的文档整理成可追溯的知识资产，明确来源、定位、许可证和审核状态。</p>
-              <div class="capability-mini">
-                <b>PDF 教材</b>
-                <b>HTML 讲义</b>
-                <b>正式证据</b>
-              </div>
-            </article>
-
-            <article class="capability-card capability-card--mid">
-              <span class="capability-card__icon"><GitBranch :size="20" /></span>
-              <h3>知识图谱约束学习路径</h3>
-              <p>先修关系、知识缺口和当前掌握度一起决定下一步，而不是简单推荐内容列表。</p>
-              <div class="capability-graph">
-                <span>基础</span>
-                <i />
-                <span>核心</span>
-                <i />
-                <span>实践</span>
-              </div>
-            </article>
-
-            <article class="capability-card capability-card--mid">
-              <span class="capability-card__icon"><Workflow :size="20" /></span>
-              <h3>多个 Agent 协同完成规划</h3>
-              <p>诊断、检索、规划和生成分工明确，结果汇总到同一条闭环链路里。</p>
-              <div class="agent-strip">
-                <span>诊断</span>
-                <span>规划</span>
-                <span>检索</span>
-                <span>生成</span>
-              </div>
-            </article>
-          </div>
+        <div class="product-home__container capability-band" data-reveal>
+          <article v-for="item in capabilityFeatures" :key="item.title" class="capability-band__item">
+            <span class="capability-band__icon"><component :is="item.icon" :size="18" /></span>
+            <strong>{{ item.title }}</strong>
+          </article>
         </div>
       </section>
 
@@ -870,9 +767,9 @@ onBeforeUnmount(() => {
 }
 
 .hero-copy h1 {
-  max-width: 10ch;
-  font-size: clamp(48px, 5vw, 68px);
-  line-height: 1.03;
+  max-width: 16ch;
+  font-size: clamp(44px, 4.6vw, 62px);
+  line-height: 1.06;
   color: #12223c;
   text-wrap: balance;
 }
@@ -975,28 +872,15 @@ onBeforeUnmount(() => {
 
 .hero-visual {
   position: relative;
-  padding-top: 14px;
+  padding-top: 0;
 }
 
 .hero-visual::before {
-  position: absolute;
-  inset: 28px 20px 12px 18px;
-  content: "";
-  background:
-    radial-gradient(circle at 22% 28%, rgba(53, 106, 230, 0.14), transparent 20%),
-    radial-gradient(circle at 80% 20%, rgba(24, 167, 160, 0.12), transparent 18%),
-    radial-gradient(circle at 60% 78%, rgba(120, 86, 217, 0.09), transparent 22%);
-  filter: blur(14px);
-  opacity: 0.9;
+  content: none;
 }
 
 .hero-visual::after {
-  position: absolute;
-  inset: 48px 0 0 0;
-  content: "";
-  border-radius: 34px;
-  border: 1px solid rgba(223, 232, 243, 0.5);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.08));
+  content: none;
 }
 
 .hero-visual > * {
@@ -1217,6 +1101,41 @@ onBeforeUnmount(() => {
 .section-copy h2 {
   font-size: clamp(30px, 3.8vw, 48px);
   line-height: 1.12;
+}
+
+.capability-band {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.capability-band__item {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 18px 12px 16px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid #dfe8f3;
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(39, 72, 112, 0.05);
+}
+
+.capability-band__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #356ae6;
+  background: #edf4ff;
+  border-radius: 14px;
+}
+
+.capability-band__item strong {
+  color: #152a47;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .capability-grid {

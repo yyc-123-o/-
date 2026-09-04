@@ -113,7 +113,11 @@ a { color: inherit; text-decoration: none; }
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-width: thin;
+  scrollbar-width: none; /* 隐藏侧边栏滚动条，但保留滚动 */
+}
+.sidebar-content::-webkit-scrollbar {
+  width: 0; /* Chromium / Safari 隐藏滚动条轨道 */
+  height: 0;
 }
 .side-nav {
   display: grid;
@@ -277,11 +281,37 @@ p { color: var(--muted); line-height: 1.75; }
 .topbar-actions, .sync-label, .user-chip { display: flex; align-items: center; }
 .topbar-actions { gap: 15px; }
 .sync-label { gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; }
-.user-chip { gap: 8px; padding: 5px 9px 5px 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 99px; box-shadow: var(--shadow-soft); }
+.user-chip { gap: 8px; padding: 5px 9px 5px 5px; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 99px; box-shadow: var(--shadow-soft); cursor: pointer; }
 .avatar { display: grid; place-items: center; width: 34px; height: 34px; color: var(--blue-dark); background: var(--blue-soft); border: 1px solid #cfe0ff; border-radius: 50%; font-weight: 900; }
 .user-chip-copy b, .user-chip-copy small { display: block; }
 .user-chip-copy b { font-size: 12px; }
 .user-chip-copy small { color: var(--muted); font-size: 10px; }
+.user-menu-wrap { position: relative; display: flex; }
+.user-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  min-width: 178px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+}
+.user-menu a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: #38516f;
+  font-size: 13px;
+  font-weight: 700;
+}
+.user-menu a:hover,
+.user-menu a:focus-visible { color: var(--blue); background: var(--blue-soft); outline: none; }
 .icon-button { display: inline-grid; place-items: center; width: 35px; height: 35px; padding: 0; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 10px; }
 .icon-button:hover { color: var(--blue); background: var(--blue-soft); }
 .sidebar-toggle-tab {

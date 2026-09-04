@@ -343,7 +343,7 @@ function exportCsv() {
 function goRecordAction(record: LearningRecord) {
   if (record.type === "assessment_completed" || record.type === "mastery_updated") void router.push("/assessment");
   else if (record.type === "path_replanned" || record.type === "node_unlocked") void router.push({ path: "/learning-path", query: record.knowledgeNodeId ? { nodeId: record.knowledgeNodeId } : {} });
-  else void router.push("/resources#learning-resources");
+  else void router.push("/resources");
 }
 
 function dateGroupLabel(value: string) {

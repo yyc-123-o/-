@@ -11,6 +11,7 @@ import {
   History,
   Home,
   LayoutDashboard,
+  LogOut,
   LibraryBig,
   Menu,
   ChevronLeft,
@@ -30,6 +31,7 @@ import { adaptPathNodes, courseIdFromProfile } from "@/utils/knowledgeGraph";
 type NavIcon = typeof Home;
 
 interface NavLink {
+  key: string;
   label: string;
   to: string;
   icon: NavIcon;
@@ -46,6 +48,7 @@ const route = useRoute();
 const learner = useLearnerStore();
 const learningPath = useLearningPathStore();
 const mobileOpen = ref(false);
+const userMenuOpen = ref(false);
 const sidebarCollapsed = ref(false);
 const sidebarAnimating = ref(false);
 const courseExpanded = ref(false);
@@ -54,14 +57,14 @@ const resourceExpanded = ref(false);
 let sidebarToggleTimer: number | undefined;
 
 const primaryLinks: NavLink[] = [
-  { label: "我的学习", to: "/app", icon: Home },
-  { label: "学习路径", to: "/learning-path", icon: Route },
-  { label: "学习记录", to: "/history", icon: History },
+  { key: "app", label: "我的学习", to: "/app", icon: Home },
+  { key: "learning-path", label: "学习路径", to: "/learning-path", icon: Route },
+  { key: "history", label: "学习记录", to: "/history", icon: History },
 ];
 
 const primaryTailLinks: NavLink[] = [
-  { label: "工作台", to: "/workspace", icon: LayoutDashboard },
-  { label: "设置", to: "/profile/settings", icon: Settings2 },
+  { key: "workspace", label: "工作台", to: "/workspace", icon: LayoutDashboard },
+  { key: "settings", label: "设置", to: "/settings", icon: Settings2 },
 ];
 
 const navGroups: NavGroup[] = [
@@ -70,8 +73,8 @@ const navGroups: NavGroup[] = [
     label: "课程中心",
     icon: LibraryBig,
     items: [
-      { label: "课程知识库", to: "/resources#knowledge-base", icon: BookOpen },
-      { label: "知识图谱", to: "/course-center/knowledge-graph", icon: GitBranch },
+      { key: "course-library", label: "课程库", to: "/courses", icon: BookOpen },
+      { key: "knowledge-graph", label: "知识图谱", to: "/knowledge-graph", icon: GitBranch },
     ],
   },
   {
@@ -79,8 +82,8 @@ const navGroups: NavGroup[] = [
     label: "学情中心",
     icon: BrainCircuit,
     items: [
-      { label: "学情诊断", to: "/diagnosis", icon: ScanSearch },
-      { label: "学习者画像", to: "/profile", icon: UserRound },
+      { key: "diagnosis", label: "学情诊断", to: "/diagnosis", icon: ScanSearch },
+      { key: "learner-profile", label: "学习者画像", to: "/profile", icon: UserRound },
     ],
   },
   {
@@ -88,14 +91,17 @@ const navGroups: NavGroup[] = [
     label: "资源与测评",
     icon: FileStack,
     items: [
-      { label: "课程资源", to: "/resources#learning-resources", icon: BookOpenCheck },
-      { label: "测评反馈", to: "/assessment", icon: ClipboardCheck },
+      { key: "learning-resources", label: "学习资源", to: "/resources", icon: BookOpenCheck },
+      { key: "assessment", label: "测评反馈", to: "/assessment", icon: ClipboardCheck },
     ],
   },
 ];
 
 const isHome = computed(() => route.path === "/app" || route.path === "/dashboard");
 const isWorkspace = computed(() => route.path === "/workspace");
+const selectedMenuKey = computed(() => {
+  return String(route.meta.menuKey || "");
+});
 const pageTitle = computed(() => String(route.meta.title || "工作台"));
 const breadcrumbTitle = computed(() => String(route.meta.breadcrumb || pageTitle.value));
 const adaptedPath = computed(() => adaptPathNodes(learningPath.nodes, {
@@ -139,16 +145,12 @@ const systemStatus = computed(() => {
 });
 const avatarText = computed(() => learner.profile?.learner.name?.slice(0, 1) || "智");
 
-function isActive(to: string) {
-  const [path, hash] = to.split("#");
-  if (hash) return route.path === path && route.hash === `#${hash}`;
-  if (path === "/app") return isHome.value && !route.hash;
-  if (route.hash) return false;
-  return route.path === path || route.path.startsWith(`${path}/`);
+function isActive(item: NavLink) {
+  return selectedMenuKey.value === item.key;
 }
 
 function isGroupActive(group: NavGroup) {
-  return group.items.some((item) => isActive(item.to));
+  return group.items.some((item) => isActive(item));
 }
 
 function isGroupExpanded(group: NavGroup) {
@@ -187,6 +189,7 @@ onUnmounted(() => {
 watch(
   () => route.fullPath,
   () => {
+    userMenuOpen.value = false;
     if (navGroups.some((group) => group.key === "course" && isGroupActive(group))) courseExpanded.value = true;
     if (navGroups.some((group) => group.key === "diagnosis" && isGroupActive(group))) diagnosisExpanded.value = true;
     if (navGroups.some((group) => group.key === "resource" && isGroupActive(group))) resourceExpanded.value = true;
@@ -211,8 +214,8 @@ watch(
             :key="item.label"
             :to="item.to"
             class="nav-item"
-            :class="{ active: isActive(item.to) }"
-            :aria-current="isActive(item.to) ? 'page' : undefined"
+            :class="{ active: isActive(item) }"
+            :aria-current="isActive(item) ? 'page' : undefined"
             active-class="router-link-active-muted"
             exact-active-class="router-link-exact-active-muted"
             :title="sidebarCollapsed ? item.label : undefined"
@@ -246,8 +249,8 @@ watch(
                   :key="item.label"
                   :to="item.to"
                   class="nav-item nav-subitem"
-                  :class="{ active: isActive(item.to) }"
-                  :aria-current="isActive(item.to) ? 'page' : undefined"
+                  :class="{ active: isActive(item) }"
+                  :aria-current="isActive(item) ? 'page' : undefined"
                   :title="item.label"
                   @click="mobileOpen = false"
                 >
@@ -263,8 +266,8 @@ watch(
             :key="item.label"
             :to="item.to"
             class="nav-item"
-            :class="{ active: isActive(item.to) }"
-            :aria-current="isActive(item.to) ? 'page' : undefined"
+            :class="{ active: isActive(item) }"
+            :aria-current="isActive(item) ? 'page' : undefined"
             active-class="router-link-active-muted"
             exact-active-class="router-link-exact-active-muted"
             :title="sidebarCollapsed ? item.label : undefined"
@@ -343,15 +346,31 @@ watch(
           <button class="icon-button topbar-icon" title="待处理通知">
             <Bell :size="18" />
           </button>
-          <RouterLink to="/profile/settings" class="user-chip" title="个人中心">
-            <span class="avatar">{{ avatarText }}</span>
-            <span class="user-chip-copy">
-              <b>{{ learner.learnerName }}</b>
-              <small>平台用户</small>
-            </span>
-            <ChevronDown :size="15" />
-          </RouterLink>
-          <RouterLink to="/profile/settings" class="icon-button topbar-icon" title="设置">
+          <div class="user-menu-wrap">
+            <button class="user-chip" type="button" title="用户菜单" :aria-expanded="userMenuOpen" @click="userMenuOpen = !userMenuOpen">
+              <span class="avatar">{{ avatarText }}</span>
+              <span class="user-chip-copy">
+                <b>{{ learner.learnerName }}</b>
+                <small>平台用户</small>
+              </span>
+              <ChevronDown :size="15" />
+            </button>
+            <div v-if="userMenuOpen" class="user-menu">
+              <RouterLink to="/settings" @click="mobileOpen = false">
+                <Settings2 :size="16" />
+                账号设置
+              </RouterLink>
+              <RouterLink to="/profile" @click="mobileOpen = false">
+                <UserRound :size="16" />
+                个人学习档案
+              </RouterLink>
+              <RouterLink to="/login" @click="mobileOpen = false">
+                <LogOut :size="16" />
+                退出登录
+              </RouterLink>
+            </div>
+          </div>
+          <RouterLink to="/settings" class="icon-button topbar-icon" title="设置">
             <Settings2 :size="18" />
           </RouterLink>
         </div>

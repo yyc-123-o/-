@@ -71,12 +71,12 @@ const stageIndex = computed(() => {
 
 const processStages = computed<ProcessStage[]>(() => {
   const base: Omit<ProcessStage, "state">[] = [
-    { key: "materials", label: "资料接入", detail: "课程文档与资料准备", route: "/resources", metric: "待接入" },
-    { key: "kb", label: "知识库", detail: "清洗、切分与索引", route: "/resources", metric: "候选证据" },
+    { key: "materials", label: "资料接入", detail: "课程文档与资料准备", route: "/courses", metric: "待接入" },
+    { key: "kb", label: "知识库", detail: "清洗、切分与索引", route: "/courses", metric: "候选证据" },
     { key: "graph", label: "知识图谱", detail: "概念节点与先修关系", route: "/learning-path", metric: `${path.nodes.length || 0} 节点` },
     { key: "diagnosis", label: "学情诊断", detail: "画像、掌握度与盲区", route: "/diagnosis", metric: learner.profile ? "已生成" : "未开始" },
     { key: "planning", label: "课程规划", detail: "CoursePlanner 生成路径", route: "/learning-path", metric: path.run?.planning ? "已规划" : "待规划" },
-    { key: "retrieval", label: "证据检索", detail: "领域证据与 manifest", route: "/resources", metric: hasEvidenceGap.value ? "待审核" : path.run?.retrieval ? "已检索" : "等待" },
+    { key: "retrieval", label: "证据检索", detail: "领域证据与 manifest", route: "/courses", metric: hasEvidenceGap.value ? "待审核" : path.run?.retrieval ? "已检索" : "等待" },
     { key: "resources", label: "资源生成", detail: "讲解、练习与测验", route: "/resources", metric: path.run?.resources ? "已生成" : "候选预览" },
     { key: "feedback", label: "反馈更新", detail: "测评、BKT 与再规划", route: "/assessment", metric: "待测评" },
   ];
@@ -165,7 +165,7 @@ const currentTask = computed(() => {
       impact: "处理后 Resource Generation Agent 才能生成正式资源。",
       progress: 0.62,
       action: "审核候选资源",
-      route: "/resources",
+      route: "/courses",
       tone: "review",
       source: "真实运行状态",
     };
