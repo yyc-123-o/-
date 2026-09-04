@@ -468,7 +468,7 @@ onMounted(() => {
             <span><b>步骤</b><em>{{ path.run?.steps?.length || 0 }} 条</em></span>
             <span><b>执行模式</b><em>{{ path.run ? "candidate preview / strict" : "未启动" }}</em></span>
           </div>
-          <button class="button button-secondary button-full" :disabled="path.loading" @click="path.generate">
+          <button class="button button-secondary button-full" :disabled="path.loading" @click="() => path.generate()">
             <RefreshCw :size="16" /> {{ path.loading ? "运行中..." : "重新运行规划链路" }}
           </button>
         </section>

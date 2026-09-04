@@ -122,12 +122,19 @@ def build_default_platform_service(project_root: Path) -> PlatformService:
         catalog=catalog,
     )
     settings = Settings()
+    # Keep interactive path planning bounded. Resource previews already have a
+    # deterministic, evidence-bounded fallback, so a slow external model must
+    # not leave the whole learning-path request waiting indefinitely. The
+    # preview makes four model calls (three in parallel, then the teacher guide),
+    # so a 6-second per-call cap keeps the page responsive while still allowing
+    # a healthy local/network model to personalize the draft.
+    llm_timeout_seconds = min(settings.llm_timeout_seconds, 6.0)
     llm_adapter = (
         OpenAICompatibleLLMAdapter(
             base_url=cast(str, settings.llm_base_url),
             api_key=cast(SecretStr, settings.llm_api_key),
             model_name=cast(str, settings.llm_model),
-            timeout_seconds=settings.llm_timeout_seconds,
+            timeout_seconds=llm_timeout_seconds,
         )
         if settings.llm_configured
         else None

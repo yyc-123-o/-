@@ -31,6 +31,23 @@ def test_health_lists_enabled_execution_modes(client: TestClient) -> None:
     }
 
 
+def test_preferences_default_and_update(client: TestClient) -> None:
+    learner_id = "learner-settings-test"
+    initial = client.get(f"/api/v1/learners/{learner_id}/preferences")
+    assert initial.status_code == 200
+    assert initial.json()["reminders_enabled"] is True
+    assert initial.json()["theme"] == "light"
+
+    updated = client.put(
+        f"/api/v1/learners/{learner_id}/preferences",
+        json={"reminders_enabled": False, "theme": "system"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["reminders_enabled"] is False
+    assert updated.json()["theme"] == "system"
+    assert client.get(f"/api/v1/learners/{learner_id}/preferences").json() == updated.json()
+
+
 def test_course_catalog_returns_canonical_graph_metadata(client: TestClient) -> None:
     response = client.get("/api/v1/course-catalog")
 

@@ -228,17 +228,60 @@ class PlatformService:
                 return LearningCoachReply(answer="当前 AI 学习顾问尚未配置模型服务，请先完成千问 API 配置。")
             node = planning.current_node
             draft = (
-                existing.resources.preview_package.draft
+                existing.resources.formal_package.draft
+                if existing.resources and existing.resources.formal_package
+                else existing.resources.preview_package.draft
                 if existing.resources and existing.resources.preview_package
                 else None
             )
             lecture = getattr(getattr(draft, "lecture", None), "sections", ()) if draft else ()
             context = "\n".join(str(item) for item in lecture)[:6_000]
+            progress = existing.learning_progress
+            mastery = None
+            error_patterns: list[str] = []
+            if existing.profile is not None:
+                mastery = next(
+                    (item.mastery_score for item in existing.profile.knowledge_mastery if item.concept_id == node.concept_id),
+                    None,
+                )
+                error_patterns = [
+                    f"{item.code}（{item.count} 次）"
+                    for item in existing.profile.error_patterns
+                    if not item.concept_ids or node.concept_id in item.concept_ids
+                ][:5]
+            progress_context = (
+                "尚未记录学习进度"
+                if progress is None
+                else (
+                    f"讲解进度 {progress.lecture_progress:.0%}"
+                    f"（{'已完成' if progress.lecture_completed else '进行中'}），"
+                    f"实践 {'已通过' if progress.practice_completed else '未通过'}，"
+                    f"测评 {'已通过' if progress.assessment_passed else '未通过'}，"
+                    f"测评尝试 {progress.assessment_attempts} 次，"
+                    f"失败 {progress.failed_attempts} 次"
+                )
+            )
+            evidence_summary = existing.retrieval.evidence_summary if existing.retrieval else None
+            evidence_context = (
+                "证据状态未知"
+                if evidence_summary is None
+                else (
+                    f"正式依据 {evidence_summary.formal_count} 条，"
+                    f"候选依据 {evidence_summary.candidate_count} 条"
+                )
+            )
+            mastery_context = f"{mastery:.0%}" if mastery is not None else "待评估"
             prompt = (
                 "你是学习平台中的苏格拉底式 AI 学习顾问。只围绕当前知识点回答，先给一个简短提示，"
                 "再提出一个引导问题，不直接替学生完成作业。使用中文，控制在 180 字以内。"
                 "只返回 JSON 对象：{\"answer\": \"你的回答\"}。"
                 f"\n当前知识点：{node.title or node.concept_id}"
+                f"\n学习深度：{node.depth}"
+                f"\n当前知识点掌握度：{mastery_context}"
+                f"\n学习进度：{progress_context}"
+                f"\n最近错误模式："
+                f"{'、'.join(error_patterns) if error_patterns else '暂无相关错误记录'}"
+                f"\n证据状态：{evidence_context}"
                 f"\n讲义上下文：{context}\n学生问题：{question.question}"
             )
             try:

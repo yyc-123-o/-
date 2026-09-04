@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   Bookmark,
@@ -20,12 +20,14 @@ import { useLearnerStore } from "@/stores/learner";
 import { useLearningPathStore } from "@/stores/learningPath";
 import { useLearningRecordsStore } from "@/stores/learningRecords";
 import { courseIdFromProfile, courseTitle, knowledgeTitle } from "@/utils/knowledgeGraph";
+import LearningResourceReader from "@/components/LearningResourceReader.vue";
 
 type KnowledgeStatus = "mastered" | "learning" | "completed_unassessed" | "review" | "not_started" | "locked";
 type ViewTab = "catalog" | "resources" | "favorites";
 type ResourceKind = "all" | "lecture" | "example" | "practice" | "assessment";
 type StatusFilter = "all" | KnowledgeStatus;
 type SortMode = "course" | "status" | "mastery_desc" | "mastery_asc" | "recent";
+type ResourceRowItem = ReturnType<typeof resourcesForNode>[number] & { node?: CourseKnowledgeNode };
 
 const route = useRoute();
 const router = useRouter();
@@ -42,11 +44,14 @@ const activeResourceTab = ref<ResourceKind>(readResourceKind(route.query.resourc
 const statusFilter = ref<StatusFilter>(readStatusFilter(route.query.masteryStatus));
 const sortMode = ref<SortMode>(readSortMode(route.query.sort));
 const completeSubmitting = ref(false);
+const openingNodeId = ref("");
 const completeError = ref("");
 const notice = ref("");
 const favoriteIds = ref<string[]>(readFavorites());
 const expandedChapterIds = ref<string[]>([selectedChapterId.value]);
 const detailOpen = ref(route.query.detail === "1");
+const readerOpen = ref(route.query.reader === "1");
+const readerElement = ref<HTMLElement | null>(null);
 
 const allNodes = computed(() => courseKnowledgeBase.chapters.flatMap((chapter) => chapter.nodes));
 const selectedChapter = computed(() =>
@@ -57,6 +62,7 @@ const selectedNode = computed(() =>
 );
 const pathNodeById = computed(() => new Map(path.nodes.map((node) => [node.concept_id, node])));
 const currentConceptId = computed(() => path.run?.handoff?.concept_id || path.currentNode?.concept_id || path.run?.learning_progress?.concept_id || "");
+const learningTargetNode = computed(() => allNodes.value.find((node) => node.id === currentConceptId.value) || selectedNode.value);
 const currentProgress = computed(() => path.run?.learning_progress?.concept_id === selectedNode.value?.id ? path.run.learning_progress : null);
 const selectedStatus = computed(() => statusForNode(selectedNode.value));
 const selectedMastery = computed(() => masteryForNode(selectedNode.value));
@@ -140,6 +146,7 @@ const completeButtonLabel = computed(() => {
   return "标记已完成";
 });
 const primaryActionLabel = computed(() => {
+  if (selectedStatus.value === "locked") return "先完成前置知识";
   if (selectedStatus.value === "review") return "开始复习";
   if (selectedStatus.value === "completed_unassessed") return "去完成测评";
   if (selectedStatus.value === "mastered") return "复习知识点";
@@ -213,22 +220,55 @@ function selectNode(node: CourseKnowledgeNode) {
 
 function closeDetail() {
   detailOpen.value = false;
+  readerOpen.value = false;
   syncUrlState();
 }
 
-async function openLearning(node = selectedNode.value) {
-  if (!node || statusForNode(node) === "locked") return;
-  if (!path.run?.run_id) {
-    await path.generate();
-  } else if (pathNodeById.value.has(node.id) && node.id !== currentConceptId.value) {
-    await path.startNode(node.id);
+async function openLearning(node = selectedNode.value, resourceTab: ResourceKind = "lecture") {
+  if (!node) return;
+  const pathNode = pathNodeById.value.get(node.id);
+  const pathNodeIsTerminal = pathNode?.status === "skipped" || pathNode?.status === "completed";
+  if (statusForNode(node) === "locked") {
+    selectNode(node);
+    activeTab.value = "resources";
+    detailOpen.value = true;
+    readerOpen.value = false;
+    completeError.value = `当前知识点暂未解锁，请先完成：${prerequisiteLabels(node).join("、") || "前置知识"}。`;
+    syncUrlState();
+    return;
   }
+  if (openingNodeId.value === node.id) return;
+  openingNodeId.value = node.id;
+  selectNode(node);
+  // Keep the reader visible while the personalized run is being prepared.
+  // Without this, the URL changes but the user sees no learning surface.
+  readerOpen.value = true;
   activeTab.value = "resources";
-  activeResourceTab.value = "lecture";
+  activeResourceTab.value = resourceTab === "all" ? "lecture" : resourceTab;
   syncUrlState();
-  notice.value = path.run?.run_id
-    ? `已进入「${node.title}」的学习资源。`
-    : "已打开课程知识点，完成学情诊断后可生成个性化资源。";
+  notice.value = path.run?.run_id ? `正在打开「${node.title}」的学习资源…` : "正在准备学习路径，请稍候…";
+  completeError.value = "";
+  try {
+    if (!path.run?.run_id || path.run.status === "failed" || path.run.status === "blocked") {
+      await path.generate({ target_concept_id: node.id, start_concept_id: node.id });
+    } else if (pathNodeById.value.has(node.id) && node.id !== currentConceptId.value && !pathNodeIsTerminal) {
+      await path.startNode(node.id);
+    } else if (path.run.status !== "completed" || currentConceptId.value !== node.id) {
+      await path.generate({ target_concept_id: node.id, start_concept_id: node.id });
+    }
+    notice.value = pathNodeIsTerminal
+      ? `该知识点已在当前学习路径中${pathNode?.status === "skipped" ? "跳过" : "完成"}，已为你打开课程资源。`
+      : path.run?.run_id
+        ? `已进入「${node.title}」的学习资源。`
+        : path.error || "已打开课程知识点，完成学习画像后可生成个性化资源。";
+    await nextTick();
+    readerElement.value?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (reason) {
+    notice.value = "学习资源暂时无法打开";
+    completeError.value = path.friendlyError(reason, "学习路径生成失败，请稍后重试");
+  } finally {
+    openingNodeId.value = "";
+  }
 }
 
 async function completeLearningContent() {
@@ -285,11 +325,13 @@ async function completeLearningContent() {
 
 async function openAssessment(node = selectedNode.value) {
   if (!node || statusForNode(node) === "locked") return;
+  const pathNode = pathNodeById.value.get(node.id);
+  const pathNodeIsTerminal = pathNode?.status === "skipped" || pathNode?.status === "completed";
   try {
     if (!path.run?.run_id) {
       await path.generate();
     }
-    if (path.run?.run_id && pathNodeById.value.has(node.id) && node.id !== currentConceptId.value) {
+    if (path.run?.run_id && pathNodeById.value.has(node.id) && node.id !== currentConceptId.value && !pathNodeIsTerminal) {
       await path.startNode(node.id);
     }
     if (!path.run?.run_id) {
@@ -340,6 +382,8 @@ function syncUrlState() {
   else delete query.masteryStatus;
   if (detailOpen.value) query.detail = "1";
   else delete query.detail;
+  if (readerOpen.value) query.reader = "1";
+  else delete query.reader;
   void router.replace({
     query,
     hash: activeTab.value === "resources" ? "#learning-resources" : "#knowledge-base",
@@ -374,12 +418,17 @@ function resourceTabLabel(kind: ResourceKind) {
   }[kind];
 }
 
-function openResource(item: ReturnType<typeof resourcesForNode>[number]) {
+function openResource(item: ResourceRowItem, resourceNode?: CourseKnowledgeNode) {
+  const node = resourceNode || ("node" in item && item.node ? item.node : selectedNode.value);
+  if (!node) return;
   if (item.kind === "assessment") {
-    void openAssessment();
+    void openAssessment(node);
     return;
   }
-  void openLearning(selectedNode.value);
+  if (selectedNodeId.value !== node.id) selectNode(node);
+  readerOpen.value = true;
+  activeResourceTab.value = item.kind;
+  void openLearning(node, item.kind);
 }
 
 function locateInGraph() {
@@ -398,6 +447,14 @@ function masteryForNode(node?: CourseKnowledgeNode | null) {
 
 function statusForNode(node?: CourseKnowledgeNode | null): KnowledgeStatus {
   if (!node) return "not_started";
+  const pathNode = pathNodeById.value.get(node.id);
+  // The platform is authoritative about prerequisite blocking. Keep the UI
+  // from offering a review/start action that the start-node API will reject.
+  if (
+    pathNode?.status === "locked"
+    || pathNode?.status === "blocked"
+    || Boolean(pathNode?.blocking_prerequisite_ids?.length)
+  ) return "locked";
   const mastery = masteryForNode(node);
   if (mastery !== null && mastery >= 0.75) return "mastered";
   const progress = path.run?.learning_progress?.concept_id === node.id ? path.run.learning_progress : null;
@@ -410,6 +467,14 @@ function statusForNode(node?: CourseKnowledgeNode | null): KnowledgeStatus {
     return prerequisiteMastery === null || prerequisiteMastery >= 0.6 || path.run?.learning_progress?.concept_id === id;
   });
   return unlocked ? "not_started" : "locked";
+}
+
+function prerequisiteLabels(node: CourseKnowledgeNode) {
+  const pathNode = pathNodeById.value.get(node.id);
+  const ids = pathNode?.blocking_prerequisite_ids?.length
+    ? pathNode.blocking_prerequisite_ids
+    : node.prerequisites;
+  return ids.map((id) => knowledgeTitle(id));
 }
 
 function statusRank(status: KnowledgeStatus) {
@@ -441,7 +506,7 @@ function runNodeAction(node: CourseKnowledgeNode) {
   const status = statusForNode(node);
   if (status === "locked") {
     selectNode(node);
-    completeError.value = `请先完成：${node.prerequisites.map((id) => knowledgeTitle(id)).join("、")}`;
+    completeError.value = `请先完成：${prerequisiteLabels(node).join("、") || "前置知识"}`;
     return;
   }
   selectNode(node);
@@ -497,6 +562,14 @@ function handleDetailKeydown(event: KeyboardEvent) {
 
 onMounted(() => {
   window.addEventListener("keydown", handleDetailKeydown);
+  if (readerOpen.value) {
+    // Routes from the learning path can request the reader directly with
+    // reader=1. Start the resource run on mount instead of only rendering a
+    // permanently loading reader shell.
+    void openLearning(selectedNode.value, activeResourceTab.value).then(() => {
+      void nextTick(() => readerElement.value?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    });
+  }
 });
 
 onUnmounted(() => {
@@ -567,7 +640,7 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
       </div>
       <div class="overview-actions">
         <button class="button button-secondary" type="button" @click="locateInGraph"><Network :size="17" />查看知识图谱</button>
-        <button class="button button-primary" type="button" @click="openLearning()"><Play :size="17" />继续学习</button>
+        <button class="button button-primary" type="button" @click="openLearning(learningTargetNode)"><Play :size="17" />继续学习</button>
       </div>
     </section>
 
@@ -649,7 +722,7 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
             </span>
             <span>{{ row.node.title }}</span>
             <span>{{ row.label }}</span>
-            <button class="node-actions" type="button" @click.stop="selectNode(row.node); openResource(row)">打开资源</button>
+            <button class="node-actions" type="button" @click.stop="openResource(row, row.node)">打开资源</button>
           </article>
           <div v-if="!filteredResourceRows.length" class="state-block">
             <strong>没有符合条件的资源</strong>
@@ -675,8 +748,8 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
               <small><i :style="{ width: `${statusPercent(node)}%` }" /></small>
             </span>
             <span class="node-resources">{{ node.lectures }}份讲义 · {{ node.examples }}个示例 · {{ node.exercises }}道练习</span>
-            <button class="node-actions" type="button" :disabled="statusForNode(node) === 'locked'" :title="statusForNode(node) === 'locked' ? `请先完成：${node.prerequisites.map((id) => knowledgeTitle(id)).join('、')}` : undefined" @click.stop="runNodeAction(node)">
-              {{ actionLabelForNode(node) }}
+            <button class="node-actions" type="button" :disabled="statusForNode(node) === 'locked' || openingNodeId === node.id" :title="statusForNode(node) === 'locked' ? `请先完成：${node.prerequisites.map((id) => knowledgeTitle(id)).join('、')}` : undefined" @click.stop="runNodeAction(node)">
+              {{ openingNodeId === node.id ? "正在准备…" : actionLabelForNode(node) }}
             </button>
           </article>
           <div v-if="!filteredNodes.length" class="state-block">
@@ -755,10 +828,10 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
               </button>
             </div>
             <div id="learning-resources" class="resource-lines">
-              <article v-for="item in selectedResources" :key="item.kind" tabindex="0" @click="openResource(item)" @keydown.enter="openResource(item)">
+              <article v-for="item in selectedResources" :key="item.kind" tabindex="0" @click="openResource(item, selectedNode)" @keydown.enter="openResource(item, selectedNode)">
                 <span :class="`resource-kind-${item.kind}`"><component :is="item.icon" :size="16" /></span>
                 <div><b>{{ item.title }}</b><small>{{ item.label }} · {{ item.meta }} · {{ contentCompleted ? "已完成" : "未完成" }}</small></div>
-                <button class="icon-button" type="button" aria-label="打开资源" @click.stop="openResource(item)">
+                <button class="icon-button" type="button" aria-label="打开资源" @click.stop="openResource(item, selectedNode)">
                   <ChevronRight :size="17" />
                 </button>
               </article>
@@ -769,14 +842,23 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
             </div>
           </section>
 
+          <div v-if="readerOpen && selectedNode" ref="readerElement" class="learning-reader-anchor">
+            <LearningResourceReader
+              :concept-id="selectedNode.id"
+              :node-title="selectedNode.title"
+              :initial-tab="activeResourceTab === 'all' ? 'lecture' : activeResourceTab"
+            />
+          </div>
+
           <p v-if="notice" class="learning-notice">{{ notice }}</p>
           <p v-if="completeError" class="inline-error">{{ completeError }}</p>
         </div>
 
         <div class="detail-actions">
-          <button class="button button-primary button-full" type="button" :disabled="selectedStatus === 'locked'" @click="primaryAction">
-            <Play :size="17" />{{ primaryActionLabel }}
+          <button class="button button-primary button-full" type="button" :disabled="selectedStatus === 'locked' || openingNodeId === selectedNode.id" :title="selectedStatus === 'locked' ? `请先完成：${selectedNode.prerequisites.map((id) => knowledgeTitle(id)).join('、')}` : undefined" @click="primaryAction">
+            <Play :size="17" />{{ openingNodeId === selectedNode.id ? "正在准备…" : primaryActionLabel }}
           </button>
+          <p v-if="selectedStatus === 'locked'" class="learning-notice">当前节点需要先完成：{{ prerequisiteLabels(selectedNode).join("、") || "前置知识" }}。</p>
           <button class="button button-secondary button-full" type="button" :disabled="!canUseGeneratedResource || completeSubmitting" @click="completeLearningContent">
             <CheckCircle2 :size="17" />{{ completeButtonLabel }}
           </button>

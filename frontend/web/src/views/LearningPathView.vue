@@ -58,7 +58,11 @@ const courseOptions = computed(() => {
 });
 const courseId = computed(() => selectedCourseId.value || canonicalCourseId(profileCourseId.value));
 const courseName = computed(() => courseTitle(courseId.value));
-const courseTarget = computed(() => profile.value?.learning_scope?.primary_kp_name || "完成学情诊断后生成");
+const courseTarget = computed(() => {
+  const scope = profile.value?.learning_scope;
+  return scope?.primary_kp_name
+    || (scope?.primary_kp_id ? knowledgeTitle(scope.primary_kp_id) : "完成学情诊断后生成");
+});
 const normalizedPath = computed(() => adaptPathNodes(path.nodes, {
   courseId: courseId.value,
   profile: profile.value,
@@ -213,10 +217,23 @@ function openPathSettings() {
 function openSelectedResource() {
   if (actionDisabled.value) return;
   if (selectedNodeStatus.value === "completed") {
-    void router.push("/assessment");
+    void router.push({ path: "/assessment", query: { kp: selectedNode.value?.id || "" } });
     return;
   }
-  void router.push("/resources");
+  if (!selectedNode.value) return;
+  void router.push({
+    path: "/resources",
+    query: {
+      tab: "resources",
+      chapterId: selectedNode.value.source.chapter_id || selectedNode.value.courseId,
+      knowledgeId: selectedNode.value.id,
+      kp: selectedNode.value.id,
+      detail: "1",
+      reader: "1",
+      resourceTab: "lecture",
+    },
+    hash: "#learning-resources",
+  });
 }
 
 watch(() => route.query.kp, (value) => {

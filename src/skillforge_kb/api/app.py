@@ -7,18 +7,24 @@ from fastapi import FastAPI, HTTPException, Response, status
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from skillforge_kb.api.preferences import (
+    InMemoryPreferencesStore,
+    LearnerPreferences,
+    LearnerPreferencesUpdate,
+    PreferencesStore,
+)
 from skillforge_kb.evaluation import KnowledgeTracingEvaluationReport
 from skillforge_kb.ontology.profile_agent_adapter import AdaptedLearnerProfile
 from skillforge_kb.platform.models import (
     AssessmentSubmission,
+    LearningCoachQuestion,
+    LearningCoachReply,
     LectureProgressSubmission,
     PlanningPathMode,
     PlatformRunRequest,
     PlatformRunResult,
     PlatformStepRecord,
     PracticeReviewSubmission,
-    LearningCoachQuestion,
-    LearningCoachReply,
 )
 from skillforge_kb.platform.practice_review import PracticeReviewResult
 from skillforge_kb.platform.repository import IdempotencyConflict
@@ -84,6 +90,7 @@ class ProfileAdaptationService(Protocol):
 def create_app(
     service: PlatformApplicationService,
     profile_adapter: ProfileAdaptationService | None = None,
+    preferences_store: PreferencesStore | None = None,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -99,6 +106,7 @@ def create_app(
     )
     app.state.platform_service = service
     app.state.profile_adapter = profile_adapter
+    app.state.preferences_store = preferences_store or InMemoryPreferencesStore()
     static_root = Path(__file__).resolve().parents[3] / "frontend"
     web_root = static_root / "web"
     web_dist = web_root / "dist"
@@ -134,6 +142,27 @@ def create_app(
             "status": "ok",
             "execution_modes": ["strict", "candidate_preview"],
         }
+
+    @app.get(
+        "/api/v1/learners/{learner_id}/preferences",
+        response_model=LearnerPreferences,
+    )
+    def get_preferences(learner_id: str) -> LearnerPreferences:
+        if not learner_id.strip():
+            raise HTTPException(status_code=422, detail="learner_id is required")
+        return app.state.preferences_store.get(learner_id.strip())
+
+    @app.put(
+        "/api/v1/learners/{learner_id}/preferences",
+        response_model=LearnerPreferences,
+    )
+    def update_preferences(
+        learner_id: str,
+        payload: LearnerPreferencesUpdate,
+    ) -> LearnerPreferences:
+        if not learner_id.strip():
+            raise HTTPException(status_code=422, detail="learner_id is required")
+        return app.state.preferences_store.update(learner_id.strip(), payload)
 
     @app.get("/api/v1/course-catalog")
     def get_course_catalog() -> dict[str, object]:

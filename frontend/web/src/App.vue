@@ -9,8 +9,14 @@ const isPublicPage = computed(() => publicRoutes.has(route.path));
 </script>
 
 <template>
-  <Transition name="page-shell" mode="out-in">
-    <RouterView v-if="isPublicPage" :key="route.fullPath" />
-    <AppShell v-else :key="route.path" />
-  </Transition>
+  <RouterView v-slot="{ Component }">
+    <Transition name="page-shell" mode="out-in">
+      <component v-if="isPublicPage" :is="Component" :key="route.fullPath" />
+      <AppShell v-else key="app-shell">
+        <!-- Private pages must survive query/hash updates. Learning-path updates
+             its query state while generating; remounting here would restart it. -->
+        <component :is="Component" :key="route.name || route.path" />
+      </AppShell>
+    </Transition>
+  </RouterView>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { RouterLink, RouterView, useRoute } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import {
   Bell,
   BookOpen,
@@ -25,7 +25,7 @@ import {
 import BrandWordmark from "@/components/layout/BrandWordmark.vue";
 import { useLearnerStore } from "@/stores/learner";
 import { useLearningPathStore } from "@/stores/learningPath";
-import { adaptPathNodes, courseIdFromProfile } from "@/utils/knowledgeGraph";
+import { adaptPathNodes, courseIdFromProfile, courseTitle } from "@/utils/knowledgeGraph";
 import { catalogApi } from "@/api/catalog";
 import { applyCourseCatalog } from "@/data/courseKnowledgeBase";
 import { refreshGlobalKnowledgeGraph } from "@/data/globalKnowledgeGraph";
@@ -111,7 +111,11 @@ const completedPathNodes = computed(() => adaptedPath.value.summary.masteredNode
 const pathProgress = computed(() =>
   adaptedPath.value.summary.totalNodes ? completedPathNodes.value / adaptedPath.value.summary.totalNodes : 0,
 );
-const learningCourse = computed(() => learner.profile?.learning_scope?.chapter_name || "尚未选择课程");
+const learningCourse = computed(() => {
+  const scope = learner.profile?.learning_scope;
+  return scope?.chapter_name
+    || (scope?.chapter_id ? courseTitle(scope.chapter_id) : "尚未选择课程");
+});
 const learningStage = computed(() => {
   if (!learner.profile) return "学情诊断";
   if (!learningPath.run) return "路径规划";
@@ -367,7 +371,7 @@ watch(
       </header>
 
       <!-- 查询参数变化不应重新挂载页面，否则图谱缩放和拖拽状态会被重置。 -->
-      <RouterView :key="String(route.name || route.path)" />
+      <slot />
     </main>
   </div>
 </template>

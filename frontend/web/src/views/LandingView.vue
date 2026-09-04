@@ -67,7 +67,7 @@ const heroTags = ["知识库治理", "智能课程规划", "多智能体协作"]
 const HOME_SCENES: HomeScene[] = [
   {
     id: "hero",
-    image: "/assets/landing/hero-mountain-path-v1-4k.webp",
+    image: "/assets/landing/hero-mountain-path.webp",
     alt: "",
     top: "0vh",
     height: "138vh",
@@ -79,7 +79,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "knowledge",
-    image: "/assets/landing/knowledge-weave.webp",
+    image: "/assets/landing/hero-mountain-path.webp",
     alt: "",
     top: "96vh",
     height: "142vh",
@@ -90,7 +90,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "learner",
-    image: "/assets/landing/learner-beacon.webp",
+    image: "/assets/landing/hero-mountain-path.webp",
     alt: "",
     top: "198vh",
     height: "146vh",
@@ -101,7 +101,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "route",
-    image: "/assets/landing/learning-route.webp",
+    image: "/assets/landing/hero-mountain-path.webp",
     alt: "",
     top: "304vh",
     height: "148vh",
@@ -112,7 +112,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "feedback",
-    image: "/assets/landing/feedback-loop.webp",
+    image: "/assets/landing/hero-mountain-path.webp",
     alt: "",
     top: "414vh",
     height: "146vh",
@@ -123,7 +123,7 @@ const HOME_SCENES: HomeScene[] = [
   },
   {
     id: "ending",
-    image: "/assets/landing/horizon-growth.webp",
+    image: "/assets/landing/hero-mountain-path.webp",
     alt: "",
     top: "520vh",
     height: "160vh",
@@ -1683,7 +1683,7 @@ onBeforeUnmount(() => {
   content: "";
   background:
     linear-gradient(90deg, rgba(23, 43, 77, 0.9), rgba(23, 43, 77, 0.62)),
-    url("/assets/landing/horizon-growth.webp") 64% bottom / cover no-repeat;
+    url("/assets/landing/hero-mountain-path.webp") 64% bottom / cover no-repeat;
   opacity: 0.92;
   pointer-events: none;
 }
@@ -1860,7 +1860,7 @@ onBeforeUnmount(() => {
   .cta-section::before {
     background:
       linear-gradient(180deg, rgba(23, 43, 77, 0.92), rgba(23, 43, 77, 0.72)),
-      url("/assets/landing/horizon-growth.webp") center bottom / auto 100% no-repeat;
+      url("/assets/landing/hero-mountain-path.webp") center bottom / auto 100% no-repeat;
   }
 
   .hero-copy h1 {

@@ -21,7 +21,7 @@ export const useLearningPathStore = defineStore("learningPath", () => {
   const currentNode = computed(() => run.value?.planning?.current_node || nodes.value.find((node) => node.status === "available"));
   function persistRun() { localStorage.setItem(RUN_KEY, JSON.stringify(run.value)); }
 
-  async function generate() {
+  async function generate(options: Record<string, unknown> = {}) {
     loading.value = true;
     error.value = "";
     try {
@@ -31,10 +31,20 @@ export const useLearningPathStore = defineStore("learningPath", () => {
         run.value = null;
         persistRun();
       }
-      run.value = await planningApi.run(snapshot);
+      const nextRun = await planningApi.run(snapshot, options);
+      if (nextRun.status === "failed" || nextRun.status === "blocked") {
+        const message = nextRun.failure?.message || "当前学习路径暂时无法生成资源";
+        error.value = message;
+        run.value = nextRun;
+        persistRun();
+        throw new Error(message);
+      }
+      run.value = nextRun;
       persistRun();
+      return nextRun;
     } catch (reason) {
-      error.value = reason instanceof Error ? reason.message : "学习路径生成失败";
+      if (!error.value) error.value = reason instanceof Error ? reason.message : "学习路径生成失败";
+      throw reason;
     } finally {
       loading.value = false;
     }
@@ -42,6 +52,10 @@ export const useLearningPathStore = defineStore("learningPath", () => {
 
   async function startNode(conceptId: string) {
     if (!run.value?.run_id) return;
+    const existingNode = nodes.value.find((node) => node.concept_id === conceptId);
+    // Terminal path nodes cannot be started again by the platform. Callers can
+    // still open their local course resources without mutating the run.
+    if (existingNode?.status === "skipped" || existingNode?.status === "completed") return run.value;
     run.value = await planningApi.startNode(run.value.run_id, conceptId);
     persistRun();
   }

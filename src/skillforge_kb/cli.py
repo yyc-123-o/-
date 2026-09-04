@@ -19,6 +19,7 @@ from skillforge_kb.agents.runtime import (
     validate_standalone_agent_paths,
 )
 from skillforge_kb.api.app import create_app
+from skillforge_kb.api.preferences import JsonPreferencesStore
 from skillforge_kb.config import Settings
 from skillforge_kb.evaluation import (
     DEFAULT_SYNTHETIC_CASE_COUNT,
@@ -88,7 +89,15 @@ def platform_serve(
         profile_adapter = build_default_profile_agent_adapter(root)
     except (OSError, ValueError, ValidationError, yaml.YAMLError) as exc:
         raise typer.BadParameter(f"platform configuration failed: {exc}") from exc
-    uvicorn.run(create_app(service, profile_adapter=profile_adapter), host=host, port=port)
+    uvicorn.run(
+        create_app(
+            service,
+            profile_adapter=profile_adapter,
+            preferences_store=JsonPreferencesStore(root / ".skillforge" / "preferences.json"),
+        ),
+        host=host,
+        port=port,
+    )
 
 
 @app.command("fusion-dry-run")

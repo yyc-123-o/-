@@ -22,8 +22,8 @@ function readState(): LearnerPersistedState {
       // A previous frontend version may have persisted a partial profile.
       // Do not treat it as a current learner until its identity is complete.
       profile: parsed.profile?.learner ? parsed.profile : null,
-      snapshot: parsed.snapshot ?? null,
-      previousSnapshot: parsed.previousSnapshot ?? null,
+      snapshot: normalizeSnapshot(parsed.snapshot),
+      previousSnapshot: normalizeSnapshot(parsed.previousSnapshot),
       source: parsed.source ?? "empty",
       baselineProfileId: parsed.baselineProfileId ?? "",
       baselineLearnerId: parsed.baselineLearnerId ?? "",
@@ -42,6 +42,22 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeSnapshot(value: unknown): LearnerSnapshot | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  // Older builds persisted the complete adaptation response instead of its
+  // snapshot. Unwrap it so the platform API receives the expected schema.
+  const snapshot = candidate.snapshot && typeof candidate.snapshot === "object"
+    ? candidate.snapshot
+    : value;
+  const normalized = snapshot as Partial<LearnerSnapshot>;
+  return typeof normalized.schema_version === "string"
+    && typeof normalized.profile_id === "string"
+    && typeof normalized.learner_ref === "string"
+    ? normalized as LearnerSnapshot
+    : null;
 }
 
 export const useLearnerStore = defineStore("learner", () => {
@@ -205,7 +221,13 @@ export const useLearnerStore = defineStore("learner", () => {
       },
       learning_scope: {
         chapter_id: String(scope.chapter_id || "ch03_cnn"),
+        chapter_name: String(scope.chapter_name || "卷积神经网络（CNN）"),
         primary_kp_id: String(scope.primary_kp_id || "kp_012"),
+        primary_kp_name: String(
+          scope.primary_kp_name
+          || asRecord(rawPoints[String(scope.primary_kp_id || "kp_012")]).name
+          || "",
+        ),
         target_depth: String(scope.target_depth || "入门"),
       },
     };
