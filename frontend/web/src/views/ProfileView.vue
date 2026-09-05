@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 import {
   ArrowRight,
   CheckCircle2,
@@ -25,6 +25,7 @@ const router = useRouter();
 const learner = useLearnerStore();
 const records = useLearningRecordsStore();
 const profileRange = computed(() => String(route.query.range || "30d"));
+const profileLearnerId = ref(learner.selectedLearnerId || "");
 
 const profile = computed(() => learner.profile);
 const knowledgeMastery = computed(() => profile.value?.knowledge_mastery);
@@ -229,6 +230,14 @@ function verdictClass(verdict: string) {
 
 async function refreshProfile() {
   await learner.loadLearners();
+  if (!learner.profile && profileLearnerId.value) {
+    await learner.selectLearner(profileLearnerId.value);
+  }
+}
+
+async function loadExistingProfile() {
+  if (!profileLearnerId.value) return;
+  await learner.selectLearner(profileLearnerId.value);
 }
 
 function exportReport() {
@@ -255,13 +264,23 @@ async function saveBaseline() {
 async function verifyOutcome() {
   await learner.verifyOutcome();
 }
+
+onMounted(async () => {
+  if (learner.profile || learner.loading) return;
+  await learner.loadLearners();
+  if (learner.selectedLearnerId) {
+    profileLearnerId.value = learner.selectedLearnerId;
+  } else if (learner.learners.length === 1) {
+    profileLearnerId.value = learner.learners[0].id;
+    await loadExistingProfile();
+  }
+});
 </script>
 
 <template>
   <div class="profile-reference-page page-stack">
     <header class="profile-reference-header">
       <div>
-        <h2>学习者画像</h2>
         <p>基于学习记录、测评结果和路径进度持续更新。</p>
       </div>
       <div class="profile-header-actions">
@@ -295,6 +314,26 @@ async function verifyOutcome() {
       <button type="button" class="button button-primary" @click="router.push('/diagnosis')">
         开始诊断 <ArrowRight :size="16" />
       </button>
+      <div v-if="learner.learners.length" class="profile-empty-loader">
+        <label for="profile-existing-learner">已有学习者画像</label>
+        <div class="profile-empty-loader-row">
+          <select id="profile-existing-learner" v-model="profileLearnerId">
+            <option value="">请选择学习者</option>
+            <option v-for="item in learner.learners" :key="item.id" :value="item.id">
+              {{ item.name }} · {{ item.major }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="button button-secondary"
+            :disabled="!profileLearnerId || learner.loading"
+            @click="loadExistingProfile"
+          >
+            {{ learner.loading ? "载入中…" : "载入画像" }}
+          </button>
+        </div>
+        <small>载入已有诊断记录后，掌握度和能力结构会在此展示。</small>
+      </div>
     </section>
 
     <template v-else>
