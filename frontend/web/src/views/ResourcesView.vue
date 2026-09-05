@@ -20,6 +20,7 @@ import { useLearnerStore } from "@/stores/learner";
 import { useLearningPathStore } from "@/stores/learningPath";
 import { useLearningRecordsStore } from "@/stores/learningRecords";
 import { courseIdFromProfile, courseTitle, knowledgeTitle } from "@/utils/knowledgeGraph";
+import { firstResourceForKnowledgePoint, resourceIdFor } from "@/utils/resourceCatalog";
 
 type KnowledgeStatus = "mastered" | "learning" | "completed_unassessed" | "review" | "not_started" | "locked";
 type ViewTab = "catalog" | "resources" | "favorites";
@@ -94,12 +95,12 @@ const filteredResourceRows = computed(() =>
   ),
 );
 const nodePanelTitle = computed(() => {
-  if (activeTab.value === "resources") return "全部学习资源";
+  if (activeTab.value === "resources") return "本课程资源";
   if (activeTab.value === "favorites") return "我的收藏";
   return `第${String(selectedChapter.value.order).padStart(2, "0")}章 · ${selectedChapter.value.title}`;
 });
 const nodePanelSubtitle = computed(() => {
-  if (activeTab.value === "resources") return "按课程结构汇总讲义、示例、练习与测评";
+  if (activeTab.value === "resources") return "仅展示当前课程与当前知识点关联的讲义、示例、练习与测评";
   if (activeTab.value === "favorites") return favoriteIds.value.length ? "你收藏的知识点会在这里集中展示" : "还没有收藏内容";
   return selectedChapter.value.subtitle;
 });
@@ -218,17 +219,17 @@ function closeDetail() {
 
 async function openLearning(node = selectedNode.value) {
   if (!node || statusForNode(node) === "locked") return;
+  const resource = firstResourceForKnowledgePoint(node.id, selectedStatus.value === "review" ? "practice" : "lecture");
+  if (!resource) {
+    completeError.value = "该知识点暂时没有学习资源，可以前往学习资源中心搜索相关内容。";
+    return;
+  }
   if (!path.run?.run_id) {
     await path.generate();
   } else if (pathNodeById.value.has(node.id) && node.id !== currentConceptId.value) {
     await path.startNode(node.id);
   }
-  activeTab.value = "resources";
-  activeResourceTab.value = "lecture";
-  syncUrlState();
-  notice.value = path.run?.run_id
-    ? `已进入「${node.title}」的学习资源。`
-    : "已打开课程知识点，完成学情诊断后可生成个性化资源。";
+  void router.push({ path: `/learn/${resource.id}`, query: { knowledgePointId: node.id, from: "course-library" } });
 }
 
 async function completeLearningContent() {
@@ -341,8 +342,9 @@ function syncUrlState() {
   if (detailOpen.value) query.detail = "1";
   else delete query.detail;
   void router.replace({
+    path: route.path.startsWith("/courses") ? route.path : "/courses",
     query,
-    hash: activeTab.value === "resources" ? "#learning-resources" : "#knowledge-base",
+    hash: "#knowledge-base",
   });
 }
 
@@ -379,11 +381,11 @@ function openResource(item: ReturnType<typeof resourcesForNode>[number]) {
     void openAssessment();
     return;
   }
-  void openLearning(selectedNode.value);
+  void router.push({ path: `/learn/${item.id}`, query: { knowledgePointId: selectedNode.value?.id || "", from: "course-library" } });
 }
 
 function locateInGraph() {
-  void router.push({ path: "/course-center/knowledge-graph", query: selectedNode.value ? { nodeId: selectedNode.value.id, courseId: courseKnowledgeBase.id } : { courseId: courseKnowledgeBase.id } });
+  void router.push({ path: "/knowledge-graph", query: selectedNode.value ? { nodeId: selectedNode.value.id, courseId: courseKnowledgeBase.id } : { courseId: courseKnowledgeBase.id } });
 }
 
 function masteryForNode(node?: CourseKnowledgeNode | null) {
@@ -514,10 +516,10 @@ function statusPercent(node: CourseKnowledgeNode) {
 function resourcesForNode(node?: CourseKnowledgeNode | null, kind: ResourceKind = "all") {
   if (!node) return [];
   return [
-    { kind: "lecture" as const, label: "讲义", title: `${node.title}工作原理`, meta: `${node.lectures}份讲义 · ${node.estimatedMinutes}分钟`, icon: Play },
-    { kind: "example" as const, label: "示例", title: `${node.title}可视化示例`, meta: `${node.examples}个示例`, icon: FileText },
-    { kind: "practice" as const, label: "练习", title: `${node.title}练习`, meta: `${node.exercises}道题`, icon: BookOpen },
-    { kind: "assessment" as const, label: "测评", title: `${node.title}单元测评`, meta: `${node.assessments}套测评`, icon: FileCheck2 },
+    { id: resourceIdFor(node.id, "lecture"), kind: "lecture" as const, label: "讲义", title: `${node.title}工作原理`, meta: `${node.lectures}份讲义 · ${node.estimatedMinutes}分钟`, icon: Play },
+    { id: resourceIdFor(node.id, "example"), kind: "example" as const, label: "示例", title: `${node.title}可视化示例`, meta: `${node.examples}个示例`, icon: FileText },
+    { id: resourceIdFor(node.id, "practice"), kind: "practice" as const, label: "练习", title: `${node.title}练习`, meta: `${node.exercises}道题`, icon: BookOpen },
+    { id: resourceIdFor(node.id, "assessment"), kind: "assessment" as const, label: "测评", title: `${node.title}单元测评`, meta: `${node.assessments}套测评`, icon: FileCheck2 },
   ].filter((item) => kind === "all" || item.kind === kind);
 }
 
@@ -574,7 +576,7 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
     <section class="kb-toolbar panel">
       <div class="kb-tabs" role="tablist" aria-label="课程知识库视图">
         <button :class="{ active: activeTab === 'catalog' }" type="button" @click="setActiveTab('catalog')">知识目录</button>
-        <button :class="{ active: activeTab === 'resources' }" type="button" @click="setActiveTab('resources')">全部资源</button>
+        <button :class="{ active: activeTab === 'resources' }" type="button" @click="setActiveTab('resources')">本课程资源</button>
         <button :class="{ active: activeTab === 'favorites' }" type="button" @click="setActiveTab('favorites')">我的收藏</button>
       </div>
       <div class="kb-filters">
@@ -1445,6 +1447,104 @@ watch([searchQuery, resourceKind, statusFilter, sortMode], () => {
   }
   .detail-panel {
     width: 100vw;
+  }
+}
+/* Course overview compact layout: keep the existing data and actions intact. */
+.course-kb .kb-overview {
+  grid-template-columns: 176px minmax(360px, 1fr) minmax(560px, 1.3fr);
+  grid-template-rows: auto auto;
+  column-gap: 24px;
+  row-gap: 18px;
+  align-items: center;
+  padding: 22px 24px;
+}
+.course-kb .kb-overview .course-meta {
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 2;
+  grid-template-columns: 176px minmax(0, 1fr);
+  gap: 24px;
+}
+.course-kb .kb-overview .course-cover {
+  width: 176px;
+  height: 176px;
+}
+.course-kb .kb-overview .course-meta p {
+  margin: 10px 0 18px;
+}
+.course-kb .kb-overview .course-progress-line {
+  grid-template-columns: auto minmax(260px, 320px) 40px;
+}
+.course-kb .kb-overview .course-stats {
+  grid-column: 3;
+  grid-row: 1;
+  align-items: center;
+}
+.course-kb .kb-overview .course-stat {
+  min-height: 66px;
+}
+.course-kb .kb-overview .course-stat span {
+  font-size: 14px;
+}
+.course-kb .kb-overview .course-stat b {
+  margin-top: 8px;
+  font-size: 30px;
+}
+.course-kb .kb-overview .overview-actions {
+  grid-column: 3;
+  grid-row: 2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.course-kb .kb-overview .overview-actions .button {
+  width: auto;
+  min-height: 46px;
+  padding-inline: 18px;
+}
+
+@media (max-width: 1440px) and (min-width: 1100px) {
+  .course-kb .kb-overview {
+    grid-template-columns: 152px minmax(300px, 1fr) minmax(480px, 1.2fr);
+  }
+  .course-kb .kb-overview .course-meta {
+    grid-template-columns: 152px minmax(0, 1fr);
+  }
+  .course-kb .kb-overview .course-cover {
+    width: 152px;
+    height: 152px;
+  }
+  .course-kb .kb-overview .course-progress-line {
+    grid-template-columns: auto minmax(180px, 260px) 40px;
+  }
+}
+
+@media (max-width: 1099px) {
+  .course-kb .kb-overview {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    row-gap: 18px;
+  }
+  .course-kb .kb-overview .course-meta,
+  .course-kb .kb-overview .course-stats,
+  .course-kb .kb-overview .overview-actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .course-kb .kb-overview .overview-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 899px) {
+  .course-kb .kb-overview .course-meta {
+    grid-template-columns: 1fr;
+  }
+  .course-kb .kb-overview .course-cover {
+    width: 100%;
+    height: 116px;
+  }
+  .course-kb .kb-overview .course-progress-line {
+    grid-template-columns: 56px minmax(0, 1fr) 42px;
   }
 }
 </style>

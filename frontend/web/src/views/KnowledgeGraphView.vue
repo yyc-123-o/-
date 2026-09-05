@@ -310,7 +310,7 @@ function selectCourse(id: string) {
 function openKnowledgeBase(kind?: "lecture" | "example" | "practice" | "assessment") {
   if (!selectedNode.value) return;
   void router.push({
-    path: "/resources",
+    path: `/courses/${encodeURIComponent(selectedNode.value.courseId || "current")}/knowledge`,
     query: {
       courseId: selectedNode.value.courseId || globalKnowledgeGraph.courses[1]?.id,
       chapterId: selectedNode.value.chapterId || undefined,

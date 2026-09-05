@@ -19,6 +19,7 @@ import { RouterLink, useRouter } from "vue-router";
 import ProgressRing from "@/components/ProgressRing.vue";
 import { useLearnerStore } from "@/stores/learner";
 import { useLearningPathStore } from "@/stores/learningPath";
+import { firstResourceForKnowledgePoint } from "@/utils/resourceCatalog";
 
 const learner = useLearnerStore();
 const path = useLearningPathStore();
@@ -57,6 +58,9 @@ const weakPoint = computed(() =>
   || "暂未识别薄弱知识点",
 );
 const currentMinutes = computed(() => currentNode.value?.estimated_minutes || null);
+const currentLearningResource = computed(() =>
+  currentNode.value?.concept_id ? firstResourceForKnowledgePoint(currentNode.value.concept_id) : null,
+);
 const currentStage = computed(() => {
   if (!profile.value) return "学情诊断";
   if (!path.run) return "课程规划";
@@ -73,7 +77,7 @@ const nextAction = computed(() => {
   if (!path.run) {
     return { label: "生成路径", to: "/learning-path", kind: "link" as const };
   }
-  return { label: "继续学习", to: "/resources", kind: "link" as const };
+  return { label: "继续学习", to: currentLearningResource.value ? `/learn/${currentLearningResource.value.id}` : "/resources", kind: "link" as const };
 });
 
 const stageDefinitions = computed(() => {
@@ -114,7 +118,7 @@ const nextLearning = computed(() => {
     title: currentNodeName.value,
     description: currentNode.value?.summary || "完成当前节点后，测评反馈会帮助系统继续调整下一步安排。",
     meta: currentMinutes.value ? `预计 ${currentMinutes.value} 分钟` : "进入资源中心开始学习",
-    to: "/resources",
+    to: currentLearningResource.value ? `/learn/${currentLearningResource.value.id}` : "/resources",
     action: "继续学习",
   };
 });
@@ -198,7 +202,7 @@ function openStage(stage: { state: string; key: string }) {
     return;
   }
   const routes: Record<string, string> = {
-    materials: "/resources#knowledge-base",
+    materials: "/courses",
     graph: "/learning-path#knowledge-graph",
     diagnosis: "/diagnosis",
     planning: "/learning-path",

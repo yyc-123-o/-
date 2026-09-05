@@ -23,6 +23,7 @@ import {
   courseTitle,
   knowledgeTitle,
 } from "@/utils/knowledgeGraph";
+import { firstResourceForKnowledgePoint } from "@/utils/resourceCatalog";
 
 type ViewMode = "recommended" | "all" | "learned";
 
@@ -216,7 +217,8 @@ function openSelectedResource() {
     void router.push("/assessment");
     return;
   }
-  void router.push("/resources");
+  const resource = selectedNode.value?.id ? firstResourceForKnowledgePoint(selectedNode.value.id) : null;
+  void router.push(resource ? `/learn/${resource.id}` : "/resources");
 }
 
 watch(() => route.query.kp, (value) => {
